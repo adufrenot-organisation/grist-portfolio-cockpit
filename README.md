@@ -1,74 +1,62 @@
-# Grist Portfolio Cockpit — V2
+# Grist Portfolio Cockpit — V3.0.0
 
-V2 éditable du cockpit Grist.
+## Pourquoi cette V3 ?
 
-## Nouveautés V2
+La V2 pouvait échouer avec `KeyError 'budget'` si le document Grist ne contenait pas exactement la colonne `budget`.
 
-- modification d'un projet ;
-- création d'une tâche ou d'un jalon ;
-- modification d'une tâche ;
-- suppression persistante d'une tâche ;
-- suppression persistante d'un projet avec nettoyage des lignes liées :
-  - `Tasks`
-  - `Contributions_Objectifs`
-  - `Allocations`
-- confirmation avant suppression ;
-- relecture systématique depuis Grist après chaque écriture.
+La V3 corrige ce problème : **les écritures sont désormais tolérantes au schéma**.
 
-## Principe critique
+Le widget lit la liste réelle des colonnes renvoyées par Grist et n'envoie que les champs qui existent réellement.
 
-**Grist est l'unique source de vérité.**
+Par exemple, si `Projects.budget` n'existe pas, le bouton **Modifier** peut quand même enregistrer le nom, le statut, la progression, etc.
 
-Le widget ne stocke aucune donnée métier dans `localStorage` ou `IndexedDB`.
+## Nouveautés V3
 
-Chaque modification suit ce cycle :
+- correction robuste du `KeyError 'budget'` et erreurs analogues ;
+- alias de colonnes (`budget` / `Budget`, `dateDebut` / `Date_Debut`, etc.) ;
+- version visible `v3.0.0` ;
+- cache-busting des fichiers JS/CSS via `?v=3.0.0` ;
+- édition de l'activité du projet ;
+- affectation de membres `Team` aux tâches ;
+- ajout / retrait d'objectifs stratégiques depuis le cockpit ;
+- mini-Gantt intégré, directement calculé depuis `Tasks` ;
+- création / modification / suppression persistantes des tâches ;
+- suppression contrôlée des projets et dépendances connues ;
+- aucune donnée métier persistée dans le navigateur.
 
-1. action utilisateur ;
-2. `grist.docApi.applyUserActions(...)` ;
-3. attente de la confirmation ;
-4. `fetchTable()` sur les tables Grist ;
-5. reconstruction de l'interface.
+## Mise à jour GitHub Pages
 
-Cela évite qu'un ancien état local « ressuscite » des données supprimées.
+Remplace les fichiers de ton dépôt par ceux de ce ZIP et pousse sur `main`.
 
-## Installation
+L'URL Grist ne change pas.
 
-Même procédure que la V1 :
+Le bandeau du widget doit ensuite afficher `v3.0.0`. Si ce numéro n'apparaît pas, Grist ou le navigateur affiche encore une ancienne version.
 
-1. publier `index.html`, `app.js`, `styles.css` à la racine d'un dépôt GitHub Pages ;
-2. ouvrir l'URL GitHub Pages dans un widget personnalisé Grist ;
-3. autoriser `Full document access`.
+## Source de vérité
 
-## Attention au schéma
+Après chaque `applyUserActions`, le widget relit les tables avec `fetchTable`.
 
-La V2 écrit directement dans les colonnes suivantes.
+Le widget ne restaure jamais une donnée supprimée depuis un cache local.
 
-### Projects
-`nom`, `code`, `statut`, `priorite`, `sponsor`, `progression`, `budget`, `risque`,
-`valeurStrategique`, `dateDebut`, `dateFin`
+## Tables
 
-### Tasks
-`titre`, `description`, `type`, `statut`, `priorite`, `progression`,
-`dateDebut`, `dateEcheance`, `projet`
+Même modèle qu'avant :
 
-Si ton document DINUM utilise un nom de colonne différent, adapte les identifiants dans `app.js`.
+- `Projects`
+- `Tasks`
+- `Team`
+- `Contributions_Objectifs`
+- `Objectifs`
+- `Axes_Strategiques`
+- `Activites`
+- `Services`
+- `Offres_Services`
+- `Allocations`
 
-## Suppression d'un projet
+## Important
 
-La V2 supprime en une seule action Grist :
-- les tâches liées ;
-- les contributions stratégiques liées ;
-- les allocations liées ;
-- puis le projet.
+La V3 tolère des colonnes optionnelles manquantes. Les colonnes structurantes restent nécessaires pour certaines fonctions, notamment :
+- le lien `Tasks → Projects` ;
+- les références de `Contributions_Objectifs` ;
+- les références `Projects → Activites → Services → Offres_Services`.
 
-Cette stratégie est volontaire pour éviter les références orphelines.
-
-## Limites V2
-
-- pas encore d'édition de l'activité ;
-- pas encore d'édition des contributions stratégiques ;
-- pas encore d'édition des affectations `Team` ;
-- pas encore de Gantt intégré ;
-- pas de mapping configurable des colonnes.
-
-Ce sont de bons candidats pour la V3.

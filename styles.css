@@ -29,3 +29,18 @@ dialog form { padding:18px; }
   .form-grid { grid-template-columns:1fr; }
   .form-grid label.wide { grid-column:span 1; }
 }
+
+.version { font-size:11px; background:#eff4ff; color:#175cd3; padding:3px 7px; border-radius:999px; margin-left:5px; }
+button.small { padding:6px 8px; font-size:12px; }
+.schema-hint { margin-top:12px; padding:9px 10px; background:#f9fafb; border:1px dashed #d0d5dd; border-radius:8px; color:#667085; font-size:11px; }
+.gantt-wrap { overflow-x:auto; }
+.gantt { min-width:760px; }
+.gantt-axis { display:grid; grid-template-columns:220px 1fr; border-bottom:1px solid var(--line); padding-bottom:7px; margin-bottom:5px; }
+.gantt-months { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); }
+.gantt-row { display:grid; grid-template-columns:220px 1fr; min-height:34px; align-items:center; border-bottom:1px solid #f2f4f7; }
+.gantt-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:10px; font-size:12px; }
+.gantt-track { position:relative; height:18px; background:#f8fafc; border-radius:4px; }
+.gantt-bar { position:absolute; top:2px; height:14px; min-width:5px; background:var(--accent); border-radius:4px; }
+.gantt-bar.milestone { width:12px !important; height:12px; transform:rotate(45deg); border-radius:2px; top:3px; }
+.gantt-today { position:absolute; top:0; bottom:0; width:1px; background:#f04438; opacity:.8; }
+.multi-note { font-size:11px; color:var(--muted); font-weight:400; }

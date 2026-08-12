@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Grist Portfolio Cockpit V2</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Grist Portfolio Cockpit V3.0.0</title>
+  <link rel="stylesheet" href="styles.css?v=3.0.0" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
   <div id="app">
     <header class="topbar">
       <div>
-        <div class="eyebrow">GRIST • COCKPIT PROJET • V2</div>
+        <div class="eyebrow">GRIST • COCKPIT PROJET <span class="version">v3.0.0</span></div>
         <h1 id="projectTitle">Chargement…</h1>
         <div id="projectMeta" class="muted"></div>
       </div>
@@ -33,7 +33,10 @@
       <section class="panel span-2">
         <div class="panel-head">
           <h2>🎯 Alignement stratégique</h2>
-          <span class="badge" id="objectiveCount"></span>
+          <div class="actions">
+            <span class="badge" id="objectiveCount"></span>
+            <button class="primary small" id="addContributionBtn">+ Objectif</button>
+          </div>
         </div>
         <div id="strategy"></div>
       </section>
@@ -46,6 +49,14 @@
       <section class="panel">
         <div class="panel-head"><h2>👥 Équipe & allocations</h2></div>
         <div id="team"></div>
+      </section>
+
+      <section class="panel span-2">
+        <div class="panel-head">
+          <h2>📅 Mini-Gantt</h2>
+          <span class="muted">Vue calculée directement depuis Tasks</span>
+        </div>
+        <div id="gantt"></div>
       </section>
 
       <section class="panel span-2">
@@ -65,16 +76,13 @@
     </main>
 
     <footer>
-      V2 éditable • Grist reste l’unique source de vérité • aucune donnée métier persistée côté navigateur
+      Cockpit v3.0.0 • Grist = source de vérité • aucun cache métier persistant
     </footer>
   </div>
 
   <dialog id="projectDialog">
     <form method="dialog" id="projectForm">
-      <div class="dialog-head">
-        <h3>Modifier le projet</h3>
-        <button type="button" class="icon" data-close="projectDialog">×</button>
-      </div>
+      <div class="dialog-head"><h3>Modifier le projet</h3><button type="button" class="icon" data-close="projectDialog">×</button></div>
       <div class="form-grid">
         <label>Nom<input name="nom" required /></label>
         <label>Code<input name="code" /></label>
@@ -85,45 +93,47 @@
         <label>Budget<input name="budget" type="number" step="1" /></label>
         <label>Risque<input name="risque" /></label>
         <label>Valeur stratégique<input name="valeurStrategique" type="number" step="1" /></label>
+        <label>Activité<select name="activite"></select></label>
         <label>Date début<input name="dateDebut" type="date" /></label>
         <label>Date fin<input name="dateFin" type="date" /></label>
       </div>
-      <div class="dialog-actions">
-        <button type="button" data-close="projectDialog">Annuler</button>
-        <button type="submit" class="primary">Enregistrer</button>
-      </div>
+      <div id="projectSchemaHint" class="schema-hint"></div>
+      <div class="dialog-actions"><button type="button" data-close="projectDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
     </form>
   </dialog>
 
   <dialog id="taskDialog">
     <form method="dialog" id="taskForm">
       <input type="hidden" name="id" />
-      <div class="dialog-head">
-        <h3 id="taskDialogTitle">Nouvelle tâche</h3>
-        <button type="button" class="icon" data-close="taskDialog">×</button>
-      </div>
+      <div class="dialog-head"><h3 id="taskDialogTitle">Nouvelle tâche</h3><button type="button" class="icon" data-close="taskDialog">×</button></div>
       <div class="form-grid">
         <label class="wide">Titre<input name="titre" required /></label>
         <label class="wide">Description<textarea name="description" rows="3"></textarea></label>
-        <label>Type
-          <select name="type">
-            <option value="tache">tache</option>
-            <option value="jalon">jalon</option>
-          </select>
-        </label>
+        <label>Type<select name="type"><option value="tache">tache</option><option value="jalon">jalon</option></select></label>
         <label>Statut<input name="statut" /></label>
         <label>Priorité<input name="priorite" /></label>
         <label>Progression (%)<input name="progression" type="number" min="0" max="100" step="1" /></label>
         <label>Date début<input name="dateDebut" type="date" /></label>
         <label>Échéance<input name="dateEcheance" type="date" /></label>
+        <label class="wide">Assignés<select name="assignees" multiple size="5"></select></label>
       </div>
-      <div class="dialog-actions">
-        <button type="button" data-close="taskDialog">Annuler</button>
-        <button type="submit" class="primary">Enregistrer</button>
-      </div>
+      <div id="taskSchemaHint" class="schema-hint"></div>
+      <div class="dialog-actions"><button type="button" data-close="taskDialog">Annuler</button><button type="submit" class="primary">Enregistrer</button></div>
     </form>
   </dialog>
 
-  <script src="app.js"></script>
+  <dialog id="contributionDialog">
+    <form method="dialog" id="contributionForm">
+      <div class="dialog-head"><h3>Ajouter un objectif au projet</h3><button type="button" class="icon" data-close="contributionDialog">×</button></div>
+      <div class="form-grid">
+        <label class="wide">Objectif<select name="objectif" required></select></label>
+        <label>Contribution (%)<input name="contribution" type="number" min="0" max="100" step="1" value="100" /></label>
+        <label class="wide">Commentaire<textarea name="commentaire" rows="3"></textarea></label>
+      </div>
+      <div class="dialog-actions"><button type="button" data-close="contributionDialog">Annuler</button><button type="submit" class="primary">Ajouter</button></div>
+    </form>
+  </dialog>
+
+  <script src="app.js?v=3.0.0"></script>
 </body>
 </html>

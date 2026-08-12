@@ -328,3 +328,25 @@ Règle V2 :
 - une suppression de projet demande confirmation et nettoie les dépendances connues avant le projet.
 
 Avant d'ajouter une nouvelle table dépendante de `Projects`, mettre à jour la suppression en cascade du cockpit ou interdire la suppression tant que des dépendances existent.
+
+
+---
+
+## Mise à jour V3.0.0
+
+La V3 introduit une couche de résolution de schéma :
+
+- les colonnes disponibles sont détectées à partir du résultat brut de `fetchTable`;
+- les champs sont adressés par sémantique avec plusieurs alias possibles;
+- une écriture n'envoie jamais une colonne absente;
+- les colonnes optionnelles manquantes sont signalées dans le formulaire.
+
+Fonctions V3 :
+- édition du projet et de son activité;
+- tâches et jalons CRUD;
+- affectation `Team` via `RefList`;
+- contributions stratégiques ajout/retrait;
+- mini-Gantt local dérivé uniquement des données courantes Grist;
+- version explicite `3.0.0` et cache-busting des assets.
+
+La règle reste : Grist est l'unique source de vérité.
