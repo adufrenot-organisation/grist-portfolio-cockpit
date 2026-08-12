@@ -350,3 +350,8 @@ Fonctions V3 :
 - version explicite `3.0.0` et cache-busting des assets.
 
 La règle reste : Grist est l'unique source de vérité.
+
+
+## Correctif V3.1
+
+Les associations stratégiques sont vérifiées après écriture. Les références Projet/Objectif sont obligatoires et ne peuvent plus être omises silencieusement.

@@ -1,4 +1,4 @@
-# Grist Portfolio Cockpit — V3.0.0
+# Grist Portfolio Cockpit — V3.1.0
 
 ## Pourquoi cette V3 ?
 
@@ -14,8 +14,8 @@ Par exemple, si `Projects.budget` n'existe pas, le bouton **Modifier** peut quan
 
 - correction robuste du `KeyError 'budget'` et erreurs analogues ;
 - alias de colonnes (`budget` / `Budget`, `dateDebut` / `Date_Debut`, etc.) ;
-- version visible `v3.0.0` ;
-- cache-busting des fichiers JS/CSS via `?v=3.0.0` ;
+- version visible `v3.1.0` ;
+- cache-busting des fichiers JS/CSS via `?v=3.1.0` ;
 - édition de l'activité du projet ;
 - affectation de membres `Team` aux tâches ;
 - ajout / retrait d'objectifs stratégiques depuis le cockpit ;
@@ -30,7 +30,7 @@ Remplace les fichiers de ton dépôt par ceux de ce ZIP et pousse sur `main`.
 
 L'URL Grist ne change pas.
 
-Le bandeau du widget doit ensuite afficher `v3.0.0`. Si ce numéro n'apparaît pas, Grist ou le navigateur affiche encore une ancienne version.
+Le bandeau du widget doit ensuite afficher `v3.1.0`. Si ce numéro n'apparaît pas, Grist ou le navigateur affiche encore une ancienne version.
 
 ## Source de vérité
 
@@ -60,3 +60,8 @@ La V3 tolère des colonnes optionnelles manquantes. Les colonnes structurantes r
 - les références de `Contributions_Objectifs` ;
 - les références `Projects → Activites → Services → Offres_Services`.
 
+
+
+## Correctif 3.1 — Objectifs ↔ Projets
+
+L’ajout d’un objectif vérifie maintenant explicitement les colonnes de référence vers `Projects` et `Objectifs`, puis relit Grist et vérifie que l’association existe réellement.

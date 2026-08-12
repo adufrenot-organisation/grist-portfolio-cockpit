@@ -1,5 +1,5 @@
 
-const VERSION = "3.0.0";
+const VERSION = "3.1.0";
 const TABLES = {
   projects: "Projects", tasks: "Tasks", team: "Team",
   contributions: "Contributions_Objectifs", objectives: "Objectifs",
@@ -225,12 +225,55 @@ async function deleteTask(id){const t=getById("tasks",id);if(t&&confirm(`Supprim
 function openContributionDialog(){
   const f=$("contributionForm"),existing=new Set(projectContribs(currentProjectId).map(c=>asId(val(c,"contributions","objectif"))));
   const choices=db.objectives.filter(o=>!existing.has(Number(o.id)));
-  fillSelect(f.objectif,choices,"objectives","nom",null,"Choisir un objectif…");f.contribution.value=100;f.commentaire.value="";
+  fillSelect(f.objectif,choices,"objectives","nom",null,"Choisir un objectif…");
+  f.contribution.value=100; f.commentaire.value="";
+  const pcol=resolveCol("contributions","projet"), ocol=resolveCol("contributions","objectif");
+  $("contributionSchemaHint").textContent =
+    `Mapping : projet → ${pcol || "ABSENT"} ; objectif → ${ocol || "ABSENT"}. ` +
+    `Ces deux colonnes doivent être des Références vers Projects et Objectifs.`;
   $("contributionDialog").showModal();
 }
-$("contributionForm").addEventListener("submit",async e=>{e.preventDefault();const f=e.currentTarget;
-  const fields=buildFields("contributions",{projet:currentProjectId,objectif:Number(f.objectif.value),contribution:fromPct(f.contribution.value),commentaire:f.commentaire.value.trim()});
-  $("contributionDialog").close();await apply([["AddRecord",TABLES.contributions,null,fields]],"Objectif ajouté.");
+$("contributionForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.currentTarget;
+  const objectifId = Number(f.objectif.value);
+  const projectCol = resolveCol("contributions", "projet");
+  const objectiveCol = resolveCol("contributions", "objectif");
+  const contributionCol = resolveCol("contributions", "contribution");
+  const commentCol = resolveCol("contributions", "commentaire");
+
+  if (!projectCol || !objectiveCol) {
+    showBanner(`Impossible d'associer l'objectif : colonnes de liaison introuvables dans ${TABLES.contributions}. Projet=${projectCol || "ABSENTE"}, Objectif=${objectiveCol || "ABSENTE"}.`);
+    return;
+  }
+  if (!currentProjectId || !objectifId) {
+    showBanner("Projet ou objectif non sélectionné.");
+    return;
+  }
+
+  const fields = { [projectCol]: Number(currentProjectId), [objectiveCol]: Number(objectifId) };
+  if (contributionCol) fields[contributionCol] = fromPct(f.contribution.value);
+  if (commentCol) fields[commentCol] = f.commentaire.value.trim();
+
+  $("contributionDialog").close();
+  if (isBusy) return;
+  setBusy(true);
+  try {
+    await grist.docApi.applyUserActions([["AddRecord", TABLES.contributions, null, fields]]);
+    await loadAll({preserveSelection:true});
+    const persisted = projectContribs(currentProjectId).some(c => asId(val(c, "contributions", "objectif")) === objectifId);
+    if (!persisted) {
+      showBanner(`Ligne créée mais association non retrouvée après relecture. Vérifie que ${TABLES.contributions}.${projectCol} référence bien Projects et que ${TABLES.contributions}.${objectiveCol} référence bien Objectifs.`);
+    } else {
+      showBanner("Objectif associé au projet.");
+      setTimeout(() => { if (!isBusy) hideBanner(); }, 1800);
+    }
+  } catch (e) {
+    console.error(e);
+    showBanner(`Erreur d'association : ${e?.message || e}`);
+  } finally {
+    setBusy(false);
+  }
 });
 async function removeContribution(id){if(confirm("Retirer cet objectif du projet ?"))await apply([["RemoveRecord",TABLES.contributions,id]],"Contribution retirée.");}
 

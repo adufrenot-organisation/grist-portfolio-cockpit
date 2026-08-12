@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Grist Portfolio Cockpit V3.0.0</title>
-  <link rel="stylesheet" href="styles.css?v=3.0.0" />
+  <title>Grist Portfolio Cockpit V3.1.0</title>
+  <link rel="stylesheet" href="styles.css?v=3.1.0" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
   <div id="app">
     <header class="topbar">
       <div>
-        <div class="eyebrow">GRIST • COCKPIT PROJET <span class="version">v3.0.0</span></div>
+        <div class="eyebrow">GRIST • COCKPIT PROJET <span class="version">v3.1.0</span></div>
         <h1 id="projectTitle">Chargement…</h1>
         <div id="projectMeta" class="muted"></div>
       </div>
@@ -76,7 +76,7 @@
     </main>
 
     <footer>
-      Cockpit v3.0.0 • Grist = source de vérité • aucun cache métier persistant
+      Cockpit v3.1.0 • Grist = source de vérité • aucun cache métier persistant
     </footer>
   </div>
 
@@ -130,10 +130,10 @@
         <label>Contribution (%)<input name="contribution" type="number" min="0" max="100" step="1" value="100" /></label>
         <label class="wide">Commentaire<textarea name="commentaire" rows="3"></textarea></label>
       </div>
-      <div class="dialog-actions"><button type="button" data-close="contributionDialog">Annuler</button><button type="submit" class="primary">Ajouter</button></div>
+      <div id="contributionSchemaHint" class="schema-hint"></div><div class="dialog-actions"><button type="button" data-close="contributionDialog">Annuler</button><button type="submit" class="primary">Ajouter</button></div>
     </form>
   </dialog>
 
-  <script src="app.js?v=3.0.0"></script>
+  <script src="app.js?v=3.1.0"></script>
 </body>
 </html>
