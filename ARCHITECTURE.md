@@ -149,3 +149,9 @@ pas encore configurées.
 
 Nettoyage des renderers hérités de l'ancienne vue Infos.
 Le cockpit ne référence plus de conteneurs DOM supprimés.
+
+
+## V4.6.0
+
+Projet → Etapes_Projet → Tasks est exposé comme Planning projet.
+Produit → Fonctionnalites → Tasks est exposé comme Roadmap produit.

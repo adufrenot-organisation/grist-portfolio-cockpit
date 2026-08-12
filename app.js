@@ -1,5 +1,5 @@
 
-const VERSION="4.5.6";
+const VERSION="4.6.0";
 const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
 const $=id=>{
@@ -102,46 +102,51 @@ function renderProject(){
   if(typeOf(p)==="projet"&&detailTab==="features")detailTab="overview";if(typeOf(p)==="produit"&&detailTab==="stages")detailTab="overview";
   const resp=get("team",id(p.responsable));
   $("projectMeta").textContent=[p.code,p.statut,resp?.nom?`Responsable : ${resp.nom}`:null].filter(Boolean).join(" • ");
-  progressSummary(p,ts);dateSummary(p,ts);loadSummary(ts);activitySummary(p);offerSummary(p);objectiveSummary(cs);statusSummary(p);
+  
   strategy(cs);team(ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);projectStagesView(p,ts);productFeaturesView(p,ts);renderSynthesis(p,ts,cs,as);
   switchDetailTab(detailTab,false);
 }
-function progressSummary(p,ts){
-  const xs=ts.filter(t=>!/jalon/i.test(String(t.type||"")));
-  const avg=xs.length?Math.round(xs.reduce((n,t)=>n+pct(t.progression),0)/xs.length):pct(p.progression);
-  const doneCount=xs.filter(t=>done(t.statut)||pct(t.progression)>=100).length;
-  $("progressSummary").innerHTML=`<div style="display:flex;align-items:center;gap:18px"><div style="font-size:34px;font-weight:800">${avg}%</div><div><div>Basé sur les tâches</div><div class="muted">${doneCount} / ${xs.length} tâches terminées</div></div></div><div class="metric-bar" style="margin-top:14px"><div style="width:${avg}%"></div></div>`;
-}
-function dateSummary(p,ts){
-  const starts=ts.map(t=>dms(t.dateDebut)).filter(Boolean),ends=ts.map(t=>dms(t.dateEcheance)).filter(Boolean);
-  const start=p.dateDebut|| (starts.length?Math.min(...starts):null),end=p.dateFin||(ends.length?Math.max(...ends):null);
-  $("dateSummary").innerHTML=`<div class="kv"><div class="key">Début</div><div class="value">${dt(start)}</div><div class="key">Fin prévue</div><div class="value">${dt(end)}</div><div class="key">Retard</div><div class="value">${ts.filter(late).length} tâche(s)</div></div>`;
-}
-function loadSummary(ts){
-  const est=ts.reduce((n,t)=>n+Number(t.estimationH||0),0),spent=ts.reduce((n,t)=>n+Number(t.tempsPasse||0),0),remain=Math.max(0,est-spent);
-  $("loadSummary").innerHTML=`<div><strong style="font-size:22px">${Math.round(remain)} h</strong> <span class="muted">Estimées restantes</span></div><div class="metric-bar" style="margin:12px 0"><div style="width:${est?Math.min(100,spent/est*100):0}%"></div></div><div><strong>${Math.round(spent)} h</strong> <span class="muted">Passées</span></div><div class="muted" style="margin-top:5px">${Math.round(est)} h estimées totales</div>`;
-}
-function activitySummary(p){
-  const a=get("activities",id(p.activite));$("activitySummary").innerHTML=`<div><strong>${a?.Nom||"—"}</strong></div><div class="muted" style="margin-top:8px">${a?.Type||""}</div>`;
-}
-function offerSummary(p){
-  const a=get("activities",id(p.activite)),ao=a?get("activityOffers",id(a.Service_Code)):null,o=ao?get("offers",id(ao.OFS_Code)):null;
-  $("offerSummary").innerHTML=`<div><strong style="color:#067647">${esc(o?.Nom||"—")}</strong></div><div class="muted" style="margin-top:8px">${esc(ao?.Activites_Nom||"")}</div>`;
-}
-function objectiveSummary(cs){$("objectiveSummary").innerHTML=`<div><strong>${cs.length} objectif(s)</strong></div><div class="muted" style="margin-top:8px">${cs.slice(0,2).map(c=>get("objectives",id(c.Objectif_Libelle)||id(c.Objectif_Code2))?.Nom).filter(Boolean).join(" • ")}</div>`}
-function statusSummary(p){$("statusSummary").innerHTML=`<div class="type-badge projet">Statut : ${esc(p.statut||"—")}</div><div style="height:8px"></div><div class="type-badge produit">Priorité : ${esc(p.priorite||"—")}</div>`}
+
+
+
+
+
+
+
 function switchDetailTab(tab,rerender=true){
   detailTab=tab;
   document.querySelectorAll("[data-detail-tab]").forEach(b=>b.classList.toggle("active",b.dataset.detailTab===tab));
-  const map={overview:"detailOverview",tasks:"detailTasks",stages:"detailStages",features:"detailFeatures",objectives:"detailObjectives",resources:"detailResources",infos:"detailInfos"};
+  const map={tasks:"detailTasks",stages:"detailStages",features:"detailFeatures",objectives:"detailObjectives",resources:"detailResources",infos:"detailInfos"};
   Object.entries(map).forEach(([k,id])=>$(id).classList.toggle("hidden",k!==tab));
   if(rerender&&tab==="tasks")gantt(taskRows(currentProjectId));
 }
 function kpi(l,v,s=""){return`<div class="kpi"><div class="kpi-label">${esc(l)}</div><div class="kpi-value">${esc(v)}</div><div class="kpi-sub">${s}</div></div>`}
 function bar(v){return`<div class="progress"><div style="width:${v}%"></div></div>`}
 
-function projectStagesView(p,ts){if(typeOf(p)!=="projet"){$("projectStagesView").innerHTML='<div class="empty">Cette vue concerne les projets.</div>';return}const stages=[...db.projectStages].sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0)),current=id(p.etape_courante),cur=get("projectStages",current);$("projectStagesView").innerHTML=`<div class="lifecycle">${stages.map(s=>`<span class="stage-pill ${s.id===current?"current":(cur&&Number(s.Ordre||0)<Number(cur.Ordre||0)?"done":"")}">${esc(s.Nom||s.Code||"")}</span>`).join("")}</div>`+stages.map(s=>{const st=ts.filter(t=>id(t.etape_projet)===s.id);return `<div class="stage-block"><h4>${esc(s.Nom||s.Code||"")}</h4>${st.length?`<table><thead><tr><th>Tâche</th><th>Statut</th><th>Avancement</th></tr></thead><tbody>${st.map(t=>`<tr><td>${esc(t.titre||"")}</td><td>${esc(t.statut||"")}</td><td>${pct(t.progression)}%</td></tr>`).join("")}</tbody></table>`:'<div class="muted">Aucune tâche rattachée.</div>'}</div>`}).join("")}
-function productFeaturesView(p,ts){if(typeOf(p)!=="produit"){$("productFeaturesView").innerHTML='<div class="empty">Cette vue concerne les produits.</div>';return}const fs=db.features.filter(f=>id(f.produit)===p.id);$("productFeaturesView").innerHTML=fs.length?`<div class="feature-grid">${fs.map(f=>{const st=get("featureStages",id(f.stade)),linked=ts.filter(t=>id(t.fonctionnalite)===f.id);return `<div class="feature-card"><div class="feature-card-head"><div><h4>${esc(f.Nom||"")}</h4><div class="feature-meta">${esc(f.Code||"")} • ${esc(st?.Nom||"Sans stade")}</div></div><strong>${pct(f.Progression)}%</strong></div><div class="feature-meta">${esc(f.Description||"")}</div><div class="metric-bar" style="margin-top:10px"><div style="width:${pct(f.Progression)}%"></div></div><div class="feature-meta">${linked.length} tâche(s) • cible ${dt(f.Date_Cible)}</div><div class="feature-actions"><button data-feature-edit="${f.id}">Modifier</button><button class="danger" data-feature-del="${f.id}">Supprimer</button></div></div>`}).join("")}</div>`:'<div class="empty">Aucune fonctionnalité pour ce produit.</div>';document.querySelectorAll("[data-feature-edit]").forEach(b=>b.onclick=()=>openFeature(Number(b.dataset.featureEdit)));document.querySelectorAll("[data-feature-del]").forEach(b=>b.onclick=()=>deleteFeature(Number(b.dataset.featureDel)))}
+function projectStagesView(p,ts){
+  if(typeOf(p)!=="projet"){$("projectStagesView").innerHTML='<div class="empty">Cette vue concerne les projets.</div>';return}
+  const stages=[...db.projectStages].sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0));
+  const current=id(p.etape_courante);
+  if(!stages.length){$("projectStagesView").innerHTML='<div class="empty">Aucune étape dans Etapes_Projet. Crée le référentiel dans Admin & Audit.</div>';return}
+  const currentStage=get("projectStages",current);
+  $("projectStagesView").innerHTML=
+    `<div class="lifecycle">${stages.map(s=>{const cls=s.id===current?"current":(currentStage&&Number(s.Ordre||0)<Number(currentStage.Ordre||0)?"done":"");return`<span class="stage-pill ${cls}">${esc(s.Nom||s.Code||"")}</span>`}).join("")}</div>`+
+    stages.map(s=>{
+      const st=ts.filter(t=>id(t.etape_projet)===s.id);
+      const starts=st.map(t=>dms(t.dateDebut)).filter(Boolean),ends=st.map(t=>dms(t.dateEcheance)).filter(Boolean);
+      const avg=st.length?Math.round(st.reduce((n,t)=>n+pct(t.progression),0)/st.length):0;
+      return `<div class="stage-block">
+        <div class="stage-head">
+          <div><h4>${esc(s.Nom||s.Code||"")}</h4><div class="muted">${st.length} tâche(s) • ${avg}% • ${starts.length?dt(Math.min(...starts)):"—"} → ${ends.length?dt(Math.max(...ends)):"—"}</div></div>
+          <button class="primary-outline" data-add-stage-task="${s.id}">+ Tâche</button>
+        </div>
+        ${st.length?`<table><thead><tr><th>Tâche</th><th>Statut</th><th>Début</th><th>Échéance</th><th>Avancement</th><th></th></tr></thead><tbody>${st.map(t=>`<tr><td>${esc(t.titre||"")}</td><td>${esc(t.statut||"")}</td><td>${dt(t.dateDebut)}</td><td>${dt(t.dateEcheance)}</td><td>${pct(t.progression)}%</td><td><button data-stage-edit-task="${t.id}">Modifier</button></td></tr>`).join("")}</tbody></table>`:'<div class="muted">Aucune tâche rattachée.</div>'}
+      </div>`;
+    }).join("");
+  document.querySelectorAll("[data-add-stage-task]").forEach(b=>b.onclick=()=>openTask(null,{stageId:Number(b.dataset.addStageTask)}));
+  document.querySelectorAll("[data-stage-edit-task]").forEach(b=>b.onclick=()=>openTask(Number(b.dataset.stageEditTask)));
+}
+function productFeaturesView(p,ts){if(typeOf(p)!=="produit"){$("productFeaturesView").innerHTML='<div class="empty">Cette vue concerne les produits.</div>';return}const fs=db.features.filter(f=>id(f.produit)===p.id);$("productFeaturesView").innerHTML=fs.length?`<div class="feature-grid">${fs.map(f=>{const st=get("featureStages",id(f.stade)),linked=ts.filter(t=>id(t.fonctionnalite)===f.id);return `<div class="feature-card"><div class="feature-card-head"><div><h4>${esc(f.Nom||"")}</h4><div class="feature-meta">${esc(f.Code||"")} • ${esc(st?.Nom||"Sans stade")}</div></div><strong>${pct(f.Progression)}%</strong></div><div class="feature-meta">${esc(f.Description||"")}</div><div class="metric-bar" style="margin-top:10px"><div style="width:${pct(f.Progression)}%"></div></div><div class="feature-meta">${linked.length} tâche(s) • cible ${dt(f.Date_Cible)}</div><div class="feature-actions"><button class="primary-outline" data-feature-task="${f.id}">+ Tâche</button><button data-feature-edit="${f.id}">Modifier</button><button class="danger" data-feature-del="${f.id}">Supprimer</button></div></div>`}).join("")}</div>`:'<div class="empty">Aucune fonctionnalité pour ce produit.</div>';document.querySelectorAll("[data-feature-task]").forEach(b=>b.onclick=()=>openTask(null,{featureId:Number(b.dataset.featureTask)}));document.querySelectorAll("[data-feature-edit]").forEach(b=>b.onclick=()=>openFeature(Number(b.dataset.featureEdit)));document.querySelectorAll("[data-feature-del]").forEach(b=>b.onclick=()=>deleteFeature(Number(b.dataset.featureDel)))}
 
 
 function weatherBadge(p,ts){
@@ -447,7 +452,7 @@ $("projectForm").onsubmit=async e=>{
 }
 
 function fillMulti(el,rows,label,selected=[]){const s=new Set(selected.map(Number));el.innerHTML=rows.map(r=>`<option value="${r.id}" ${s.has(Number(r.id))?"selected":""}>${esc(label(r))}</option>`).join("")}
-function openTask(tid=null){const f=$("taskForm");f.reset();f.id.value=tid||"";const t=tid?get("tasks",tid):null;$("taskDialogTitle").textContent=t?"Modifier la tâche":"Nouvelle tâche";if(t){["titre","description","Code","type","statut","priorite","estimationH","tempsPasse"].forEach(k=>f[k].value=t[k]??"");f.progression.value=pct(t.progression);f.dateDebut.value=din(t.dateDebut);f.dateEcheance.value=din(t.dateEcheance);f.tags.value=Array.isArray(t.tags)?t.tags.filter(x=>typeof x==="string").join(", "):""}else{f.type.value="tache";f.progression.value=0}opt(f.etape_projet,db.projectStages,r=>r.Nom,t?id(t.etape_projet):null,"— étape projet —");opt(f.fonctionnalite,db.features.filter(x=>id(x.produit)===currentProjectId),r=>r.Nom,t?id(t.fonctionnalite):null,"— fonctionnalité —");fillMulti(f.assignees,db.team,r=>r.nom,t?refs(t.assignees):[]);fillMulti(f.dependDe,taskRows(currentProjectId).filter(x=>x.id!==tid),r=>r.titre,t?refs(t.dependDe):[]);opt(f.parentTask,taskRows(currentProjectId).filter(x=>x.id!==tid),r=>r.titre,t?id(t.parentTask):null,"— aucune —");$("taskDialog").showModal()}
+function openTask(tid=null,preset={}){const f=$("taskForm");f.reset();f.id.value=tid||"";const t=tid?get("tasks",tid):null;$("taskDialogTitle").textContent=t?"Modifier la tâche":"Nouvelle tâche";if(t){["titre","description","Code","type","statut","priorite","estimationH","tempsPasse"].forEach(k=>f[k].value=t[k]??"");f.progression.value=pct(t.progression);f.dateDebut.value=din(t.dateDebut);f.dateEcheance.value=din(t.dateEcheance);f.tags.value=Array.isArray(t.tags)?t.tags.filter(x=>typeof x==="string").join(", "):""}else{f.type.value="tache";f.progression.value=0}opt(f.etape_projet,db.projectStages,r=>r.Nom,t?id(t.etape_projet):(preset.stageId||null),"— étape projet —");opt(f.fonctionnalite,db.features.filter(x=>id(x.produit)===currentProjectId),r=>r.Nom,t?id(t.fonctionnalite):(preset.featureId||null),"— fonctionnalité —");fillMulti(f.assignees,db.team,r=>r.nom,t?refs(t.assignees):[]);fillMulti(f.dependDe,taskRows(currentProjectId).filter(x=>x.id!==tid),r=>r.titre,t?refs(t.dependDe):[]);opt(f.parentTask,taskRows(currentProjectId).filter(x=>x.id!==tid),r=>r.titre,t?id(t.parentTask):null,"— aucune —");$("taskDialog").showModal()}
 $("taskForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,tid=Number(f.id.value)||null,tags=f.tags.value.split(",").map(s=>s.trim()).filter(Boolean),fields={titre:f.titre.value,description:f.description.value,Code:f.Code.value,type:f.type.value,statut:f.statut.value,priorite:f.priorite.value,progression:fromPct(f.progression.value),estimationH:f.estimationH.value===""?null:Number(f.estimationH.value),tempsPasse:f.tempsPasse.value===""?null:Number(f.tempsPasse.value),dateDebut:gd(f.dateDebut.value),dateEcheance:gd(f.dateEcheance.value),etape_projet:f.etape_projet.value?Number(f.etape_projet.value):null,fonctionnalite:f.fonctionnalite.value?Number(f.fonctionnalite.value):null,projet:currentProjectId,assignees:reflist([...f.assignees.selectedOptions].map(o=>Number(o.value))),dependDe:reflist([...f.dependDe.selectedOptions].map(o=>Number(o.value))),parentTask:f.parentTask.value?Number(f.parentTask.value):null,tags:["L",...tags]};$("taskDialog").close();await apply([[tid?"UpdateRecord":"AddRecord","Tasks",tid||null,fields]],tid?"Tâche mise à jour.":"Tâche créée.")}
 async function deleteTask(tid){const t=get("tasks",tid);if(t&&confirm(`Supprimer « ${t.titre} » ?`))await apply([["RemoveRecord","Tasks",tid]],"Tâche supprimée.")}
 function openContribution(){const f=$("contributionForm"),existing=new Set(contribRows(currentProjectId).map(c=>id(c.Objectif_Libelle)||id(c.Objectif_Code2)));const choices=db.objectives.filter(o=>!existing.has(o.id));opt(f.objectif,choices,r=>r.Nom,null,"Choisir un objectif…");f.contribution.value=100;f.commentaire.value="";$("contributionDialog").showModal()}
@@ -462,7 +467,7 @@ document.querySelectorAll("[data-offer-type-filter]").forEach(b=>b.onclick=()=>{
 $("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer()};
 $("editProjectBtn").onclick=()=>openProject(false);$("newProjectBtn").onclick=()=>openProject(true);
 $("deleteProjectBtn").onclick=deleteProject;
-$("newTaskBtn").onclick=()=>openTask();
+$("newTaskBtn").onclick=()=>openTask();$("newStageTaskBtn").onclick=()=>openTask();
 $("addContributionBtn").onclick=openContribution;$("newFeatureBtn").onclick=()=>openFeature();
 document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{taskFilter=b.dataset.taskFilter;document.querySelectorAll("[data-task-filter]").forEach(x=>x.classList.toggle("active",x===b));tasks(taskRows(currentProjectId))});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const d=$(b.dataset.close);if(d?.open)d.close()});

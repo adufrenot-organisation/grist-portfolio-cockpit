@@ -181,3 +181,20 @@ encore présents dans le JavaScript alors que leurs conteneurs HTML avaient disp
 
 Ils ont été retirés du cockpit métier. Le diagnostic reste disponible dans le widget
 **GRIST. ADMIN & AUDIT PMO**.
+
+
+## V4.6.0 — Planning projet / Roadmap produit
+
+La Vue d'ensemble est supprimée.
+
+Pour les **Projets**, le sous-onglet `Planning projet` permet maintenant :
+- de visualiser les étapes du référentiel `Etapes_Projet`;
+- de créer une tâche directement dans une étape;
+- de voir les dates et l'avancement de l'étape calculés depuis ses tâches.
+
+Pour les **Produits**, le sous-onglet `Roadmap produit` permet :
+- de créer une fonctionnalité;
+- de créer une tâche directement depuis une fonctionnalité;
+- de préremplir automatiquement le lien `Tasks.fonctionnalite`.
+
+Les étapes restent un référentiel global géré dans Admin & Audit. Elles ne sont pas dupliquées par projet.
