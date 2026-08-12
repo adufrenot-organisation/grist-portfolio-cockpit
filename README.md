@@ -137,3 +137,13 @@ Son ancien contenu est entièrement remplacé par :
 
 Les alertes affichées dans cet onglet sont calculées à partir des données Grist déjà présentes :
 retards, priorité, risque, allocations et affectations.
+
+
+## V4.5.3 — Correctif Synthèse
+
+Correction de l'erreur `Élément UI introuvable: #business`.
+
+L'ancien onglet Infos contenait les éléments `#business` et `#alerts`.
+Ils ont été supprimés en V4.5.2, mais les anciennes fonctions de rendu étaient encore appelées.
+Ces appels ont été retirés : les informations de positionnement et les alertes sont désormais
+rendues uniquement dans le nouvel onglet **Synthèse**.

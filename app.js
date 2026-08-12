@@ -1,5 +1,5 @@
 
-const VERSION="4.5.2";
+const VERSION="4.5.3";
 const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="overview",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
 const $=id=>{
@@ -102,7 +102,7 @@ function renderProject(){
   const resp=get("team",id(p.responsable));
   $("projectMeta").textContent=[p.code,p.statut,resp?.nom?`Responsable : ${resp.nom}`:null].filter(Boolean).join(" • ");
   progressSummary(p,ts);dateSummary(p,ts);loadSummary(ts);activitySummary(p);offerSummary(p);objectiveSummary(cs);statusSummary(p);
-  strategy(cs);business(p);team(ts,as);alerts(p,ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);projectStagesView(p,ts);productFeaturesView(p,ts);renderSynthesis(p,ts,cs,as);diagnostic();
+  strategy(cs);team(ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);projectStagesView(p,ts);productFeaturesView(p,ts);renderSynthesis(p,ts,cs,as);diagnostic();
   switchDetailTab(detailTab,false);
 }
 function progressSummary(p,ts){

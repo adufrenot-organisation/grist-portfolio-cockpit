@@ -125,3 +125,8 @@ L'identité utilisateur doit être renseignée côté Grist par trigger formula 
 
 Le sous-onglet `Infos` devient `Synthèse`.
 Il agrège des indicateurs calculés en lecture depuis les tables Grist, sans nouvelle persistance.
+
+
+## V4.5.3
+Suppression des appels aux anciens renderers `business()` et `alerts()` dont les conteneurs DOM
+ont disparu avec le remplacement de l'onglet Infos par Synthèse.
