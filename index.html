@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=4.4.0" />
+  <link rel="stylesheet" href="styles.css?v=4.5.0" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,13 +13,12 @@
     <div class="brand">
       <div class="brand-mark">▦</div>
       <div class="brand-title">GRIST. COCKPIT Pilotage PMO</div>
-      <span class="version">v4.4.0</span>
+      <span class="version">v4.5.0</span>
     </div>
 
     <nav class="top-nav">
       <button class="top-tab active" data-main-tab="project">📁 Pilotage par projets / produits</button>
       <button class="top-tab" data-main-tab="offer">🏢 Pilotage par offre de services</button>
-      <button class="top-tab" data-main-tab="admin">⚙️ Administration</button>
     </nav>
   </header>
 
@@ -211,37 +210,7 @@
     </div>
   </section>
 
-  <section id="adminView" class="view-shell hidden">
-    <div class="page-head">
-      <div class="page-intro">
-        <div class="page-icon">⚙️</div>
-        <div>
-          <h1>Administration</h1>
-          <p>Gestion CRUD des référentiels du cockpit PMO</p>
-        </div>
-      </div>
-      <select id="adminTableSelect" class="head-select">
-        <option value="axes">Axes stratégiques</option>
-        <option value="objectives">Objectifs</option>
-        <option value="offers">Offres de services</option>
-        <option value="activityOffers">Activités OFS</option>
-        <option value="activities">Activités</option>
-        <option value="team">Équipe / Team</option>
-        <option value="projectStages">Étapes projet</option>
-        <option value="featureStages">Stades fonctionnalité</option>
-        <option value="features">Fonctionnalités</option>
-      </select>
-    </div>
-    <div class="panel">
-      <div class="panel-head">
-        <h2 id="adminTitle">Référentiel</h2>
-        <button class="primary" id="adminNewBtn">+ Nouvel enregistrement</button>
-      </div>
-      <div id="adminTable"></div>
-    </div>
-  </section>
-
-  <footer>GRIST. COCKPIT Pilotage PMO • v4.4.0 • Grist reste l’unique source de vérité</footer>
+  <footer>GRIST. COCKPIT Pilotage PMO • v4.5.0 • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -310,16 +279,7 @@
 
 <dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
 
-<dialog id="adminDialog">
-<form method="dialog" id="adminForm">
-<input type="hidden" name="id" />
-<div class="dialog-head"><h3 id="adminDialogTitle">Référentiel</h3><button type="button" class="icon" data-close="adminDialog">×</button></div>
-<div id="adminFields" class="form-grid"></div>
-<div id="adminDependencyHint" class="schema-hint"></div>
-<div class="dialog-actions"><button type="button" data-close="adminDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div>
-</form>
-</dialog>
 
-<script src="app.js?v=4.4.0"></script>
+<script src="app.js?v=4.5.0"></script>
 </body>
 </html>

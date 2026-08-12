@@ -94,3 +94,7 @@ plus explicite si un identifiant HTML attendu manque à l'avenir.
 
 ## V4.4 — cycles Projet / Produit
 Prise en charge de Etapes_Projet, Stades_Fonctionnalite et Fonctionnalites, ajoutées aussi au CRUD Administration.
+
+
+## V4.5 — séparation métier / administration
+L’onglet Administration est retiré du cockpit principal. Le CRUD des référentiels, l’audit, le diagnostic et le MCD sont transférés dans **GRIST. ADMIN & AUDIT PMO**.

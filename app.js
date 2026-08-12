@@ -1,5 +1,5 @@
 
-const VERSION="4.4.0";
+const VERSION="4.5.0";
 const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="overview",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
 const $=id=>{
@@ -58,7 +58,7 @@ function populateOfferSelect(){
   $("offerSelect").innerHTML=db.offers.map(o=>`<option value="${o.id}">${esc(o.Nom||o.Code||`#${o.id}`)}</option>`).join("");
   if(currentOfferId)$("offerSelect").value=currentOfferId;
 }
-function renderAll(){renderPortfolioKpis();renderProject();renderOffer();renderAdmin();}
+function renderAll(){renderPortfolioKpis();renderProject();renderOffer();}
 function renderPortfolioKpis(){
   const ps=visibleProjects(), all=filteredProjects();
   const active=ps.filter(p=>!/termin|clos|done/i.test(String(p.statut||""))).length;
@@ -234,57 +234,6 @@ function renderOffer(){
 function openFeature(fid=null){const p=get("projects",currentProjectId);if(!p||typeOf(p)!=="produit"){banner("Sélectionne un Produit.");return}const f=$("featureForm"),row=fid?get("features",fid):null;f.reset();f.id.value=fid||"";$("featureDialogTitle").textContent=row?"Modifier la fonctionnalité":"Nouvelle fonctionnalité";if(row){["Code","Nom","Description","Priorite"].forEach(k=>f[k].value=row[k]??"");f.Progression.value=pct(row.Progression);f.Date_Cible.value=din(row.Date_Cible);f.Actif.value=String(row.Actif!==false)}else{f.Progression.value=0;f.Actif.value="true"}opt(f.stade,db.featureStages,r=>r.Nom,row?id(row.stade):null,"— stade —");opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");$("featureDialog").showModal()}
 $("featureForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,fid=Number(f.id.value)||null,fields={Code:f.Code.value,Nom:f.Nom.value,Description:f.Description.value,produit:currentProjectId,stade:f.stade.value?Number(f.stade.value):null,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};$("featureDialog").close();await apply([[fid?"UpdateRecord":"AddRecord","Fonctionnalites",fid||null,fields]],fid?"Fonctionnalité mise à jour.":"Fonctionnalité créée.")};
 async function deleteFeature(fid){const used=db.tasks.filter(t=>id(t.fonctionnalite)===fid).length;if(used){banner(`Suppression bloquée : ${used} tâche(s) utilisent cette fonctionnalité.`);return}if(confirm("Supprimer définitivement cette fonctionnalité ?"))await apply([["RemoveRecord","Fonctionnalites",fid]],"Fonctionnalité supprimée.")}
-/* ---------- Administration CRUD ---------- */
-const ADMIN={
-  axes:{label:"Axes stratégiques",table:"Axes_Strategiques",key:"axes",fields:[["Code","Code","text"],["Nom","Nom","text"],["Description","Description","text"],["Sponsor","Sponsor","text"],["Priorite","Priorité","text"],["Horizon","Horizon","text"],["Statut","Statut","text"]]},
-  objectives:{label:"Objectifs",table:"Objectifs",key:"objectives",fields:[["Code","Code","text"],["Nom","Nom","text"],["Axe_Code","Axe stratégique","ref:axes"],["KPI","KPI","text"],["Valeur_Cible","Valeur cible","text"],["Echeance","Échéance","date"],["Responsable","Responsable","text"],["Statut","Statut","text"],["Progression","Progression (%)","percent"]]},
-  offers:{label:"Offres de services",table:"Offres_Services",key:"offers",fields:[["Code","Code","text"],["Nom","Nom","text"],["Description","Description","text"],["Responsable","Responsable","text"],["Statut","Statut","text"]]},
-  activityOffers:{label:"Activités OFS",table:"Activites_OFS",key:"activityOffers",fields:[["Activites_Nom","Nom","text"],["OFS_Code","Offre","ref:offers"]]},
-  activities:{label:"Activités",table:"Activites",key:"activities",fields:[["Code","Code","text"],["Nom","Nom","text"],["Service_Code","Activité OFS","ref:activityOffers"],["Description","Description","text"],["Responsable","Responsable","text"],["Type","Type","text"],["Capacite_ETP","Capacité ETP","number"],["Statut","Statut","text"]]},
-  team:{label:"Équipe / Team",table:"Team",key:"team",fields:[["nom","Nom","text"],["role","Rôle","text"],["capacite_ETP","Capacité ETP","number"]]},projectStages:{label:"Étapes projet",table:"Etapes_Projet",key:"projectStages",fields:[["Code","Code","text"],["Nom","Nom","text"],["Ordre","Ordre","number"],["Actif","Actif","text"]]},featureStages:{label:"Stades fonctionnalité",table:"Stades_Fonctionnalite",key:"featureStages",fields:[["Code","Code","text"],["Nom","Nom","text"],["Ordre","Ordre","number"],["Actif","Actif","text"]]},features:{label:"Fonctionnalités",table:"Fonctionnalites",key:"features",fields:[["Code","Code","text"],["Nom","Nom","text"],["produit","Produit","ref:projects"],["stade","Stade","ref:featureStages"],["Priorite","Priorité","text"],["Progression","Progression (%)","percent"],["Date_Cible","Date cible","date"],["Responsable","Responsable","ref:team"],["Actif","Actif","text"]]}
-};
-function renderAdmin(){
-  const k=$("adminTableSelect").value||"axes",cfg=ADMIN[k],rs=db[cfg.key]||[];$("adminTitle").textContent=cfg.label;
-  if(!rs.length){$("adminTable").innerHTML='<div class="empty">Aucun enregistrement.</div>';return}
-  $("adminTable").innerHTML=`<table><thead><tr>${cfg.fields.slice(0,5).map(f=>`<th>${esc(f[1])}</th>`).join("")}<th>Dépendances</th><th></th></tr></thead><tbody>${rs.map(r=>`<tr>${cfg.fields.slice(0,5).map(f=>`<td>${esc(displayField(r,f))}</td>`).join("")}<td class="admin-dependency">${dependencyCount(k,r.id)} usage(s)</td><td class="admin-actions"><button data-admin-edit="${r.id}">Modifier</button><button class="danger" data-admin-delete="${r.id}">Supprimer</button></td></tr>`).join("")}</tbody></table>`;
-  document.querySelectorAll("[data-admin-edit]").forEach(b=>b.onclick=()=>openAdmin(Number(b.dataset.adminEdit)));
-  document.querySelectorAll("[data-admin-delete]").forEach(b=>b.onclick=()=>deleteAdmin(Number(b.dataset.adminDelete)));
-}
-function displayField(r,f){const [name,,type]=f,v=r[name];if(type==="date")return dt(v);if(type==="percent")return pct(v)+"%";if(type.startsWith("ref:")){const key=type.split(":")[1],x=get(key,id(v));return x?.Nom||x?.nom||x?.Activites_Nom||x?.Code||""}return v??""}
-function dependencyCount(k,rid){
-  if(k==="axes")return db.objectives.filter(o=>id(o.Axe_Code)===rid).length;
-  if(k==="objectives")return db.contrib.filter(c=>(id(c.Objectif_Libelle)||id(c.Objectif_Code2))===rid).length;
-  if(k==="offers")return db.activityOffers.filter(x=>id(x.OFS_Code)===rid).length;
-  if(k==="activityOffers")return db.activities.filter(a=>id(a.Service_Code)===rid).length;
-  if(k==="activities")return db.projects.filter(p=>id(p.activite)===rid).length;
-  if(k==="team")return db.projects.filter(p=>id(p.responsable)===rid).length+db.tasks.filter(t=>refs(t.assignees).includes(rid)).length+db.allocations.filter(a=>id(a.Ressource_Code)===rid).length;
-  if(k==="projectStages")return db.projects.filter(p=>id(p.etape_courante)===rid).length+db.tasks.filter(t=>id(t.etape_projet)===rid).length;
-  if(k==="featureStages")return db.features.filter(f=>id(f.stade)===rid).length;
-  if(k==="features")return db.tasks.filter(t=>id(t.fonctionnalite)===rid).length;
-  return 0;
-}
-function openAdmin(rid=null){
-  const k=$("adminTableSelect").value,cfg=ADMIN[k],r=rid?get(cfg.key,rid):null;$("adminForm").id.value=rid||"";$("adminDialogTitle").textContent=(rid?"Modifier ":"Créer ")+cfg.label;
-  $("adminFields").innerHTML=cfg.fields.map(([name,label,type])=>adminField(name,label,type,r?.[name])).join("");
-  $("adminDependencyHint").textContent=rid?`${dependencyCount(k,rid)} dépendance(s) utilisent cet enregistrement. La suppression sera bloquée tant qu'elles existent.`:"Nouvel enregistrement.";
-  $("adminDialog").showModal()
-}
-function adminField(name,label,type,v){
-  if(type.startsWith("ref:")){const key=type.split(":")[1],rows=db[key]||[];return`<label>${esc(label)}<select name="${name}"><option value="">—</option>${rows.map(r=>`<option value="${r.id}" ${Number(id(v))===Number(r.id)?"selected":""}>${esc(r.Nom||r.nom||r.Activites_Nom||r.Code||`#${r.id}`)}</option>`).join("")}</select></label>`}
-  if(type==="date")return`<label>${esc(label)}<input type="date" name="${name}" value="${din(v)}"></label>`;
-  if(type==="number")return`<label>${esc(label)}<input type="number" step="0.01" name="${name}" value="${v??""}"></label>`;
-  if(type==="percent")return`<label>${esc(label)}<input type="number" min="0" max="100" name="${name}" value="${pct(v)}"></label>`;
-  return`<label>${esc(label)}<input name="${name}" value="${esc(v??"")}"></label>`
-}
-async function deleteAdmin(rid){
-  const k=$("adminTableSelect").value,cfg=ADMIN[k],deps=dependencyCount(k,rid);if(deps){banner(`Suppression bloquée : ${deps} dépendance(s) utilisent cet enregistrement.`);return}
-  if(confirm("Supprimer définitivement cet enregistrement ?"))await apply([["RemoveRecord",cfg.table,rid]],"Référentiel supprimé.")
-}
-$("adminForm").onsubmit=async e=>{e.preventDefault();const k=$("adminTableSelect").value,cfg=ADMIN[k],f=e.currentTarget,rid=Number(f.id.value)||null,fields={};
-  for(const [name,,type] of cfg.fields){const el=f.elements[name];if(!el)continue;if(type.startsWith("ref:"))fields[name]=el.value?Number(el.value):null;else if(type==="date")fields[name]=gd(el.value);else if(type==="number")fields[name]=el.value===""?null:Number(el.value);else if(type==="percent")fields[name]=fromPct(el.value);else fields[name]=el.value}
-  $("adminDialog").close();await apply([[rid?"UpdateRecord":"AddRecord",cfg.table,rid||null,fields]],rid?"Référentiel mis à jour.":"Référentiel créé.")
-}
-
 /* ---------- Project CRUD ---------- */
 function banner(t){$("banner").textContent=t;$("banner").classList.remove("hidden")}function hideBanner(){$("banner").classList.add("hidden")}
 async function apply(actions,msg){if(busy)return;busy=true;document.body.classList.add("busy");try{await grist.docApi.applyUserActions(actions);await load();banner(msg);setTimeout(()=>{if(!busy)hideBanner()},1700)}catch(e){console.error(e);banner(`Erreur Grist: ${e?.message||e}`)}finally{busy=false;document.body.classList.remove("busy")}}
@@ -302,12 +251,10 @@ async function removeContribution(cid){if(confirm("Retirer cet objectif ?"))awai
 async function deleteProject(){const p=get("projects",currentProjectId),ts=taskRows(currentProjectId),cs=contribRows(currentProjectId),as=allocRows(currentProjectId);if(!p)return;if(!confirm(`Supprimer définitivement « ${p.nom} » (${typeOf(p)}) ?`))return;const actions=[...ts.map(x=>["RemoveRecord","Tasks",x.id]),...cs.map(x=>["RemoveRecord","CONTRIBUTIONS_OBJECTIFS",x.id]),...as.map(x=>["RemoveRecord","Allocations",x.id]),["RemoveRecord","Projects",p.id]];currentProjectId=null;await apply(actions,"Projet / Produit supprimé.")}
 
 /* ---------- events ---------- */
-document.querySelectorAll("[data-main-tab]").forEach(b=>b.onclick=()=>{currentTab=b.dataset.mainTab;document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x===b));$("projectView").classList.toggle("hidden",currentTab!=="project");$("offerView").classList.toggle("hidden",currentTab!=="offer");$("adminView").classList.toggle("hidden",currentTab!=="admin")});
+document.querySelectorAll("[data-main-tab]").forEach(b=>b.onclick=()=>{currentTab=b.dataset.mainTab;document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x===b));$("projectView").classList.toggle("hidden",currentTab!=="project");$("offerView").classList.toggle("hidden",currentTab!=="offer")});
 document.querySelectorAll("[data-type-filter]").forEach(b=>b.onclick=()=>{typeFilter=b.dataset.typeFilter;document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x===b));populateProjectSelect();renderPortfolioKpis();renderProject()});
 document.querySelectorAll("[data-offer-type-filter]").forEach(b=>b.onclick=()=>{offerTypeFilter=b.dataset.offerTypeFilter;document.querySelectorAll("[data-offer-type-filter]").forEach(x=>x.classList.toggle("active",x===b));renderOffer()});
 $("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer()};
-$("adminTableSelect").onchange=renderAdmin;
-$("adminNewBtn").onclick=()=>openAdmin();
 $("editProjectBtn").onclick=openProject;
 $("deleteProjectBtn").onclick=deleteProject;
 $("newTaskBtn").onclick=()=>openTask();
