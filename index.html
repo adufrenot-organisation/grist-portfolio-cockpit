@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=4.3.2" />
+  <link rel="stylesheet" href="styles.css?v=4.4.0" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="brand">
       <div class="brand-mark">▦</div>
       <div class="brand-title">GRIST. COCKPIT Pilotage PMO</div>
-      <span class="version">v4.3.2</span>
+      <span class="version">v4.4.0</span>
     </div>
 
     <nav class="top-nav">
@@ -84,6 +84,8 @@
           <nav class="detail-tabs">
             <button class="detail-tab active" data-detail-tab="overview">▦ Vue d'ensemble</button>
             <button class="detail-tab" data-detail-tab="tasks">▣ Tâches / Gantt</button>
+            <button class="detail-tab project-only" data-detail-tab="stages">◫ Étapes</button>
+            <button class="detail-tab product-only hidden" data-detail-tab="features">◆ Fonctionnalités</button>
             <button class="detail-tab" data-detail-tab="objectives">◎ Objectifs</button>
             <button class="detail-tab" data-detail-tab="resources">♧ Ressources</button>
             <button class="detail-tab" data-detail-tab="infos">ⓘ Infos</button>
@@ -143,6 +145,10 @@
               <div id="tasks"></div>
             </div>
           </div>
+
+          <div id="detailStages" class="detail-section hidden"><div class="section-toolbar"><h3>Étapes du projet</h3><span class="muted">Étape courante + tâches regroupées</span></div><div id="projectStagesView"></div></div>
+
+          <div id="detailFeatures" class="detail-section hidden"><div class="section-toolbar"><h3>Fonctionnalités du produit</h3><button class="primary" id="newFeatureBtn">+ Fonctionnalité</button></div><div id="productFeaturesView"></div></div>
 
           <div id="detailObjectives" class="detail-section hidden">
             <div class="section-toolbar">
@@ -221,6 +227,9 @@
         <option value="activityOffers">Activités OFS</option>
         <option value="activities">Activités</option>
         <option value="team">Équipe / Team</option>
+        <option value="projectStages">Étapes projet</option>
+        <option value="featureStages">Stades fonctionnalité</option>
+        <option value="features">Fonctionnalités</option>
       </select>
     </div>
     <div class="panel">
@@ -232,7 +241,7 @@
     </div>
   </section>
 
-  <footer>GRIST. COCKPIT Pilotage PMO • v4.3.2 • Grist reste l’unique source de vérité</footer>
+  <footer>GRIST. COCKPIT Pilotage PMO • v4.4.0 • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -250,6 +259,7 @@
 <label>Risque<input name="risque" /></label>
 <label>Valeur stratégique<input name="valeurStrategique" type="number" /></label>
 <label>Activité<select name="activite"></select></label>
+<label>Étape courante<select name="etape_courante"></select></label>
 <label>Responsable<select name="responsable"></select></label>
 <label>Date début<input name="dateDebut" type="date" /></label>
 <label>Date fin<input name="dateFin" type="date" /></label>
@@ -274,6 +284,8 @@
 <label>Temps passé (h)<input name="tempsPasse" type="number" step="0.25" /></label>
 <label>Date début<input name="dateDebut" type="date" /></label>
 <label>Échéance<input name="dateEcheance" type="date" /></label>
+<label>Étape projet<select name="etape_projet"></select></label>
+<label>Fonctionnalité<select name="fonctionnalite"></select></label>
 <label class="wide">Assignés<select name="assignees" multiple size="5"></select></label>
 <label class="wide">Dépend de<select name="dependDe" multiple size="5"></select></label>
 <label>Tâche parente<select name="parentTask"></select></label>
@@ -296,6 +308,8 @@
 </form>
 </dialog>
 
+<dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
+
 <dialog id="adminDialog">
 <form method="dialog" id="adminForm">
 <input type="hidden" name="id" />
@@ -306,6 +320,6 @@
 </form>
 </dialog>
 
-<script src="app.js?v=4.3.2"></script>
+<script src="app.js?v=4.4.0"></script>
 </body>
 </html>

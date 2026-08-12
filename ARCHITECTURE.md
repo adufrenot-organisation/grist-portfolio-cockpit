@@ -104,3 +104,7 @@ La V4.3.1 conserve exactement le même modèle de données et la même UI, mais 
 Réintroduction de l'élément UI `#objectiveCount`, requis par `strategy()`.
 Le helper `$()` lève désormais une erreur explicite avec l'identifiant manquant,
 afin de faciliter le diagnostic des futures régressions UI.
+
+
+## V4.4
+Projects.etape_courante -> Etapes_Projet; Tasks.etape_projet -> Etapes_Projet; Fonctionnalites.produit -> Projects; Fonctionnalites.stade -> Stades_Fonctionnalite; Tasks.fonctionnalite -> Fonctionnalites.

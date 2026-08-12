@@ -1,6 +1,6 @@
 
-const VERSION="4.3.2";
-const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations"};
+const VERSION="4.4.0";
+const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="overview",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
 const $=id=>{
   const el=document.getElementById(id);
@@ -96,10 +96,13 @@ function renderProject(){
   const ts=taskRows(p.id),cs=contribRows(p.id),as=allocRows(p.id);
   $("projectTitle").textContent=p.nom||`Projet #${p.id}`;
   $("projectTypeBadge").innerHTML=typeBadge(p);
+  document.querySelectorAll(".project-only").forEach(x=>x.classList.toggle("hidden",typeOf(p)!=="projet"));
+  document.querySelectorAll(".product-only").forEach(x=>x.classList.toggle("hidden",typeOf(p)!=="produit"));
+  if(typeOf(p)==="projet"&&detailTab==="features")detailTab="overview";if(typeOf(p)==="produit"&&detailTab==="stages")detailTab="overview";
   const resp=get("team",id(p.responsable));
   $("projectMeta").textContent=[p.code,p.statut,resp?.nom?`Responsable : ${resp.nom}`:null].filter(Boolean).join(" • ");
   progressSummary(p,ts);dateSummary(p,ts);loadSummary(ts);activitySummary(p);offerSummary(p);objectiveSummary(cs);statusSummary(p);
-  strategy(cs);business(p);team(ts,as);alerts(p,ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);diagnostic();
+  strategy(cs);business(p);team(ts,as);alerts(p,ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);projectStagesView(p,ts);productFeaturesView(p,ts);diagnostic();
   switchDetailTab(detailTab,false);
 }
 function progressSummary(p,ts){
@@ -129,13 +132,15 @@ function statusSummary(p){$("statusSummary").innerHTML=`<div class="type-badge p
 function switchDetailTab(tab,rerender=true){
   detailTab=tab;
   document.querySelectorAll("[data-detail-tab]").forEach(b=>b.classList.toggle("active",b.dataset.detailTab===tab));
-  const map={overview:"detailOverview",tasks:"detailTasks",objectives:"detailObjectives",resources:"detailResources",infos:"detailInfos"};
+  const map={overview:"detailOverview",tasks:"detailTasks",stages:"detailStages",features:"detailFeatures",objectives:"detailObjectives",resources:"detailResources",infos:"detailInfos"};
   Object.entries(map).forEach(([k,id])=>$(id).classList.toggle("hidden",k!==tab));
   if(rerender&&tab==="tasks")gantt(taskRows(currentProjectId));
 }
 function kpi(l,v,s=""){return`<div class="kpi"><div class="kpi-label">${esc(l)}</div><div class="kpi-value">${esc(v)}</div><div class="kpi-sub">${s}</div></div>`}
 function bar(v){return`<div class="progress"><div style="width:${v}%"></div></div>`}
 
+function projectStagesView(p,ts){if(typeOf(p)!=="projet"){$("projectStagesView").innerHTML='<div class="empty">Cette vue concerne les projets.</div>';return}const stages=[...db.projectStages].sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0)),current=id(p.etape_courante),cur=get("projectStages",current);$("projectStagesView").innerHTML=`<div class="lifecycle">${stages.map(s=>`<span class="stage-pill ${s.id===current?"current":(cur&&Number(s.Ordre||0)<Number(cur.Ordre||0)?"done":"")}">${esc(s.Nom||s.Code||"")}</span>`).join("")}</div>`+stages.map(s=>{const st=ts.filter(t=>id(t.etape_projet)===s.id);return `<div class="stage-block"><h4>${esc(s.Nom||s.Code||"")}</h4>${st.length?`<table><thead><tr><th>Tâche</th><th>Statut</th><th>Avancement</th></tr></thead><tbody>${st.map(t=>`<tr><td>${esc(t.titre||"")}</td><td>${esc(t.statut||"")}</td><td>${pct(t.progression)}%</td></tr>`).join("")}</tbody></table>`:'<div class="muted">Aucune tâche rattachée.</div>'}</div>`}).join("")}
+function productFeaturesView(p,ts){if(typeOf(p)!=="produit"){$("productFeaturesView").innerHTML='<div class="empty">Cette vue concerne les produits.</div>';return}const fs=db.features.filter(f=>id(f.produit)===p.id);$("productFeaturesView").innerHTML=fs.length?`<div class="feature-grid">${fs.map(f=>{const st=get("featureStages",id(f.stade)),linked=ts.filter(t=>id(t.fonctionnalite)===f.id);return `<div class="feature-card"><div class="feature-card-head"><div><h4>${esc(f.Nom||"")}</h4><div class="feature-meta">${esc(f.Code||"")} • ${esc(st?.Nom||"Sans stade")}</div></div><strong>${pct(f.Progression)}%</strong></div><div class="feature-meta">${esc(f.Description||"")}</div><div class="metric-bar" style="margin-top:10px"><div style="width:${pct(f.Progression)}%"></div></div><div class="feature-meta">${linked.length} tâche(s) • cible ${dt(f.Date_Cible)}</div><div class="feature-actions"><button data-feature-edit="${f.id}">Modifier</button><button class="danger" data-feature-del="${f.id}">Supprimer</button></div></div>`}).join("")}</div>`:'<div class="empty">Aucune fonctionnalité pour ce produit.</div>';document.querySelectorAll("[data-feature-edit]").forEach(b=>b.onclick=()=>openFeature(Number(b.dataset.featureEdit)));document.querySelectorAll("[data-feature-del]").forEach(b=>b.onclick=()=>deleteFeature(Number(b.dataset.featureDel)))}
 function strategy(cs){
   $("objectiveCount").textContent=`${cs.length} contribution${cs.length>1?"s":""}`;
   if(!cs.length){$("strategy").innerHTML='<div class="empty">Aucun objectif rattaché.</div>';return}
@@ -194,7 +199,10 @@ Axes_Strategiques: ${db.axes.length}
 Activites: ${db.activities.length}
 Activites_OFS: ${db.activityOffers.length}
 Offres_Services: ${db.offers.length}
-Allocations: ${db.allocations.length}</div>`;
+Allocations: ${db.allocations.length}
+Etapes_Projet: ${db.projectStages.length}
+Stades_Fonctionnalite: ${db.featureStages.length}
+Fonctionnalites: ${db.features.length}</div>`;
 }
 
 /* ---------- Offre de services ---------- */
@@ -222,6 +230,10 @@ function renderOffer(){
   $("offerResources").innerHTML=byRes.size?`<div class="resource-row header"><div>Ressource</div><div>Allocation cumulée</div><div></div><div></div></div>${[...byRes.entries()].map(([rid,v])=>`<div class="resource-row"><div><strong>${esc(get("team",rid)?.nom||`#${rid}`)}</strong></div><div><div class="load-track"><div class="load-fill ${v>1?"over":""}" style="width:${Math.min(100,v*100)}%"></div></div><div class="muted">${Math.round(v*100)}%</div></div><div></div><div></div></div>`).join("")}`:'<div class="empty">Aucune allocation.</div>';
 }
 
+/* ---------- Fonctionnalités produit ---------- */
+function openFeature(fid=null){const p=get("projects",currentProjectId);if(!p||typeOf(p)!=="produit"){banner("Sélectionne un Produit.");return}const f=$("featureForm"),row=fid?get("features",fid):null;f.reset();f.id.value=fid||"";$("featureDialogTitle").textContent=row?"Modifier la fonctionnalité":"Nouvelle fonctionnalité";if(row){["Code","Nom","Description","Priorite"].forEach(k=>f[k].value=row[k]??"");f.Progression.value=pct(row.Progression);f.Date_Cible.value=din(row.Date_Cible);f.Actif.value=String(row.Actif!==false)}else{f.Progression.value=0;f.Actif.value="true"}opt(f.stade,db.featureStages,r=>r.Nom,row?id(row.stade):null,"— stade —");opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");$("featureDialog").showModal()}
+$("featureForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,fid=Number(f.id.value)||null,fields={Code:f.Code.value,Nom:f.Nom.value,Description:f.Description.value,produit:currentProjectId,stade:f.stade.value?Number(f.stade.value):null,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};$("featureDialog").close();await apply([[fid?"UpdateRecord":"AddRecord","Fonctionnalites",fid||null,fields]],fid?"Fonctionnalité mise à jour.":"Fonctionnalité créée.")};
+async function deleteFeature(fid){const used=db.tasks.filter(t=>id(t.fonctionnalite)===fid).length;if(used){banner(`Suppression bloquée : ${used} tâche(s) utilisent cette fonctionnalité.`);return}if(confirm("Supprimer définitivement cette fonctionnalité ?"))await apply([["RemoveRecord","Fonctionnalites",fid]],"Fonctionnalité supprimée.")}
 /* ---------- Administration CRUD ---------- */
 const ADMIN={
   axes:{label:"Axes stratégiques",table:"Axes_Strategiques",key:"axes",fields:[["Code","Code","text"],["Nom","Nom","text"],["Description","Description","text"],["Sponsor","Sponsor","text"],["Priorite","Priorité","text"],["Horizon","Horizon","text"],["Statut","Statut","text"]]},
@@ -229,7 +241,7 @@ const ADMIN={
   offers:{label:"Offres de services",table:"Offres_Services",key:"offers",fields:[["Code","Code","text"],["Nom","Nom","text"],["Description","Description","text"],["Responsable","Responsable","text"],["Statut","Statut","text"]]},
   activityOffers:{label:"Activités OFS",table:"Activites_OFS",key:"activityOffers",fields:[["Activites_Nom","Nom","text"],["OFS_Code","Offre","ref:offers"]]},
   activities:{label:"Activités",table:"Activites",key:"activities",fields:[["Code","Code","text"],["Nom","Nom","text"],["Service_Code","Activité OFS","ref:activityOffers"],["Description","Description","text"],["Responsable","Responsable","text"],["Type","Type","text"],["Capacite_ETP","Capacité ETP","number"],["Statut","Statut","text"]]},
-  team:{label:"Équipe / Team",table:"Team",key:"team",fields:[["nom","Nom","text"],["role","Rôle","text"],["capacite_ETP","Capacité ETP","number"]]}
+  team:{label:"Équipe / Team",table:"Team",key:"team",fields:[["nom","Nom","text"],["role","Rôle","text"],["capacite_ETP","Capacité ETP","number"]]},projectStages:{label:"Étapes projet",table:"Etapes_Projet",key:"projectStages",fields:[["Code","Code","text"],["Nom","Nom","text"],["Ordre","Ordre","number"],["Actif","Actif","text"]]},featureStages:{label:"Stades fonctionnalité",table:"Stades_Fonctionnalite",key:"featureStages",fields:[["Code","Code","text"],["Nom","Nom","text"],["Ordre","Ordre","number"],["Actif","Actif","text"]]},features:{label:"Fonctionnalités",table:"Fonctionnalites",key:"features",fields:[["Code","Code","text"],["Nom","Nom","text"],["produit","Produit","ref:projects"],["stade","Stade","ref:featureStages"],["Priorite","Priorité","text"],["Progression","Progression (%)","percent"],["Date_Cible","Date cible","date"],["Responsable","Responsable","ref:team"],["Actif","Actif","text"]]}
 };
 function renderAdmin(){
   const k=$("adminTableSelect").value||"axes",cfg=ADMIN[k],rs=db[cfg.key]||[];$("adminTitle").textContent=cfg.label;
@@ -246,6 +258,9 @@ function dependencyCount(k,rid){
   if(k==="activityOffers")return db.activities.filter(a=>id(a.Service_Code)===rid).length;
   if(k==="activities")return db.projects.filter(p=>id(p.activite)===rid).length;
   if(k==="team")return db.projects.filter(p=>id(p.responsable)===rid).length+db.tasks.filter(t=>refs(t.assignees).includes(rid)).length+db.allocations.filter(a=>id(a.Ressource_Code)===rid).length;
+  if(k==="projectStages")return db.projects.filter(p=>id(p.etape_courante)===rid).length+db.tasks.filter(t=>id(t.etape_projet)===rid).length;
+  if(k==="featureStages")return db.features.filter(f=>id(f.stade)===rid).length;
+  if(k==="features")return db.tasks.filter(t=>id(t.fonctionnalite)===rid).length;
   return 0;
 }
 function openAdmin(rid=null){
@@ -274,12 +289,12 @@ $("adminForm").onsubmit=async e=>{e.preventDefault();const k=$("adminTableSelect
 function banner(t){$("banner").textContent=t;$("banner").classList.remove("hidden")}function hideBanner(){$("banner").classList.add("hidden")}
 async function apply(actions,msg){if(busy)return;busy=true;document.body.classList.add("busy");try{await grist.docApi.applyUserActions(actions);await load();banner(msg);setTimeout(()=>{if(!busy)hideBanner()},1700)}catch(e){console.error(e);banner(`Erreur Grist: ${e?.message||e}`)}finally{busy=false;document.body.classList.remove("busy")}}
 function opt(el,rows,label,selected=null,empty="—"){el.innerHTML=`<option value="">${empty}</option>`+rows.map(r=>`<option value="${r.id}" ${Number(selected)===Number(r.id)?"selected":""}>${esc(label(r))}</option>`).join("")}
-function openProject(){const p=get("projects",currentProjectId),f=$("projectForm");if(!p)return;["nom","code","statut","priorite","sponsor","risque"].forEach(k=>f[k].value=p[k]??"");f.Type.value=/produit/i.test(p.Type||"")?"Produit":"Projet";f.progression.value=pct(p.progression);f.budget.value=p.budget??"";f.valeurStrategique.value=p.valeurStrategique??"";f.dateDebut.value=din(p.dateDebut);f.dateFin.value=din(p.dateFin);opt(f.activite,db.activities,r=>r.Nom,id(p.activite),"— activité —");opt(f.responsable,db.team,r=>r.nom,id(p.responsable),"— responsable —");$("projectDialog").showModal()}
-$("projectForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,fields={nom:f.nom.value,code:f.code.value,Type:f.Type.value,statut:f.statut.value,priorite:f.priorite.value,sponsor:f.sponsor.value,progression:fromPct(f.progression.value),budget:f.budget.value===""?null:Number(f.budget.value),risque:f.risque.value,valeurStrategique:f.valeurStrategique.value===""?null:Number(f.valeurStrategique.value),activite:f.activite.value?Number(f.activite.value):null,responsable:f.responsable.value?Number(f.responsable.value):null,dateDebut:gd(f.dateDebut.value),dateFin:gd(f.dateFin.value)};$("projectDialog").close();await apply([["UpdateRecord","Projects",currentProjectId,fields]],"Projet / Produit mis à jour.")}
+function openProject(){const p=get("projects",currentProjectId),f=$("projectForm");if(!p)return;["nom","code","statut","priorite","sponsor","risque"].forEach(k=>f[k].value=p[k]??"");f.Type.value=/produit/i.test(p.Type||"")?"Produit":"Projet";f.progression.value=pct(p.progression);f.budget.value=p.budget??"";f.valeurStrategique.value=p.valeurStrategique??"";f.dateDebut.value=din(p.dateDebut);f.dateFin.value=din(p.dateFin);opt(f.activite,db.activities,r=>r.Nom,id(p.activite),"— activité —");opt(f.etape_courante,db.projectStages,r=>r.Nom,id(p.etape_courante),"— étape courante —");opt(f.responsable,db.team,r=>r.nom,id(p.responsable),"— responsable —");$("projectDialog").showModal()}
+$("projectForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,fields={nom:f.nom.value,code:f.code.value,Type:f.Type.value,statut:f.statut.value,priorite:f.priorite.value,sponsor:f.sponsor.value,progression:fromPct(f.progression.value),budget:f.budget.value===""?null:Number(f.budget.value),risque:f.risque.value,valeurStrategique:f.valeurStrategique.value===""?null:Number(f.valeurStrategique.value),activite:f.activite.value?Number(f.activite.value):null,etape_courante:f.etape_courante.value?Number(f.etape_courante.value):null,responsable:f.responsable.value?Number(f.responsable.value):null,dateDebut:gd(f.dateDebut.value),dateFin:gd(f.dateFin.value)};$("projectDialog").close();await apply([["UpdateRecord","Projects",currentProjectId,fields]],"Projet / Produit mis à jour.")}
 
 function fillMulti(el,rows,label,selected=[]){const s=new Set(selected.map(Number));el.innerHTML=rows.map(r=>`<option value="${r.id}" ${s.has(Number(r.id))?"selected":""}>${esc(label(r))}</option>`).join("")}
-function openTask(tid=null){const f=$("taskForm");f.reset();f.id.value=tid||"";const t=tid?get("tasks",tid):null;$("taskDialogTitle").textContent=t?"Modifier la tâche":"Nouvelle tâche";if(t){["titre","description","Code","type","statut","priorite","estimationH","tempsPasse"].forEach(k=>f[k].value=t[k]??"");f.progression.value=pct(t.progression);f.dateDebut.value=din(t.dateDebut);f.dateEcheance.value=din(t.dateEcheance);f.tags.value=Array.isArray(t.tags)?t.tags.filter(x=>typeof x==="string").join(", "):""}else{f.type.value="tache";f.progression.value=0}fillMulti(f.assignees,db.team,r=>r.nom,t?refs(t.assignees):[]);fillMulti(f.dependDe,taskRows(currentProjectId).filter(x=>x.id!==tid),r=>r.titre,t?refs(t.dependDe):[]);opt(f.parentTask,taskRows(currentProjectId).filter(x=>x.id!==tid),r=>r.titre,t?id(t.parentTask):null,"— aucune —");$("taskDialog").showModal()}
-$("taskForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,tid=Number(f.id.value)||null,tags=f.tags.value.split(",").map(s=>s.trim()).filter(Boolean),fields={titre:f.titre.value,description:f.description.value,Code:f.Code.value,type:f.type.value,statut:f.statut.value,priorite:f.priorite.value,progression:fromPct(f.progression.value),estimationH:f.estimationH.value===""?null:Number(f.estimationH.value),tempsPasse:f.tempsPasse.value===""?null:Number(f.tempsPasse.value),dateDebut:gd(f.dateDebut.value),dateEcheance:gd(f.dateEcheance.value),projet:currentProjectId,assignees:reflist([...f.assignees.selectedOptions].map(o=>Number(o.value))),dependDe:reflist([...f.dependDe.selectedOptions].map(o=>Number(o.value))),parentTask:f.parentTask.value?Number(f.parentTask.value):null,tags:["L",...tags]};$("taskDialog").close();await apply([[tid?"UpdateRecord":"AddRecord","Tasks",tid||null,fields]],tid?"Tâche mise à jour.":"Tâche créée.")}
+function openTask(tid=null){const f=$("taskForm");f.reset();f.id.value=tid||"";const t=tid?get("tasks",tid):null;$("taskDialogTitle").textContent=t?"Modifier la tâche":"Nouvelle tâche";if(t){["titre","description","Code","type","statut","priorite","estimationH","tempsPasse"].forEach(k=>f[k].value=t[k]??"");f.progression.value=pct(t.progression);f.dateDebut.value=din(t.dateDebut);f.dateEcheance.value=din(t.dateEcheance);f.tags.value=Array.isArray(t.tags)?t.tags.filter(x=>typeof x==="string").join(", "):""}else{f.type.value="tache";f.progression.value=0}opt(f.etape_projet,db.projectStages,r=>r.Nom,t?id(t.etape_projet):null,"— étape projet —");opt(f.fonctionnalite,db.features.filter(x=>id(x.produit)===currentProjectId),r=>r.Nom,t?id(t.fonctionnalite):null,"— fonctionnalité —");fillMulti(f.assignees,db.team,r=>r.nom,t?refs(t.assignees):[]);fillMulti(f.dependDe,taskRows(currentProjectId).filter(x=>x.id!==tid),r=>r.titre,t?refs(t.dependDe):[]);opt(f.parentTask,taskRows(currentProjectId).filter(x=>x.id!==tid),r=>r.titre,t?id(t.parentTask):null,"— aucune —");$("taskDialog").showModal()}
+$("taskForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,tid=Number(f.id.value)||null,tags=f.tags.value.split(",").map(s=>s.trim()).filter(Boolean),fields={titre:f.titre.value,description:f.description.value,Code:f.Code.value,type:f.type.value,statut:f.statut.value,priorite:f.priorite.value,progression:fromPct(f.progression.value),estimationH:f.estimationH.value===""?null:Number(f.estimationH.value),tempsPasse:f.tempsPasse.value===""?null:Number(f.tempsPasse.value),dateDebut:gd(f.dateDebut.value),dateEcheance:gd(f.dateEcheance.value),etape_projet:f.etape_projet.value?Number(f.etape_projet.value):null,fonctionnalite:f.fonctionnalite.value?Number(f.fonctionnalite.value):null,projet:currentProjectId,assignees:reflist([...f.assignees.selectedOptions].map(o=>Number(o.value))),dependDe:reflist([...f.dependDe.selectedOptions].map(o=>Number(o.value))),parentTask:f.parentTask.value?Number(f.parentTask.value):null,tags:["L",...tags]};$("taskDialog").close();await apply([[tid?"UpdateRecord":"AddRecord","Tasks",tid||null,fields]],tid?"Tâche mise à jour.":"Tâche créée.")}
 async function deleteTask(tid){const t=get("tasks",tid);if(t&&confirm(`Supprimer « ${t.titre} » ?`))await apply([["RemoveRecord","Tasks",tid]],"Tâche supprimée.")}
 function openContribution(){const f=$("contributionForm"),existing=new Set(contribRows(currentProjectId).map(c=>id(c.Objectif_Libelle)||id(c.Objectif_Code2)));const choices=db.objectives.filter(o=>!existing.has(o.id));opt(f.objectif,choices,r=>r.Nom,null,"Choisir un objectif…");f.contribution.value=100;f.commentaire.value="";$("contributionDialog").showModal()}
 $("contributionForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,oid=Number(f.objectif.value),fields={Projet_Code:reflist([currentProjectId]),Objectif_Libelle:oid,Objectif_Code2:oid,Contributions_Objectifs:fromPct(f.contribution.value),Commentaire:f.commentaire.value};$("contributionDialog").close();await apply([["AddRecord","CONTRIBUTIONS_OBJECTIFS",null,fields]],"Objectif associé.")}
@@ -296,7 +311,7 @@ $("adminNewBtn").onclick=()=>openAdmin();
 $("editProjectBtn").onclick=openProject;
 $("deleteProjectBtn").onclick=deleteProject;
 $("newTaskBtn").onclick=()=>openTask();
-$("addContributionBtn").onclick=openContribution;
+$("addContributionBtn").onclick=openContribution;$("newFeatureBtn").onclick=()=>openFeature();
 document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{taskFilter=b.dataset.taskFilter;document.querySelectorAll("[data-task-filter]").forEach(x=>x.classList.toggle("active",x===b));tasks(taskRows(currentProjectId))});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const d=$(b.dataset.close);if(d?.open)d.close()});
 
