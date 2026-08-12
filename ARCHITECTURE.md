@@ -130,3 +130,16 @@ Il agrège des indicateurs calculés en lecture depuis les tables Grist, sans no
 ## V4.5.3
 Suppression des appels aux anciens renderers `business()` et `alerts()` dont les conteneurs DOM
 ont disparu avec le remplacement de l'onglet Infos par Synthèse.
+
+
+## V4.5.4
+
+Le CRUD `Projects` couvre maintenant Create + Update + Delete depuis le cockpit.
+Le sous-onglet par défaut du détail est `infos`, affiché sous le libellé `Synthèse`.
+
+
+## V4.5.5 — Météo
+
+`Projects.Meteo_Projet` et `Projects.Motif_Meteo` deviennent les sources de vérité préférées pour
+la météo affichée dans la fiche. Un fallback calculé reste présent tant que les formules Grist ne sont
+pas encore configurées.

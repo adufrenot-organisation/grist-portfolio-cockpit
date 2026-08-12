@@ -1,7 +1,7 @@
 
-const VERSION="4.5.3";
+const VERSION="4.5.5";
 const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
-let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="overview",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
+let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
 const $=id=>{
   const el=document.getElementById(id);
   if(!el) throw new Error(`Élément UI introuvable: #${id}`);
@@ -87,7 +87,7 @@ function renderProjectList(){
       <div class="project-item-progress"><strong>${progress}%</strong><div class="mini-progress"><div style="width:${progress}%"></div></div></div>
     </div>`}).join(""):'<div class="empty-state"><h3>Aucun résultat</h3><p>Modifiez le filtre ou la recherche.</p></div>';
   $("projectListFooter").textContent=`${ps.length} élément(s)`;
-  document.querySelectorAll("[data-project-id]").forEach(el=>el.onclick=()=>{currentProjectId=Number(el.dataset.projectId);renderProjectList();renderProject();});
+  document.querySelectorAll("[data-project-id]").forEach(el=>el.onclick=()=>{currentProjectId=Number(el.dataset.projectId);detailTab="infos";renderProjectList();renderProject();});
 }
 function renderProject(){
   const p=get("projects",currentProjectId);
@@ -96,6 +96,7 @@ function renderProject(){
   const ts=taskRows(p.id),cs=contribRows(p.id),as=allocRows(p.id);
   $("projectTitle").textContent=p.nom||`Projet #${p.id}`;
   $("projectTypeBadge").innerHTML=typeBadge(p);
+  $("projectWeatherBadge").innerHTML=weatherBadge(p,ts);
   document.querySelectorAll(".project-only").forEach(x=>x.classList.toggle("hidden",typeOf(p)!=="projet"));
   document.querySelectorAll(".product-only").forEach(x=>x.classList.toggle("hidden",typeOf(p)!=="produit"));
   if(typeOf(p)==="projet"&&detailTab==="features")detailTab="overview";if(typeOf(p)==="produit"&&detailTab==="stages")detailTab="overview";
@@ -142,6 +143,23 @@ function bar(v){return`<div class="progress"><div style="width:${v}%"></div></di
 function projectStagesView(p,ts){if(typeOf(p)!=="projet"){$("projectStagesView").innerHTML='<div class="empty">Cette vue concerne les projets.</div>';return}const stages=[...db.projectStages].sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0)),current=id(p.etape_courante),cur=get("projectStages",current);$("projectStagesView").innerHTML=`<div class="lifecycle">${stages.map(s=>`<span class="stage-pill ${s.id===current?"current":(cur&&Number(s.Ordre||0)<Number(cur.Ordre||0)?"done":"")}">${esc(s.Nom||s.Code||"")}</span>`).join("")}</div>`+stages.map(s=>{const st=ts.filter(t=>id(t.etape_projet)===s.id);return `<div class="stage-block"><h4>${esc(s.Nom||s.Code||"")}</h4>${st.length?`<table><thead><tr><th>Tâche</th><th>Statut</th><th>Avancement</th></tr></thead><tbody>${st.map(t=>`<tr><td>${esc(t.titre||"")}</td><td>${esc(t.statut||"")}</td><td>${pct(t.progression)}%</td></tr>`).join("")}</tbody></table>`:'<div class="muted">Aucune tâche rattachée.</div>'}</div>`}).join("")}
 function productFeaturesView(p,ts){if(typeOf(p)!=="produit"){$("productFeaturesView").innerHTML='<div class="empty">Cette vue concerne les produits.</div>';return}const fs=db.features.filter(f=>id(f.produit)===p.id);$("productFeaturesView").innerHTML=fs.length?`<div class="feature-grid">${fs.map(f=>{const st=get("featureStages",id(f.stade)),linked=ts.filter(t=>id(t.fonctionnalite)===f.id);return `<div class="feature-card"><div class="feature-card-head"><div><h4>${esc(f.Nom||"")}</h4><div class="feature-meta">${esc(f.Code||"")} • ${esc(st?.Nom||"Sans stade")}</div></div><strong>${pct(f.Progression)}%</strong></div><div class="feature-meta">${esc(f.Description||"")}</div><div class="metric-bar" style="margin-top:10px"><div style="width:${pct(f.Progression)}%"></div></div><div class="feature-meta">${linked.length} tâche(s) • cible ${dt(f.Date_Cible)}</div><div class="feature-actions"><button data-feature-edit="${f.id}">Modifier</button><button class="danger" data-feature-del="${f.id}">Supprimer</button></div></div>`}).join("")}</div>`:'<div class="empty">Aucune fonctionnalité pour ce produit.</div>';document.querySelectorAll("[data-feature-edit]").forEach(b=>b.onclick=()=>openFeature(Number(b.dataset.featureEdit)));document.querySelectorAll("[data-feature-del]").forEach(b=>b.onclick=()=>deleteFeature(Number(b.dataset.featureDel)))}
 
+
+function weatherBadge(p,ts){
+  const raw=String(p.Meteo_Projet||p.Météo_Projet||"").trim();
+  let label=raw, cls="neutral";
+  if(raw){
+    if(/rouge|red/i.test(raw))cls="red";
+    else if(/orange|amber/i.test(raw))cls="orange";
+    else if(/vert|green/i.test(raw))cls="green";
+  }else{
+    const overdue=ts.filter(late);
+    const critical=overdue.filter(t=>/haute|critique|high/i.test(String(t.priorite||"")));
+    if(critical.length){label="🔴 Rouge";cls="red"}
+    else if(overdue.length||/haut|élev|critique|high/i.test(String(p.risque||""))){label="🟠 Orange";cls="orange"}
+    else{label="🟢 Vert";cls="green"}
+  }
+  return `<span class="weather-badge ${cls}" title="${esc(p.Motif_Meteo||p.Motif_Météo||"")}">${esc(label||"Météo")}</span>`;
+}
 function renderSynthesis(p,ts,cs,as){
   const active=ts.filter(t=>!done(t.statut)).length;
   const overdue=ts.filter(late);
@@ -156,6 +174,7 @@ function renderSynthesis(p,ts,cs,as){
   const offer=ao?get("offers",id(ao.OFS_Code)):null;
 
   $("summaryMain").innerHTML=`<div class="kv">
+    <div class="key">Météo</div><div class="value">${weatherBadge(p,ts)}</div>
     <div class="key">Type</div><div class="value">${typeOf(p)==="produit"?"Produit":"Projet"}</div>
     <div class="key">Statut</div><div class="value">${esc(p.statut||"—")}</div>
     <div class="key">Priorité</div><div class="value">${esc(p.priorite||"—")}</div>
@@ -361,8 +380,105 @@ async function apply(actions,msg){
   finally{busy=false;document.body.classList.remove("busy")}
 }
 function opt(el,rows,label,selected=null,empty="—"){el.innerHTML=`<option value="">${empty}</option>`+rows.map(r=>`<option value="${r.id}" ${Number(selected)===Number(r.id)?"selected":""}>${esc(label(r))}</option>`).join("")}
-function openProject(){const p=get("projects",currentProjectId),f=$("projectForm");if(!p)return;["nom","code","statut","priorite","sponsor","risque"].forEach(k=>f[k].value=p[k]??"");f.Type.value=/produit/i.test(p.Type||"")?"Produit":"Projet";f.progression.value=pct(p.progression);f.budget.value=p.budget??"";f.valeurStrategique.value=p.valeurStrategique??"";f.dateDebut.value=din(p.dateDebut);f.dateFin.value=din(p.dateFin);opt(f.activite,db.activities,r=>r.Nom,id(p.activite),"— activité —");opt(f.etape_courante,db.projectStages,r=>r.Nom,id(p.etape_courante),"— étape courante —");opt(f.responsable,db.team,r=>r.nom,id(p.responsable),"— responsable —");$("projectDialog").showModal()}
-$("projectForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,fields={nom:f.nom.value,code:f.code.value,Type:f.Type.value,statut:f.statut.value,priorite:f.priorite.value,sponsor:f.sponsor.value,progression:fromPct(f.progression.value),budget:f.budget.value===""?null:Number(f.budget.value),risque:f.risque.value,valeurStrategique:f.valeurStrategique.value===""?null:Number(f.valeurStrategique.value),activite:f.activite.value?Number(f.activite.value):null,etape_courante:f.etape_courante.value?Number(f.etape_courante.value):null,responsable:f.responsable.value?Number(f.responsable.value):null,dateDebut:gd(f.dateDebut.value),dateFin:gd(f.dateFin.value)};$("projectDialog").close();await apply([["UpdateRecord","Projects",currentProjectId,fields]],"Projet / Produit mis à jour.")}
+function openProject(create=false){
+  const f=$("projectForm");
+  f.reset();
+  f.id.value="";
+  let p=null;
+
+  if(!create){
+    p=get("projects",currentProjectId);
+    if(!p)return;
+    f.id.value=String(p.id);
+    $("projectDialogTitle").textContent="Modifier Projet / Produit";
+    ["nom","code","statut","priorite","sponsor","risque"].forEach(k=>f[k].value=p[k]??"");
+    f.Type.value=/produit/i.test(p.Type||"")?"Produit":"Projet";
+    f.progression.value=pct(p.progression);
+    f.budget.value=p.budget??"";
+    f.valeurStrategique.value=p.valeurStrategique??"";
+    f.dateDebut.value=din(p.dateDebut);
+    f.dateFin.value=din(p.dateFin);
+  }else{
+    $("projectDialogTitle").textContent="Nouveau Projet / Produit";
+    f.Type.value=typeFilter==="produit"?"Produit":"Projet";
+    f.progression.value=0;
+    f.statut.value="À faire";
+  }
+
+  opt(f.activite,db.activities,r=>r.Nom,p?id(p.activite):null,"— activité —");
+  opt(f.etape_courante,db.projectStages,r=>r.Nom,p?id(p.etape_courante):null,"— étape courante —");
+  opt(f.responsable,db.team,r=>r.nom,p?id(p.responsable):null,"— responsable —");
+  $("projectDialog").showModal();
+}
+$("projectForm").onsubmit=async e=>{
+  e.preventDefault();
+  const f=e.currentTarget;
+  const rid=Number(f.id.value)||null;
+  const fields={
+    nom:f.nom.value,
+    code:f.code.value,
+    Type:f.Type.value,
+    statut:f.statut.value,
+    priorite:f.priorite.value,
+    sponsor:f.sponsor.value,
+    progression:fromPct(f.progression.value),
+    budget:f.budget.value===""?null:Number(f.budget.value),
+    risque:f.risque.value,
+    valeurStrategique:f.valeurStrategique.value===""?null:Number(f.valeurStrategique.value),
+    activite:f.activite.value?Number(f.activite.value):null,
+    etape_courante:f.etape_courante.value?Number(f.etape_courante.value):null,
+    responsable:f.responsable.value?Number(f.responsable.value):null,
+    dateDebut:gd(f.dateDebut.value),
+    dateFin:gd(f.dateFin.value)
+  };
+  const lookup={nom:fields.nom,code:fields.code};
+  $("projectDialog").close();
+
+  if(rid){
+    await apply([["UpdateRecord","Projects",rid,fields]],"Projet / Produit mis à jour.");
+  }else{
+    if(busy)return;
+    busy=true;document.body.classList.add("busy");
+    try{
+      const actions=[["AddRecord","Projects",null,fields]];
+      const finalActions=[...actions];
+      if(db.audit!==undefined){
+        for(const a of actions){
+          finalActions.push(["AddRecord","JOURNAL_ACTIONS",null,auditPayload(a)]);
+        }
+      }
+      try{
+        await grist.docApi.applyUserActions(finalActions);
+      }catch(e){
+        if(finalActions.length!==actions.length){
+          console.warn("Journalisation impossible, création appliquée sans journal",e);
+          await grist.docApi.applyUserActions(actions);
+        }else throw e;
+      }
+      await load();
+      const created=[...db.projects]
+        .filter(p=>String(p.nom||"")===lookup.nom && String(p.code||"")===lookup.code)
+        .sort((a,b)=>Number(b.id)-Number(a.id))[0];
+      if(created){
+        currentProjectId=created.id;
+        projectSearch="";
+        $("projectSearch").value="";
+        typeFilter="all";
+        document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x.dataset.typeFilter==="all"));
+        populateProjectSelect();
+        renderPortfolioKpis();
+        detailTab="infos";
+        renderProject();
+      }
+      banner("Projet / Produit créé.");
+    }catch(e){
+      console.error(e);
+      banner(`Erreur Grist: ${e?.message||e}`);
+    }finally{
+      busy=false;document.body.classList.remove("busy");
+    }
+  }
+}
 
 function fillMulti(el,rows,label,selected=[]){const s=new Set(selected.map(Number));el.innerHTML=rows.map(r=>`<option value="${r.id}" ${s.has(Number(r.id))?"selected":""}>${esc(label(r))}</option>`).join("")}
 function openTask(tid=null){const f=$("taskForm");f.reset();f.id.value=tid||"";const t=tid?get("tasks",tid):null;$("taskDialogTitle").textContent=t?"Modifier la tâche":"Nouvelle tâche";if(t){["titre","description","Code","type","statut","priorite","estimationH","tempsPasse"].forEach(k=>f[k].value=t[k]??"");f.progression.value=pct(t.progression);f.dateDebut.value=din(t.dateDebut);f.dateEcheance.value=din(t.dateEcheance);f.tags.value=Array.isArray(t.tags)?t.tags.filter(x=>typeof x==="string").join(", "):""}else{f.type.value="tache";f.progression.value=0}opt(f.etape_projet,db.projectStages,r=>r.Nom,t?id(t.etape_projet):null,"— étape projet —");opt(f.fonctionnalite,db.features.filter(x=>id(x.produit)===currentProjectId),r=>r.Nom,t?id(t.fonctionnalite):null,"— fonctionnalité —");fillMulti(f.assignees,db.team,r=>r.nom,t?refs(t.assignees):[]);fillMulti(f.dependDe,taskRows(currentProjectId).filter(x=>x.id!==tid),r=>r.titre,t?refs(t.dependDe):[]);opt(f.parentTask,taskRows(currentProjectId).filter(x=>x.id!==tid),r=>r.titre,t?id(t.parentTask):null,"— aucune —");$("taskDialog").showModal()}
@@ -375,17 +491,17 @@ async function deleteProject(){const p=get("projects",currentProjectId),ts=taskR
 
 /* ---------- events ---------- */
 document.querySelectorAll("[data-main-tab]").forEach(b=>b.onclick=()=>{currentTab=b.dataset.mainTab;document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x===b));$("projectView").classList.toggle("hidden",currentTab!=="project");$("offerView").classList.toggle("hidden",currentTab!=="offer")});
-document.querySelectorAll("[data-type-filter]").forEach(b=>b.onclick=()=>{typeFilter=b.dataset.typeFilter;document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x===b));populateProjectSelect();renderPortfolioKpis();renderProject()});
+document.querySelectorAll("[data-type-filter]").forEach(b=>b.onclick=()=>{typeFilter=b.dataset.typeFilter;document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x===b));populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
 document.querySelectorAll("[data-offer-type-filter]").forEach(b=>b.onclick=()=>{offerTypeFilter=b.dataset.offerTypeFilter;document.querySelectorAll("[data-offer-type-filter]").forEach(x=>x.classList.toggle("active",x===b));renderOffer()});
 $("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer()};
-$("editProjectBtn").onclick=openProject;
+$("editProjectBtn").onclick=()=>openProject(false);$("newProjectBtn").onclick=()=>openProject(true);
 $("deleteProjectBtn").onclick=deleteProject;
 $("newTaskBtn").onclick=()=>openTask();
 $("addContributionBtn").onclick=openContribution;$("newFeatureBtn").onclick=()=>openFeature();
 document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{taskFilter=b.dataset.taskFilter;document.querySelectorAll("[data-task-filter]").forEach(x=>x.classList.toggle("active",x===b));tasks(taskRows(currentProjectId))});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const d=$(b.dataset.close);if(d?.open)d.close()});
 
-$("projectSearch").addEventListener("input",e=>{projectSearch=e.target.value;populateProjectSelect();renderPortfolioKpis();renderProject()});
+$("projectSearch").addEventListener("input",e=>{projectSearch=e.target.value;populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
 document.querySelectorAll("[data-detail-tab]").forEach(b=>b.onclick=()=>switchDetailTab(b.dataset.detailTab));
 
 grist.ready({requiredAccess:"full"});grist.onOptions(()=>load());load();

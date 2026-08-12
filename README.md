@@ -147,3 +147,27 @@ L'ancien onglet Infos contenait les éléments `#business` et `#alerts`.
 Ils ont été supprimés en V4.5.2, mais les anciennes fonctions de rendu étaient encore appelées.
 Ces appels ont été retirés : les informations de positionnement et les alertes sont désormais
 rendues uniquement dans le nouvel onglet **Synthèse**.
+
+
+## V4.5.4 — Création Projet / Produit et Synthèse par défaut
+
+- Ajout du bouton **+ Nouveau** dans la vue Pilotage par projets / produits.
+- Le même formulaire sert désormais à créer ou modifier un enregistrement `Projects`.
+- Le type proposé par défaut suit le filtre courant : Produit si le filtre Produits est actif, sinon Projet.
+- Après création, le nouvel élément est sélectionné automatiquement quand il est identifiable par nom + code.
+- **Synthèse est maintenant le premier sous-onglet** de la fiche.
+- À chaque sélection d'un Projet / Produit, la fiche s'ouvre sur **Synthèse**.
+
+
+## V4.5.5 — Météo projet visible sur la fiche
+
+La météo apparaît maintenant :
+- dans l'en-tête de la fiche Projet / Produit, à côté du badge de type ;
+- dans l'onglet **Synthèse**.
+
+Le widget lit en priorité les colonnes Grist :
+- `Meteo_Projet`
+- `Motif_Meteo`
+
+Si elles ne sont pas encore présentes ou vides, il utilise provisoirement la logique calculée actuelle
+(retards, priorités et risque) pour afficher Vert / Orange / Rouge.
