@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Grist Portfolio Cockpit V4.0.0</title>
-  <link rel="stylesheet" href="styles.css?v=4.0.0" />
+  <title>Grist Portfolio Cockpit V4.1.0</title>
+  <link rel="stylesheet" href="styles.css?v=4.1.0" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
 <div id="app">
   <header class="topbar">
     <div>
-      <div class="eyebrow">GRIST • COCKPIT PROJET <span class="version">v4.0.0</span></div>
+      <div class="eyebrow">GRIST • COCKPIT PROJET <span class="version">v4.1.0</span></div>
       <h1 id="projectTitle">Chargement…</h1>
       <div id="projectMeta" class="muted"></div>
     </div>
@@ -51,12 +51,33 @@
       <div id="team"></div>
     </section>
 
+    <section class="panel">
+      <div class="panel-head"><h2>🚦 Alertes projet</h2></div>
+      <div id="alerts"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>📈 Avancement calculé</h2></div>
+      <div id="computedProgress"></div>
+    </section>
+
     <section class="panel span-2">
       <div class="panel-head">
         <h2>📅 Gantt projet</h2>
-        <span class="muted">dépendances et jalons issus de Tasks</span>
+        <div class="actions">
+          <span class="muted">dépendances, jalons et progression issus de Tasks</span>
+          <button id="zoomGanttBtn">Zoom auto</button>
+        </div>
       </div>
       <div id="gantt"></div>
+    </section>
+
+    <section class="panel span-2">
+      <div class="panel-head">
+        <h2>⚖️ Charge ressources</h2>
+        <span class="muted">allocations projet + charge estimée des tâches</span>
+      </div>
+      <div id="resourceLoad"></div>
     </section>
 
     <section class="panel span-2">
@@ -80,7 +101,7 @@
     </section>
   </main>
 
-  <footer>Cockpit v4.0.0 • modèle adapté au fichier Grist fourni • Grist reste l’unique source de vérité</footer>
+  <footer>Cockpit v4.1.0 • modèle adapté au fichier Grist fourni • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -144,6 +165,6 @@
 </form>
 </dialog>
 
-<script src="app.js?v=4.0.0"></script>
+<script src="app.js?v=4.1.0"></script>
 </body>
 </html>

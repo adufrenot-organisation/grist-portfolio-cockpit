@@ -1,4 +1,4 @@
-# Grist Portfolio Cockpit — V4.0.0
+# Grist Portfolio Cockpit — V4.1.0.0
 
 Cette version est adaptée au fichier `.grist` fourni.
 
@@ -48,4 +48,21 @@ Cette version est adaptée au fichier `.grist` fourni.
 
 Publie `index.html`, `app.js`, `styles.css`, `README.md`, `ARCHITECTURE.md` sur GitHub Pages.
 
-L'URL du widget peut rester la même. Pour forcer le rafraîchissement dans Grist, ajoute `?v=4.0.0` à l'URL du widget.
+L'URL du widget peut rester la même. Pour forcer le rafraîchissement dans Grist, ajoute `?v=4.1.0` à l'URL du widget.
+
+
+## Nouveautés V4.1
+
+- **Gantt enrichi** : progression dans les barres, jalons, ligne “aujourd’hui”, dépendances visuelles.
+- **Alertes projet** : retards, allocations >100 %, tâches sans dates, tâches non assignées, risque élevé.
+- **Avancement calculé** :
+  - progression déclarée du projet ;
+  - moyenne des tâches ;
+  - progression pondérée par `estimationH`.
+- **Charge ressources** :
+  - allocation Grist ;
+  - charge estimée issue de `Tasks.estimationH` ;
+  - temps passé issu de `Tasks.tempsPasse`.
+- Diagnostic mis à jour.
+
+Le modèle de données reste inchangé par rapport à la V4.

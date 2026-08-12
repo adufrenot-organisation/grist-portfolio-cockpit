@@ -28,3 +28,16 @@ Ne pas introduire une table `Services` fictive dans le widget : elle n'est pas u
 - toute suppression est confirmée;
 - ne jamais recréer automatiquement une ligne supprimée;
 - conserver les IDs de colonnes réels du modèle actuel.
+
+
+## V4.1 — Pilotage opérationnel
+
+La V4.1 n'ajoute aucune table et ne change pas le schéma.
+
+Elle calcule uniquement des vues dérivées :
+- alertes projet ;
+- progression calculée ;
+- charge ressource ;
+- dépendances visuelles du Gantt.
+
+Aucune de ces données dérivées n'est persistée côté navigateur ni réécrite automatiquement dans Grist.
