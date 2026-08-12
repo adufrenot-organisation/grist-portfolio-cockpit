@@ -155,3 +155,7 @@ Le cockpit ne référence plus de conteneurs DOM supprimés.
 
 Projet → Etapes_Projet → Tasks est exposé comme Planning projet.
 Produit → Fonctionnalites → Tasks est exposé comme Roadmap produit.
+
+
+## V4.6.1
+Filtres cumulables Type + Domaine + Service + Recherche.

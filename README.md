@@ -198,3 +198,7 @@ Pour les **Produits**, le sous-onglet `Roadmap produit` permet :
 - de préremplir automatiquement le lien `Tasks.fonctionnalite`.
 
 Les étapes restent un référentiel global géré dans Admin & Audit. Elles ne sont pas dupliquées par projet.
+
+
+## V4.6.1 — Filtres Domaine / Service
+Ajout de filtres cumulables Domaine et Service dans le portefeuille. Le service est résolu par `Projects.activite → Activites.Service_Code → Activites_OFS.OFS_Code → Offres_Services`. Le domaine est lu sur l'offre ou l'activité via une référence `Domaine_code`, `Domaine_Code` ou `Domaine`.

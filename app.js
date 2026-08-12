@@ -1,7 +1,7 @@
 
-const VERSION="4.6.0";
-const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
-let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
+const VERSION="4.6.1";
+const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
+let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all";
 const $=id=>{
   const el=document.getElementById(id);
   if(!el) throw new Error(`Élément UI introuvable: #${id}`);
@@ -28,13 +28,44 @@ function typeBadge(p){const t=typeOf(p);return`<span class="type-badge ${t}">${t
 function taskRows(pid){return db.tasks.filter(t=>id(t.projet)===Number(pid))}
 function contribRows(pid){return db.contrib.filter(c=>refs(c.Projet_Code).includes(Number(pid)))}
 function allocRows(pid){return db.allocations.filter(a=>id(a.Projet_Code)===Number(pid))}
-function filteredProjects(filter=typeFilter){return db.projects.filter(p=>filter==="all"||typeOf(p)===filter)}
+
+function projectOffer(p){
+  const act=get("activities",id(p.activite));
+  if(!act)return null;
+  const ao=get("activityOffers",id(act.Service_Code));
+  return ao?get("offers",id(ao.OFS_Code)):null;
+}
+function domainRefFromRecord(r){
+  if(!r)return null;
+  for(const k of ["Domaine_code","Domaine_Code","Domaine","domaine","domain","Domain"]){
+    const v=id(r[k]);if(v)return v;
+  }
+  return null;
+}
+function projectDomainId(p){
+  const fromOffer=domainRefFromRecord(projectOffer(p));
+  if(fromOffer)return fromOffer;
+  return domainRefFromRecord(get("activities",id(p.activite)));
+}
+function populatePortfolioFilters(){
+  $("domainFilter").innerHTML='<option value="all">Tous les domaines</option>'+db.domains.map(d=>`<option value="${d.id}">${esc(d.Nom||d.Libelle||d.Code||`#${d.id}`)}</option>`).join("");
+  $("serviceFilter").innerHTML='<option value="all">Tous les services</option>'+db.offers.map(o=>`<option value="${o.id}">${esc(o.Nom||o.Code||`#${o.id}`)}</option>`).join("");
+  $("domainFilter").value=domainFilter;$("serviceFilter").value=serviceFilter;
+}
+function filteredProjects(filter=typeFilter){return db.projects.filter(p=>{
+  if(filter!=="all"&&typeOf(p)!==filter)return false;
+  const offer=projectOffer(p);
+  if(serviceFilter!=="all"&&Number(offer?.id)!==Number(serviceFilter))return false;
+  if(domainFilter!=="all"&&Number(projectDomainId(p))!==Number(domainFilter))return false;
+  return true;
+})}
 
 async function load(){
   try{
   const es=await Promise.all(Object.entries(T).map(async([k,t])=>[k,await fetchTable(k,t)]));db=Object.fromEntries(es);
   if(!db.projects.length){banner("Projects est vide ou inaccessible.");return}
   if(!currentProjectId||!get("projects",currentProjectId))currentProjectId=db.projects[0].id;
+  populatePortfolioFilters();
   populateProjectSelect();
   if(!currentOfferId&&db.offers.length)currentOfferId=db.offers[0].id;
   populateOfferSelect();
@@ -473,6 +504,8 @@ document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{taskFi
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const d=$(b.dataset.close);if(d?.open)d.close()});
 
 $("projectSearch").addEventListener("input",e=>{projectSearch=e.target.value;populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
+$("domainFilter").addEventListener("change",e=>{domainFilter=e.target.value;populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
+$("serviceFilter").addEventListener("change",e=>{serviceFilter=e.target.value;populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
 document.querySelectorAll("[data-detail-tab]").forEach(b=>b.onclick=()=>switchDetailTab(b.dataset.detailTab));
 
 grist.ready({requiredAccess:"full"});grist.onOptions(()=>load());load();
