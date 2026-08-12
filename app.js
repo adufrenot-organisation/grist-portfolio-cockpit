@@ -1,6 +1,6 @@
 
-const VERSION="4.5.0";
-const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites"};
+const VERSION="4.5.1";
+const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="overview",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
 const $=id=>{
   const el=document.getElementById(id);
@@ -236,7 +236,67 @@ $("featureForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,f
 async function deleteFeature(fid){const used=db.tasks.filter(t=>id(t.fonctionnalite)===fid).length;if(used){banner(`Suppression bloquée : ${used} tâche(s) utilisent cette fonctionnalité.`);return}if(confirm("Supprimer définitivement cette fonctionnalité ?"))await apply([["RemoveRecord","Fonctionnalites",fid]],"Fonctionnalité supprimée.")}
 /* ---------- Project CRUD ---------- */
 function banner(t){$("banner").textContent=t;$("banner").classList.remove("hidden")}function hideBanner(){$("banner").classList.add("hidden")}
-async function apply(actions,msg){if(busy)return;busy=true;document.body.classList.add("busy");try{await grist.docApi.applyUserActions(actions);await load();banner(msg);setTimeout(()=>{if(!busy)hideBanner()},1700)}catch(e){console.error(e);banner(`Erreur Grist: ${e?.message||e}`)}finally{busy=false;document.body.classList.remove("busy")}}
+function tableKeyFromName(name){return Object.keys(T).find(k=>T[k]===name)||null}
+function auditValue(v){
+  if(Array.isArray(v))return v;
+  if(v && typeof v==="object")return v;
+  return v??null;
+}
+function auditPayload(action){
+  const [kind,table,recordId,fields]=action;
+  const key=tableKeyFromName(table);
+  const before=key&&recordId?get(key,recordId):null;
+  let details={};
+  if(kind==="UpdateRecord"){
+    details.changements={};
+    for(const [col,valeur] of Object.entries(fields||{})){
+      details.changements[col]={avant:auditValue(before?.[col]),apres:auditValue(valeur)};
+    }
+  }else if(kind==="AddRecord"){
+    details.valeurs=fields||{};
+  }else if(kind==="RemoveRecord"){
+    details.avant=before||{};
+  }else{
+    details.action=action;
+  }
+  const label=before?.nom||before?.Nom||before?.titre||before?.Code||"";
+  return {
+    Date_Heure:Math.floor(Date.now()/1000),
+    Utilisateur:"",
+    Origine:"Cockpit PMO",
+    Action:kind==="AddRecord"?"CREATE":kind==="UpdateRecord"?"UPDATE":kind==="RemoveRecord"?"DELETE":kind,
+    Table:table,
+    Record_ID:recordId||null,
+    Libelle:String(label||""),
+    Details:JSON.stringify(details)
+  };
+}
+async function apply(actions,msg){
+  if(busy)return;
+  busy=true;document.body.classList.add("busy");
+  try{
+    const finalActions=[...actions];
+    // JOURNAL_ACTIONS est optionnelle : on journalise si elle est accessible.
+    if(db.audit!==undefined){
+      for(const a of actions){
+        if(["AddRecord","UpdateRecord","RemoveRecord"].includes(a[0]) && a[1]!=="JOURNAL_ACTIONS"){
+          finalActions.push(["AddRecord","JOURNAL_ACTIONS",null,auditPayload(a)]);
+        }
+      }
+    }
+    try{
+      await grist.docApi.applyUserActions(finalActions);
+    }catch(e){
+      // Si JOURNAL_ACTIONS n'existe pas ou son schéma diffère, ne pas bloquer l'action métier.
+      if(finalActions.length!==actions.length){
+        console.warn("Journalisation impossible, action métier appliquée sans journal",e);
+        await grist.docApi.applyUserActions(actions);
+      }else throw e;
+    }
+    await load();banner(msg);setTimeout(()=>{if(!busy)hideBanner()},1700)
+  }catch(e){console.error(e);banner(`Erreur Grist: ${e?.message||e}`)}
+  finally{busy=false;document.body.classList.remove("busy")}
+}
 function opt(el,rows,label,selected=null,empty="—"){el.innerHTML=`<option value="">${empty}</option>`+rows.map(r=>`<option value="${r.id}" ${Number(selected)===Number(r.id)?"selected":""}>${esc(label(r))}</option>`).join("")}
 function openProject(){const p=get("projects",currentProjectId),f=$("projectForm");if(!p)return;["nom","code","statut","priorite","sponsor","risque"].forEach(k=>f[k].value=p[k]??"");f.Type.value=/produit/i.test(p.Type||"")?"Produit":"Projet";f.progression.value=pct(p.progression);f.budget.value=p.budget??"";f.valeurStrategique.value=p.valeurStrategique??"";f.dateDebut.value=din(p.dateDebut);f.dateFin.value=din(p.dateFin);opt(f.activite,db.activities,r=>r.Nom,id(p.activite),"— activité —");opt(f.etape_courante,db.projectStages,r=>r.Nom,id(p.etape_courante),"— étape courante —");opt(f.responsable,db.team,r=>r.nom,id(p.responsable),"— responsable —");$("projectDialog").showModal()}
 $("projectForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,fields={nom:f.nom.value,code:f.code.value,Type:f.Type.value,statut:f.statut.value,priorite:f.priorite.value,sponsor:f.sponsor.value,progression:fromPct(f.progression.value),budget:f.budget.value===""?null:Number(f.budget.value),risque:f.risque.value,valeurStrategique:f.valeurStrategique.value===""?null:Number(f.valeurStrategique.value),activite:f.activite.value?Number(f.activite.value):null,etape_courante:f.etape_courante.value?Number(f.etape_courante.value):null,responsable:f.responsable.value?Number(f.responsable.value):null,dateDebut:gd(f.dateDebut.value),dateFin:gd(f.dateFin.value)};$("projectDialog").close();await apply([["UpdateRecord","Projects",currentProjectId,fields]],"Projet / Produit mis à jour.")}

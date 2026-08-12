@@ -112,3 +112,10 @@ Projects.etape_courante -> Etapes_Projet; Tasks.etape_projet -> Etapes_Projet; F
 
 ## V4.5
 Le cockpit principal est désormais strictement métier. Aucun référentiel n’est dupliqué : le widget Admin utilise le même document Grist.
+
+
+## V4.5.1 — Audit fonctionnel
+
+Le Cockpit alimente `JOURNAL_ACTIONS` lorsqu'elle est disponible.
+Le champ `Details` conserve un diff avant/après pour les updates et l'état avant suppression.
+L'identité utilisateur doit être renseignée côté Grist par trigger formula si souhaitée.

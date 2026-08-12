@@ -98,3 +98,25 @@ Prise en charge de Etapes_Projet, Stades_Fonctionnalite et Fonctionnalites, ajou
 
 ## V4.5 — séparation métier / administration
 L’onglet Administration est retiré du cockpit principal. Le CRUD des référentiels, l’audit, le diagnostic et le MCD sont transférés dans **GRIST. ADMIN & AUDIT PMO**.
+
+
+## V4.5.1 — Journal détaillé des actions Cockpit
+
+Quand la table `JOURNAL_ACTIONS` est disponible, chaque création, modification ou suppression
+effectuée depuis le cockpit ajoute une ligne contenant :
+- `Date_Heure`
+- `Origine = Cockpit PMO`
+- `Action`
+- `Table`
+- `Record_ID`
+- `Libelle`
+- `Details`
+
+`Details` contient du JSON avec :
+- les valeurs créées ;
+- les couples `avant / après` lors d'une modification ;
+- l'enregistrement avant suppression.
+
+La Plugin API publique ne fournit pas directement l'identité de l'utilisateur au widget.
+Pour renseigner automatiquement `Utilisateur`, configure dans Grist cette colonne avec une
+**trigger formula** basée sur `user.Email` ou `user.Name`, appliquée à la création de la ligne.
