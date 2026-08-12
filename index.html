@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Grist Portfolio Cockpit</title>
+  <title>Grist Portfolio Cockpit V2</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
@@ -11,44 +11,119 @@
   <div id="app">
     <header class="topbar">
       <div>
-        <div class="eyebrow">GRIST • COCKPIT PROJET</div>
+        <div class="eyebrow">GRIST • COCKPIT PROJET • V2</div>
         <h1 id="projectTitle">Chargement…</h1>
         <div id="projectMeta" class="muted"></div>
       </div>
       <div class="project-picker">
         <label for="projectSelect">Projet</label>
-        <select id="projectSelect"></select>
+        <div class="inline">
+          <select id="projectSelect"></select>
+          <button class="primary" id="editProjectBtn">Modifier</button>
+          <button class="danger" id="deleteProjectBtn">Supprimer</button>
+        </div>
       </div>
     </header>
+
     <div id="banner" class="banner hidden"></div>
+
     <section class="kpis" id="kpis"></section>
+
     <main class="grid">
       <section class="panel span-2">
-        <div class="panel-head"><h2>🎯 Alignement stratégique</h2><span class="badge" id="objectiveCount"></span></div>
+        <div class="panel-head">
+          <h2>🎯 Alignement stratégique</h2>
+          <span class="badge" id="objectiveCount"></span>
+        </div>
         <div id="strategy"></div>
       </section>
+
       <section class="panel">
         <div class="panel-head"><h2>🏢 Positionnement métier</h2></div>
         <div id="business"></div>
       </section>
+
       <section class="panel">
         <div class="panel-head"><h2>👥 Équipe & allocations</h2></div>
         <div id="team"></div>
       </section>
+
       <section class="panel span-2">
         <div class="panel-head">
           <h2>🧭 Tâches & jalons</h2>
-          <div class="filters">
-            <button class="filter active" data-task-filter="all">Tout</button>
-            <button class="filter" data-task-filter="jalon">Jalons</button>
-            <button class="filter" data-task-filter="late">En retard</button>
+          <div class="actions">
+            <div class="filters">
+              <button class="filter active" data-task-filter="all">Tout</button>
+              <button class="filter" data-task-filter="jalon">Jalons</button>
+              <button class="filter" data-task-filter="late">En retard</button>
+            </div>
+            <button class="primary" id="newTaskBtn">+ Nouvelle tâche</button>
           </div>
         </div>
         <div id="tasks"></div>
       </section>
     </main>
-    <footer>Lecture seule • Les données restent dans Grist • V1</footer>
+
+    <footer>
+      V2 éditable • Grist reste l’unique source de vérité • aucune donnée métier persistée côté navigateur
+    </footer>
   </div>
+
+  <dialog id="projectDialog">
+    <form method="dialog" id="projectForm">
+      <div class="dialog-head">
+        <h3>Modifier le projet</h3>
+        <button type="button" class="icon" data-close="projectDialog">×</button>
+      </div>
+      <div class="form-grid">
+        <label>Nom<input name="nom" required /></label>
+        <label>Code<input name="code" /></label>
+        <label>Statut<input name="statut" /></label>
+        <label>Priorité<input name="priorite" /></label>
+        <label>Sponsor<input name="sponsor" /></label>
+        <label>Progression (%)<input name="progression" type="number" min="0" max="100" step="1" /></label>
+        <label>Budget<input name="budget" type="number" step="1" /></label>
+        <label>Risque<input name="risque" /></label>
+        <label>Valeur stratégique<input name="valeurStrategique" type="number" step="1" /></label>
+        <label>Date début<input name="dateDebut" type="date" /></label>
+        <label>Date fin<input name="dateFin" type="date" /></label>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" data-close="projectDialog">Annuler</button>
+        <button type="submit" class="primary">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="taskDialog">
+    <form method="dialog" id="taskForm">
+      <input type="hidden" name="id" />
+      <div class="dialog-head">
+        <h3 id="taskDialogTitle">Nouvelle tâche</h3>
+        <button type="button" class="icon" data-close="taskDialog">×</button>
+      </div>
+      <div class="form-grid">
+        <label class="wide">Titre<input name="titre" required /></label>
+        <label class="wide">Description<textarea name="description" rows="3"></textarea></label>
+        <label>Type
+          <select name="type">
+            <option value="tache">tache</option>
+            <option value="jalon">jalon</option>
+          </select>
+        </label>
+        <label>Statut<input name="statut" /></label>
+        <label>Priorité<input name="priorite" /></label>
+        <label>Progression (%)<input name="progression" type="number" min="0" max="100" step="1" /></label>
+        <label>Date début<input name="dateDebut" type="date" /></label>
+        <label>Échéance<input name="dateEcheance" type="date" /></label>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" data-close="taskDialog">Annuler</button>
+        <button type="submit" class="primary">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="app.js"></script>
 </body>
 </html>

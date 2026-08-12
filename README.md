@@ -1,72 +1,74 @@
-# Grist Portfolio Cockpit — V1
+# Grist Portfolio Cockpit — V2
 
-Widget **lecture seule** pour Grist, adapté au modèle :
+V2 éditable du cockpit Grist.
 
-`Axes_Strategiques → Objectifs → Contributions_Objectifs → Projects → Tasks / Team`
+## Nouveautés V2
 
-et
+- modification d'un projet ;
+- création d'une tâche ou d'un jalon ;
+- modification d'une tâche ;
+- suppression persistante d'une tâche ;
+- suppression persistante d'un projet avec nettoyage des lignes liées :
+  - `Tasks`
+  - `Contributions_Objectifs`
+  - `Allocations`
+- confirmation avant suppression ;
+- relecture systématique depuis Grist après chaque écriture.
 
-`Projects → Activites → Services → Offres_Services`.
+## Principe critique
 
-## Ce que la V1 affiche
+**Grist est l'unique source de vérité.**
 
-- sélecteur de projet ;
-- KPI : avancement, tâches actives, retards, jalons, budget ;
-- objectifs stratégiques et contribution du projet ;
-- offre, service et activité associés ;
-- équipe / allocations ;
-- tâches et jalons avec filtres.
+Le widget ne stocke aucune donnée métier dans `localStorage` ou `IndexedDB`.
 
-## Installation avec GitHub Pages
+Chaque modification suit ce cycle :
 
-1. Crée un dépôt GitHub, par exemple `grist-portfolio-cockpit`.
-2. Dépose **à la racine** `index.html`, `app.js`, `styles.css`.
-3. Dans GitHub : **Settings → Pages**.
-4. Choisis **Deploy from a branch**, branche `main`, dossier `/ (root)`.
-5. Récupère l’URL `https://<compte>.github.io/grist-portfolio-cockpit/`.
-6. Dans Grist DINUM : **Ajouter un widget → Widget personnalisé → URL personnalisée**.
-7. Colle l’URL GitHub Pages.
-8. Autorise **Full document access**.
+1. action utilisateur ;
+2. `grist.docApi.applyUserActions(...)` ;
+3. attente de la confirmation ;
+4. `fetchTable()` sur les tables Grist ;
+5. reconstruction de l'interface.
 
-### Pourquoi “Full document access” alors que la V1 est en lecture seule ?
+Cela évite qu'un ancien état local « ressuscite » des données supprimées.
 
-Le cockpit doit lire plusieurs tables du même document. L’API Grist réserve cet accès multi-table au niveau `full`. Le code V1 n’appelle **aucune API d’écriture** : `applyUserActions` n’est pas utilisée.
+## Installation
 
-## Tables attendues
+Même procédure que la V1 :
 
-- `Projects`
-- `Tasks`
-- `Team`
-- `Contributions_Objectifs`
-- `Objectifs`
-- `Axes_Strategiques`
-- `Activites`
-- `Services`
-- `Offres_Services`
-- `Allocations`
+1. publier `index.html`, `app.js`, `styles.css` à la racine d'un dépôt GitHub Pages ;
+2. ouvrir l'URL GitHub Pages dans un widget personnalisé Grist ;
+3. autoriser `Full document access`.
 
-Une table absente n’empêche pas le widget de démarrer ; la zone correspondante sera simplement vide.
+## Attention au schéma
 
-## Colonnes principales attendues
+La V2 écrit directement dans les colonnes suivantes.
 
 ### Projects
-`nom`, `code`, `activite`, `sponsor`, `statut`, `priorite`, `dateDebut`, `dateFin`, `progression`, `budget`, `risque`, `valeurStrategique`
+`nom`, `code`, `statut`, `priorite`, `sponsor`, `progression`, `budget`, `risque`,
+`valeurStrategique`, `dateDebut`, `dateFin`
 
 ### Tasks
-`titre`, `description`, `dateDebut`, `dateEcheance`, `priorite`, `statut`, `progression`, `projet`, `assignees`, `type`
+`titre`, `description`, `type`, `statut`, `priorite`, `progression`,
+`dateDebut`, `dateEcheance`, `projet`
 
-### Contributions_Objectifs
-`Projet_Code`, `Objectif_Code`, `Contribution`
+Si ton document DINUM utilise un nom de colonne différent, adapte les identifiants dans `app.js`.
 
-### Objectifs
-`Nom`, `Axe_Code`, `KPI`, `Echeance`, `Statut`
+## Suppression d'un projet
 
-### Activites / Services
-`Activites.Service_Code` et `Services.Offre_Code`
+La V2 supprime en une seule action Grist :
+- les tâches liées ;
+- les contributions stratégiques liées ;
+- les allocations liées ;
+- puis le projet.
 
-### Allocations
-`Projet_Code`, `Ressource_Code`, `Allocation`
+Cette stratégie est volontaire pour éviter les références orphelines.
 
-## Étape suivante proposée — V2
+## Limites V2
 
-Après validation de la V1 : édition projet, création/modification/suppression de tâches avec confirmation, et **chaque écriture directement vers Grist** sans état local faisant autorité.
+- pas encore d'édition de l'activité ;
+- pas encore d'édition des contributions stratégiques ;
+- pas encore d'édition des affectations `Team` ;
+- pas encore de Gantt intégré ;
+- pas de mapping configurable des colonnes.
+
+Ce sont de bons candidats pour la V3.
