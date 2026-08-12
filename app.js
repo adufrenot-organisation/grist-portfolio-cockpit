@@ -1,5 +1,5 @@
 
-const VERSION="4.3.0";
+const VERSION="4.3.1";
 const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="overview",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
 const $=id=>document.getElementById(id);
@@ -27,6 +27,7 @@ function allocRows(pid){return db.allocations.filter(a=>id(a.Projet_Code)===Numb
 function filteredProjects(filter=typeFilter){return db.projects.filter(p=>filter==="all"||typeOf(p)===filter)}
 
 async function load(){
+  try{
   const es=await Promise.all(Object.entries(T).map(async([k,t])=>[k,await fetchTable(k,t)]));db=Object.fromEntries(es);
   if(!db.projects.length){banner("Projects est vide ou inaccessible.");return}
   if(!currentProjectId||!get("projects",currentProjectId))currentProjectId=db.projects[0].id;
@@ -34,6 +35,10 @@ async function load(){
   if(!currentOfferId&&db.offers.length)currentOfferId=db.offers[0].id;
   populateOfferSelect();
   renderAll();
+  }catch(e){
+    console.error("Erreur de chargement cockpit",e);
+    banner(`Erreur de chargement : ${e?.message||e}`);
+  }
 }
 function visibleProjects(){
   const q=projectSearch.trim().toLowerCase();
@@ -281,7 +286,13 @@ async function deleteProject(){const p=get("projects",currentProjectId),ts=taskR
 document.querySelectorAll("[data-main-tab]").forEach(b=>b.onclick=()=>{currentTab=b.dataset.mainTab;document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x===b));$("projectView").classList.toggle("hidden",currentTab!=="project");$("offerView").classList.toggle("hidden",currentTab!=="offer");$("adminView").classList.toggle("hidden",currentTab!=="admin")});
 document.querySelectorAll("[data-type-filter]").forEach(b=>b.onclick=()=>{typeFilter=b.dataset.typeFilter;document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x===b));populateProjectSelect();renderPortfolioKpis();renderProject()});
 document.querySelectorAll("[data-offer-type-filter]").forEach(b=>b.onclick=()=>{offerTypeFilter=b.dataset.offerTypeFilter;document.querySelectorAll("[data-offer-type-filter]").forEach(x=>x.classList.toggle("active",x===b));renderOffer()});
-renderProject()};$("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer()};$("adminTableSelect").onchange=renderAdmin;$("adminNewBtn").onclick=()=>openAdmin();$("editProjectBtn").onclick=openProject;$("deleteProjectBtn").onclick=deleteProject;$("newTaskBtn").onclick=()=>openTask();$("addContributionBtn").onclick=openContribution;$("refreshBtn").onclick=load;
+$("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer()};
+$("adminTableSelect").onchange=renderAdmin;
+$("adminNewBtn").onclick=()=>openAdmin();
+$("editProjectBtn").onclick=openProject;
+$("deleteProjectBtn").onclick=deleteProject;
+$("newTaskBtn").onclick=()=>openTask();
+$("addContributionBtn").onclick=openContribution;
 document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{taskFilter=b.dataset.taskFilter;document.querySelectorAll("[data-task-filter]").forEach(x=>x.classList.toggle("active",x===b));tasks(taskRows(currentProjectId))});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const d=$(b.dataset.close);if(d?.open)d.close()});
 

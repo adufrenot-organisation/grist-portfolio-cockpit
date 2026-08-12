@@ -89,3 +89,11 @@ La vue Projet / Produit est divisée en :
 ### Principe
 Aucune donnée dérivée affichée dans les KPI ou synthèses n'est persistée automatiquement.
 Grist reste l'unique source de vérité.
+
+
+## Correctif V4.3.1
+
+Correction d'une erreur de syntaxe dans l'initialisation des événements de la V4.3.0.
+Cette erreur empêchait complètement l'exécution JavaScript et donc tout accès aux tables Grist.
+
+La V4.3.1 conserve exactement le même modèle de données et la même UI, mais restaure le binding dynamique avec Grist.

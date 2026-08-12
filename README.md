@@ -1,4 +1,4 @@
-# GRIST. COCKPIT Pilotage PMO — V4.3.0
+# GRIST. COCKPIT Pilotage PMO — V4.3.1.1
 
 Cette version implémente la nouvelle interface validée visuellement.
 
@@ -59,6 +59,23 @@ Le widget continue à utiliser les vraies tables :
 
 Remplace les fichiers GitHub Pages et utilise temporairement :
 
-`?v=4.3.0`
+`?v=4.3.1`
 
 dans l'URL du widget Grist pour forcer le rafraîchissement.
+
+
+## Correctif 4.3.1
+
+La V4.3.0 contenait une erreur de syntaxe JavaScript dans le bloc d'événements.
+Conséquence : le HTML/CSS s'affichait, mais `app.js` ne s'exécutait jamais ; l'interface paraissait donc statique et aucune table Grist n'était lue.
+
+La V4.3.1 corrige ce bloc et réactive :
+- lecture des tables via `fetchTable`;
+- liste réelle Projects / Produits;
+- KPI calculés;
+- détail sélectionné;
+- offre de services;
+- administration CRUD;
+- écritures Grist via `applyUserActions`.
+
+Un message d'erreur de chargement est maintenant affiché dans le cockpit si le JavaScript rencontre une erreur à l'initialisation.
