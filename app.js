@@ -1,7 +1,7 @@
 
-const VERSION="4.2.0";
+const VERSION="4.3.0";
 const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations"};
-let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",typeFilter="all",offerTypeFilter="all",currentOfferId=null;
+let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="overview",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
 const $=id=>document.getElementById(id);
 function rows(d){if(!d||!Array.isArray(d.id))return[];const ks=Object.keys(d);return d.id.map((_,i)=>Object.fromEntries(ks.map(k=>[k,Array.isArray(d[k])?d[k][i]:d[k]])))}
 async function fetchTable(k,t){try{return rows(await grist.docApi.fetchTable(t))}catch(e){console.warn(t,e);return[]}}
@@ -35,26 +35,94 @@ async function load(){
   populateOfferSelect();
   renderAll();
 }
+function visibleProjects(){
+  const q=projectSearch.trim().toLowerCase();
+  return filteredProjects().filter(p=>!q||String(p.nom||"").toLowerCase().includes(q)||String(p.code||"").toLowerCase().includes(q));
+}
 function populateProjectSelect(){
-  const ps=filteredProjects();
+  const ps=visibleProjects();
   if(ps.length&&!ps.some(p=>p.id===currentProjectId))currentProjectId=ps[0].id;
-  $("projectSelect").innerHTML=ps.map(p=>`<option value="${p.id}">${esc(p.nom||`#${p.id}`)} — ${typeOf(p)==="produit"?"Produit":"Projet"}</option>`).join("");
-  if(currentProjectId)$("projectSelect").value=currentProjectId;
+  if(!ps.length)currentProjectId=null;
+  renderProjectList();
 }
 function populateOfferSelect(){
   $("offerSelect").innerHTML=db.offers.map(o=>`<option value="${o.id}">${esc(o.Nom||o.Code||`#${o.id}`)}</option>`).join("");
   if(currentOfferId)$("offerSelect").value=currentOfferId;
 }
-function renderAll(){renderProject();renderOffer();renderAdmin();}
-
+function renderAll(){renderPortfolioKpis();renderProject();renderOffer();renderAdmin();}
+function renderPortfolioKpis(){
+  const ps=visibleProjects(), all=filteredProjects();
+  const active=ps.filter(p=>!/termin|clos|done/i.test(String(p.statut||""))).length;
+  const lateProjects=ps.filter(p=>taskRows(p.id).some(late)).length;
+  const doneProjects=ps.filter(p=>/termin|clos|done/i.test(String(p.statut||""))).length;
+  const avg=ps.length?Math.round(ps.reduce((n,p)=>n+pct(p.progression),0)/ps.length):0;
+  const remaining=ps.reduce((sum,p)=>sum+taskRows(p.id).reduce((n,t)=>n+Math.max(0,Number(t.estimationH||0)-Number(t.tempsPasse||0)),0),0);
+  const proj=ps.filter(p=>typeOf(p)==="projet").length,prod=ps.filter(p=>typeOf(p)==="produit").length;
+  $("portfolioKpis").innerHTML=
+    kpi("Total éléments",ps.length,`Projets : ${proj} • Produits : ${prod}`)+
+    kpi("En cours",active,ps.length?`${Math.round(active/ps.length*100)}% du total`:"")+
+    kpi("En retard",lateProjects,ps.length?`${Math.round(lateProjects/ps.length*100)}% du total`:"")+
+    kpi("Terminés",doneProjects,ps.length?`${Math.round(doneProjects/ps.length*100)}% du total`:"")+
+    kpi("Avancement moyen",`${avg}%`,"Global portefeuille")+
+    kpi("Charge totale",`${Math.round(remaining)} h`,"Estimation restante");
+}
+function renderProjectList(){
+  const ps=visibleProjects();
+  $("projectList").innerHTML=ps.length?ps.map(p=>{
+    const progress=pct(p.progression),active=p.id===currentProjectId;
+    return`<div class="project-item ${active?"active":""}" data-project-id="${p.id}">
+      <div>
+        <div class="project-item-title">📁 ${esc(p.nom||`#${p.id}`)} ${typeBadge(p)}</div>
+        <div class="project-item-meta">${esc(p.code||"")} • ${esc(p.statut||"")}</div>
+      </div>
+      <div class="project-item-progress"><strong>${progress}%</strong><div class="mini-progress"><div style="width:${progress}%"></div></div></div>
+    </div>`}).join(""):'<div class="empty-state"><h3>Aucun résultat</h3><p>Modifiez le filtre ou la recherche.</p></div>';
+  $("projectListFooter").textContent=`${ps.length} élément(s)`;
+  document.querySelectorAll("[data-project-id]").forEach(el=>el.onclick=()=>{currentProjectId=Number(el.dataset.projectId);renderProjectList();renderProject();});
+}
 function renderProject(){
-  const p=get("projects",currentProjectId);if(!p)return;
+  const p=get("projects",currentProjectId);
+  if(!p){$("projectEmpty").classList.remove("hidden");$("projectDetail").classList.add("hidden");return}
+  $("projectEmpty").classList.add("hidden");$("projectDetail").classList.remove("hidden");
   const ts=taskRows(p.id),cs=contribRows(p.id),as=allocRows(p.id);
-  $("projectTitle").innerHTML=`${esc(p.nom||`Projet #${p.id}`)} ${typeBadge(p)}`;
-  $("projectMeta").textContent=[p.code,p.statut,p.sponsor,p.Type].filter(Boolean).join(" • ");
-  const active=ts.filter(t=>!done(t.statut)).length,overdue=ts.filter(late).length,milestones=ts.filter(t=>/jalon/i.test(String(t.type||""))).length,est=ts.reduce((n,t)=>n+Number(t.estimationH||0),0),spent=ts.reduce((n,t)=>n+Number(t.tempsPasse||0),0);
-  $("kpis").innerHTML=kpi("Type",typeOf(p)==="produit"?"Produit":"Projet",typeBadge(p))+kpi("Avancement",`${pct(p.progression)}%`,bar(pct(p.progression)))+kpi("Tâches actives",active,`${ts.length} au total`)+kpi("En retard",overdue,overdue?"À traiter":"Aucune alerte")+kpi("Charge",`${spent}h`,`${est}h estimées`);
-  strategy(cs);business(p);team(ts,as);alerts(p,ts,as);computedProgress(p,ts);gantt(ts);resourceLoad(ts,as);tasks(ts);diagnostic();
+  $("projectTitle").textContent=p.nom||`Projet #${p.id}`;
+  $("projectTypeBadge").innerHTML=typeBadge(p);
+  const resp=get("team",id(p.responsable));
+  $("projectMeta").textContent=[p.code,p.statut,resp?.nom?`Responsable : ${resp.nom}`:null].filter(Boolean).join(" • ");
+  progressSummary(p,ts);dateSummary(p,ts);loadSummary(ts);activitySummary(p);offerSummary(p);objectiveSummary(cs);statusSummary(p);
+  strategy(cs);business(p);team(ts,as);alerts(p,ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);diagnostic();
+  switchDetailTab(detailTab,false);
+}
+function progressSummary(p,ts){
+  const xs=ts.filter(t=>!/jalon/i.test(String(t.type||"")));
+  const avg=xs.length?Math.round(xs.reduce((n,t)=>n+pct(t.progression),0)/xs.length):pct(p.progression);
+  const doneCount=xs.filter(t=>done(t.statut)||pct(t.progression)>=100).length;
+  $("progressSummary").innerHTML=`<div style="display:flex;align-items:center;gap:18px"><div style="font-size:34px;font-weight:800">${avg}%</div><div><div>Basé sur les tâches</div><div class="muted">${doneCount} / ${xs.length} tâches terminées</div></div></div><div class="metric-bar" style="margin-top:14px"><div style="width:${avg}%"></div></div>`;
+}
+function dateSummary(p,ts){
+  const starts=ts.map(t=>dms(t.dateDebut)).filter(Boolean),ends=ts.map(t=>dms(t.dateEcheance)).filter(Boolean);
+  const start=p.dateDebut|| (starts.length?Math.min(...starts):null),end=p.dateFin||(ends.length?Math.max(...ends):null);
+  $("dateSummary").innerHTML=`<div class="kv"><div class="key">Début</div><div class="value">${dt(start)}</div><div class="key">Fin prévue</div><div class="value">${dt(end)}</div><div class="key">Retard</div><div class="value">${ts.filter(late).length} tâche(s)</div></div>`;
+}
+function loadSummary(ts){
+  const est=ts.reduce((n,t)=>n+Number(t.estimationH||0),0),spent=ts.reduce((n,t)=>n+Number(t.tempsPasse||0),0),remain=Math.max(0,est-spent);
+  $("loadSummary").innerHTML=`<div><strong style="font-size:22px">${Math.round(remain)} h</strong> <span class="muted">Estimées restantes</span></div><div class="metric-bar" style="margin:12px 0"><div style="width:${est?Math.min(100,spent/est*100):0}%"></div></div><div><strong>${Math.round(spent)} h</strong> <span class="muted">Passées</span></div><div class="muted" style="margin-top:5px">${Math.round(est)} h estimées totales</div>`;
+}
+function activitySummary(p){
+  const a=get("activities",id(p.activite));$("activitySummary").innerHTML=`<div><strong>${a?.Nom||"—"}</strong></div><div class="muted" style="margin-top:8px">${a?.Type||""}</div>`;
+}
+function offerSummary(p){
+  const a=get("activities",id(p.activite)),ao=a?get("activityOffers",id(a.Service_Code)):null,o=ao?get("offers",id(ao.OFS_Code)):null;
+  $("offerSummary").innerHTML=`<div><strong style="color:#067647">${esc(o?.Nom||"—")}</strong></div><div class="muted" style="margin-top:8px">${esc(ao?.Activites_Nom||"")}</div>`;
+}
+function objectiveSummary(cs){$("objectiveSummary").innerHTML=`<div><strong>${cs.length} objectif(s)</strong></div><div class="muted" style="margin-top:8px">${cs.slice(0,2).map(c=>get("objectives",id(c.Objectif_Libelle)||id(c.Objectif_Code2))?.Nom).filter(Boolean).join(" • ")}</div>`}
+function statusSummary(p){$("statusSummary").innerHTML=`<div class="type-badge projet">Statut : ${esc(p.statut||"—")}</div><div style="height:8px"></div><div class="type-badge produit">Priorité : ${esc(p.priorite||"—")}</div>`}
+function switchDetailTab(tab,rerender=true){
+  detailTab=tab;
+  document.querySelectorAll("[data-detail-tab]").forEach(b=>b.classList.toggle("active",b.dataset.detailTab===tab));
+  const map={overview:"detailOverview",tasks:"detailTasks",objectives:"detailObjectives",resources:"detailResources",infos:"detailInfos"};
+  Object.entries(map).forEach(([k,id])=>$(id).classList.toggle("hidden",k!==tab));
+  if(rerender&&tab==="tasks")gantt(taskRows(currentProjectId));
 }
 function kpi(l,v,s=""){return`<div class="kpi"><div class="kpi-label">${esc(l)}</div><div class="kpi-value">${esc(v)}</div><div class="kpi-sub">${s}</div></div>`}
 function bar(v){return`<div class="progress"><div style="width:${v}%"></div></div>`}
@@ -210,10 +278,14 @@ async function removeContribution(cid){if(confirm("Retirer cet objectif ?"))awai
 async function deleteProject(){const p=get("projects",currentProjectId),ts=taskRows(currentProjectId),cs=contribRows(currentProjectId),as=allocRows(currentProjectId);if(!p)return;if(!confirm(`Supprimer définitivement « ${p.nom} » (${typeOf(p)}) ?`))return;const actions=[...ts.map(x=>["RemoveRecord","Tasks",x.id]),...cs.map(x=>["RemoveRecord","CONTRIBUTIONS_OBJECTIFS",x.id]),...as.map(x=>["RemoveRecord","Allocations",x.id]),["RemoveRecord","Projects",p.id]];currentProjectId=null;await apply(actions,"Projet / Produit supprimé.")}
 
 /* ---------- events ---------- */
-document.querySelectorAll("[data-main-tab]").forEach(b=>b.onclick=()=>{currentTab=b.dataset.mainTab;document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x===b));$("projectView").classList.toggle("hidden",currentTab!=="project");$("offerView").classList.toggle("hidden",currentTab!=="offer");$("adminView").classList.toggle("hidden",currentTab!=="admin");$("projectPickerWrap").classList.toggle("hidden",currentTab!=="project")});
-document.querySelectorAll("[data-type-filter]").forEach(b=>b.onclick=()=>{typeFilter=b.dataset.typeFilter;document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x===b));populateProjectSelect();renderProject()});
+document.querySelectorAll("[data-main-tab]").forEach(b=>b.onclick=()=>{currentTab=b.dataset.mainTab;document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x===b));$("projectView").classList.toggle("hidden",currentTab!=="project");$("offerView").classList.toggle("hidden",currentTab!=="offer");$("adminView").classList.toggle("hidden",currentTab!=="admin")});
+document.querySelectorAll("[data-type-filter]").forEach(b=>b.onclick=()=>{typeFilter=b.dataset.typeFilter;document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x===b));populateProjectSelect();renderPortfolioKpis();renderProject()});
 document.querySelectorAll("[data-offer-type-filter]").forEach(b=>b.onclick=()=>{offerTypeFilter=b.dataset.offerTypeFilter;document.querySelectorAll("[data-offer-type-filter]").forEach(x=>x.classList.toggle("active",x===b));renderOffer()});
-$("projectSelect").onchange=e=>{currentProjectId=Number(e.target.value);renderProject()};$("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer()};$("adminTableSelect").onchange=renderAdmin;$("adminNewBtn").onclick=()=>openAdmin();$("editProjectBtn").onclick=openProject;$("deleteProjectBtn").onclick=deleteProject;$("newTaskBtn").onclick=()=>openTask();$("addContributionBtn").onclick=openContribution;$("refreshBtn").onclick=load;
+renderProject()};$("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer()};$("adminTableSelect").onchange=renderAdmin;$("adminNewBtn").onclick=()=>openAdmin();$("editProjectBtn").onclick=openProject;$("deleteProjectBtn").onclick=deleteProject;$("newTaskBtn").onclick=()=>openTask();$("addContributionBtn").onclick=openContribution;$("refreshBtn").onclick=load;
 document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{taskFilter=b.dataset.taskFilter;document.querySelectorAll("[data-task-filter]").forEach(x=>x.classList.toggle("active",x===b));tasks(taskRows(currentProjectId))});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const d=$(b.dataset.close);if(d?.open)d.close()});
+
+$("projectSearch").addEventListener("input",e=>{projectSearch=e.target.value;populateProjectSelect();renderPortfolioKpis();renderProject()});
+document.querySelectorAll("[data-detail-tab]").forEach(b=>b.onclick=()=>switchDetailTab(b.dataset.detailTab));
+
 grist.ready({requiredAccess:"full"});grist.onOptions(()=>load());load();

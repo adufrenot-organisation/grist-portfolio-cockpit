@@ -65,3 +65,27 @@ La vue Offre agrège les objets `Projects` de type Projet ou Produit à travers 
 Le CRUD porte sur les référentiels maîtres.
 Une suppression est interdite tant qu'une dépendance connue existe.
 Le widget ne fait aucune suppression en cascade automatique sur les référentiels.
+
+
+## V4.3.0 — Refonte UI PMO
+
+Le schéma de données est inchangé.
+
+### Navigation
+Le menu de niveau 1 est placé dans le header global :
+- Pilotage par projets / produits
+- Pilotage par offre de services
+- Administration
+
+Le nom d'un projet/produit n'est rendu que dans le contexte de la vue Projet / Produit.
+
+### Vue portefeuille
+La vue Projet / Produit est divisée en :
+- agrégats portefeuille ;
+- liste filtrable / recherchable ;
+- détail sélectionné ;
+- sous-navigation du détail.
+
+### Principe
+Aucune donnée dérivée affichée dans les KPI ou synthèses n'est persistée automatiquement.
+Grist reste l'unique source de vérité.

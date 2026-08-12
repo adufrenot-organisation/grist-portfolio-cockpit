@@ -1,63 +1,64 @@
-# Grist Portfolio Cockpit — V4.2.0
+# GRIST. COCKPIT Pilotage PMO — V4.3.0
 
-Cette version ajoute deux fonctions structurantes au cockpit V4.1.
+Cette version implémente la nouvelle interface validée visuellement.
 
-## 1. Distinction Projets / Produits
+## Changement majeur d'ergonomie
 
-La distinction utilise la colonne réelle :
+Le menu principal est maintenant **tout en haut** :
 
-`Projects.Type`
+- Pilotage par projets / produits
+- Pilotage par offre de services
+- Administration
 
-Le cockpit considère :
-- une valeur contenant `Produit` comme un **Produit** ;
-- toute autre valeur comme un **Projet**.
+Le nom du projet/produit sélectionné **n'apparaît que dans l'onglet Pilotage par projets / produits**.
 
-Les vues Projet et Offre de services proposent désormais les filtres :
-- Tous
-- Projets
-- Produits
+## Nouvelle vue portefeuille Projets / Produits
 
-Les badges Projet / Produit apparaissent dans le cockpit et la vue Offre.
+La page comprend maintenant :
 
-## 2. Pilotage par Offre de services
+- filtres Tous / Projets / Produits ;
+- KPI portefeuille :
+  - total éléments ;
+  - en cours ;
+  - en retard ;
+  - terminés ;
+  - avancement moyen ;
+  - charge restante ;
+- liste latérale recherchable des projets / produits ;
+- détail du projet sélectionné à droite ;
+- badge Projet / Produit basé sur `Projects.Type`.
 
-Nouvel onglet **Offre de services** :
-- sélection d'une offre ;
-- activités OFS ;
-- projets et produits rattachés ;
-- nombre de projets / produits ;
-- avancement moyen ;
-- objectifs stratégiques couverts ;
-- charge cumulée des ressources.
+## Détail Projet / Produit
 
-Chaîne utilisée :
+Le détail possède 5 sous-onglets :
 
-`Offres_Services ← Activites_OFS ← Activites ← Projects`
+1. Vue d'ensemble
+2. Tâches / Gantt
+3. Objectifs
+4. Ressources
+5. Infos
 
-## 3. Administration CRUD
+La vue d'ensemble synthétise :
+- avancement calculé ;
+- dates clés ;
+- charge ;
+- activité ;
+- offre de services ;
+- objectifs stratégiques ;
+- statut et priorité.
 
-Nouvel onglet **Administration** permettant de créer, lire, modifier et supprimer :
-- `Axes_Strategiques`
-- `Objectifs`
-- `Offres_Services`
-- `Activites_OFS`
-- `Activites`
-- `Team`
+## Modèle de données
 
-### Protection des suppressions
+Aucun changement du modèle Grist V4.2.
 
-Le widget calcule les dépendances avant suppression.
-
-Par exemple :
-- une activité utilisée par un Project ne peut pas être supprimée ;
-- une offre utilisée par une Activites_OFS ne peut pas être supprimée ;
-- un objectif utilisé dans CONTRIBUTIONS_OBJECTIFS ne peut pas être supprimé ;
-- un membre Team affecté dans Projects, Tasks ou Allocations ne peut pas être supprimé.
+Le widget continue à utiliser les vraies tables :
+`Projects`, `Tasks`, `Team`, `CONTRIBUTIONS_OBJECTIFS`, `Objectifs`,
+`Axes_Strategiques`, `Activites`, `Activites_OFS`, `Offres_Services`, `Allocations`.
 
 ## Déploiement
 
-Remplace les fichiers GitHub Pages puis utilise temporairement :
+Remplace les fichiers GitHub Pages et utilise temporairement :
 
-`?v=4.2.0`
+`?v=4.3.0`
 
-sur l'URL du widget Grist pour forcer le rafraîchissement.
+dans l'URL du widget Grist pour forcer le rafraîchissement.
