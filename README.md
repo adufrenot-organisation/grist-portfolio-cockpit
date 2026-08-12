@@ -1,67 +1,51 @@
-# Grist Portfolio Cockpit — V3.1.0
+# Grist Portfolio Cockpit — V4.0.0
 
-## Pourquoi cette V3 ?
+Cette version est adaptée au fichier `.grist` fourni.
 
-La V2 pouvait échouer avec `KeyError 'budget'` si le document Grist ne contenait pas exactement la colonne `budget`.
-
-La V3 corrige ce problème : **les écritures sont désormais tolérantes au schéma**.
-
-Le widget lit la liste réelle des colonnes renvoyées par Grist et n'envoie que les champs qui existent réellement.
-
-Par exemple, si `Projects.budget` n'existe pas, le bouton **Modifier** peut quand même enregistrer le nom, le statut, la progression, etc.
-
-## Nouveautés V3
-
-- correction robuste du `KeyError 'budget'` et erreurs analogues ;
-- alias de colonnes (`budget` / `Budget`, `dateDebut` / `Date_Debut`, etc.) ;
-- version visible `v3.1.0` ;
-- cache-busting des fichiers JS/CSS via `?v=3.1.0` ;
-- édition de l'activité du projet ;
-- affectation de membres `Team` aux tâches ;
-- ajout / retrait d'objectifs stratégiques depuis le cockpit ;
-- mini-Gantt intégré, directement calculé depuis `Tasks` ;
-- création / modification / suppression persistantes des tâches ;
-- suppression contrôlée des projets et dépendances connues ;
-- aucune donnée métier persistée dans le navigateur.
-
-## Mise à jour GitHub Pages
-
-Remplace les fichiers de ton dépôt par ceux de ce ZIP et pousse sur `main`.
-
-L'URL Grist ne change pas.
-
-Le bandeau du widget doit ensuite afficher `v3.1.0`. Si ce numéro n'apparaît pas, Grist ou le navigateur affiche encore une ancienne version.
-
-## Source de vérité
-
-Après chaque `applyUserActions`, le widget relit les tables avec `fetchTable`.
-
-Le widget ne restaure jamais une donnée supprimée depuis un cache local.
-
-## Tables
-
-Même modèle qu'avant :
+## Schéma réel pris en compte
 
 - `Projects`
 - `Tasks`
 - `Team`
-- `Contributions_Objectifs`
+- `CONTRIBUTIONS_OBJECTIFS`
 - `Objectifs`
 - `Axes_Strategiques`
 - `Activites`
-- `Services`
+- `Activites_OFS`
 - `Offres_Services`
 - `Allocations`
 
-## Important
+## Relations réelles
 
-La V3 tolère des colonnes optionnelles manquantes. Les colonnes structurantes restent nécessaires pour certaines fonctions, notamment :
-- le lien `Tasks → Projects` ;
-- les références de `Contributions_Objectifs` ;
-- les références `Projects → Activites → Services → Offres_Services`.
+- `Projects.activite` → `Activites`
+- `Activites.Service_Code` → `Activites_OFS`
+- `Activites_OFS.OFS_Code` → `Offres_Services`
+- `Tasks.projet` → `Projects`
+- `Tasks.assignees` → `Team` (`RefList`)
+- `Tasks.dependDe` → `Tasks` (`RefList`)
+- `Tasks.parentTask` → `Tasks`
+- `CONTRIBUTIONS_OBJECTIFS.Projet_Code` → `Projects` (`RefList`)
+- `CONTRIBUTIONS_OBJECTIFS.Objectif_Libelle` → `Objectifs`
+- `CONTRIBUTIONS_OBJECTIFS.Objectif_Code2` → `Objectifs`
+- `Allocations.Projet_Code` → `Projects`
+- `Allocations.Ressource_Code` → `Team`
 
+## Nouveautés V4
 
+- correction définitive du lien objectif ↔ projet avec `RefList`;
+- chaîne métier corrigée via `Activites_OFS`;
+- édition du responsable projet;
+- dépendances de tâches;
+- tâche parente;
+- estimation et temps passé;
+- tags;
+- mini-Gantt;
+- diagnostic du modèle intégré;
+- suppression persistante des projets/tâches;
+- aucune donnée métier persistée côté navigateur.
 
-## Correctif 3.1 — Objectifs ↔ Projets
+## Déploiement
 
-L’ajout d’un objectif vérifie maintenant explicitement les colonnes de référence vers `Projects` et `Objectifs`, puis relit Grist et vérifie que l’association existe réellement.
+Publie `index.html`, `app.js`, `styles.css`, `README.md`, `ARCHITECTURE.md` sur GitHub Pages.
+
+L'URL du widget peut rester la même. Pour forcer le rafraîchissement dans Grist, ajoute `?v=4.0.0` à l'URL du widget.
