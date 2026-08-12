@@ -1,5 +1,5 @@
 
-const VERSION="4.5.1";
+const VERSION="4.5.2";
 const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="overview",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
 const $=id=>{
@@ -102,7 +102,7 @@ function renderProject(){
   const resp=get("team",id(p.responsable));
   $("projectMeta").textContent=[p.code,p.statut,resp?.nom?`Responsable : ${resp.nom}`:null].filter(Boolean).join(" • ");
   progressSummary(p,ts);dateSummary(p,ts);loadSummary(ts);activitySummary(p);offerSummary(p);objectiveSummary(cs);statusSummary(p);
-  strategy(cs);business(p);team(ts,as);alerts(p,ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);projectStagesView(p,ts);productFeaturesView(p,ts);diagnostic();
+  strategy(cs);business(p);team(ts,as);alerts(p,ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);projectStagesView(p,ts);productFeaturesView(p,ts);renderSynthesis(p,ts,cs,as);diagnostic();
   switchDetailTab(detailTab,false);
 }
 function progressSummary(p,ts){
@@ -141,6 +141,69 @@ function bar(v){return`<div class="progress"><div style="width:${v}%"></div></di
 
 function projectStagesView(p,ts){if(typeOf(p)!=="projet"){$("projectStagesView").innerHTML='<div class="empty">Cette vue concerne les projets.</div>';return}const stages=[...db.projectStages].sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0)),current=id(p.etape_courante),cur=get("projectStages",current);$("projectStagesView").innerHTML=`<div class="lifecycle">${stages.map(s=>`<span class="stage-pill ${s.id===current?"current":(cur&&Number(s.Ordre||0)<Number(cur.Ordre||0)?"done":"")}">${esc(s.Nom||s.Code||"")}</span>`).join("")}</div>`+stages.map(s=>{const st=ts.filter(t=>id(t.etape_projet)===s.id);return `<div class="stage-block"><h4>${esc(s.Nom||s.Code||"")}</h4>${st.length?`<table><thead><tr><th>Tâche</th><th>Statut</th><th>Avancement</th></tr></thead><tbody>${st.map(t=>`<tr><td>${esc(t.titre||"")}</td><td>${esc(t.statut||"")}</td><td>${pct(t.progression)}%</td></tr>`).join("")}</tbody></table>`:'<div class="muted">Aucune tâche rattachée.</div>'}</div>`}).join("")}
 function productFeaturesView(p,ts){if(typeOf(p)!=="produit"){$("productFeaturesView").innerHTML='<div class="empty">Cette vue concerne les produits.</div>';return}const fs=db.features.filter(f=>id(f.produit)===p.id);$("productFeaturesView").innerHTML=fs.length?`<div class="feature-grid">${fs.map(f=>{const st=get("featureStages",id(f.stade)),linked=ts.filter(t=>id(t.fonctionnalite)===f.id);return `<div class="feature-card"><div class="feature-card-head"><div><h4>${esc(f.Nom||"")}</h4><div class="feature-meta">${esc(f.Code||"")} • ${esc(st?.Nom||"Sans stade")}</div></div><strong>${pct(f.Progression)}%</strong></div><div class="feature-meta">${esc(f.Description||"")}</div><div class="metric-bar" style="margin-top:10px"><div style="width:${pct(f.Progression)}%"></div></div><div class="feature-meta">${linked.length} tâche(s) • cible ${dt(f.Date_Cible)}</div><div class="feature-actions"><button data-feature-edit="${f.id}">Modifier</button><button class="danger" data-feature-del="${f.id}">Supprimer</button></div></div>`}).join("")}</div>`:'<div class="empty">Aucune fonctionnalité pour ce produit.</div>';document.querySelectorAll("[data-feature-edit]").forEach(b=>b.onclick=()=>openFeature(Number(b.dataset.featureEdit)));document.querySelectorAll("[data-feature-del]").forEach(b=>b.onclick=()=>deleteFeature(Number(b.dataset.featureDel)))}
+
+function renderSynthesis(p,ts,cs,as){
+  const active=ts.filter(t=>!done(t.statut)).length;
+  const overdue=ts.filter(late);
+  const criticalLate=overdue.filter(t=>/haute|critique|high/i.test(String(t.priorite||"")));
+  const milestones=ts.filter(t=>/jalon/i.test(String(t.type||"")));
+  const nextDue=[...ts].filter(t=>!done(t.statut)&&dms(t.dateEcheance)).sort((a,b)=>dms(a.dateEcheance)-dms(b.dateEcheance))[0];
+  const est=ts.reduce((n,t)=>n+Number(t.estimationH||0),0);
+  const spent=ts.reduce((n,t)=>n+Number(t.tempsPasse||0),0);
+  const allocTotal=as.reduce((n,a)=>n+Number(a.Allocation||0),0);
+  const a=get("activities",id(p.activite));
+  const ao=a?get("activityOffers",id(a.Service_Code)):null;
+  const offer=ao?get("offers",id(ao.OFS_Code)):null;
+
+  $("summaryMain").innerHTML=`<div class="kv">
+    <div class="key">Type</div><div class="value">${typeOf(p)==="produit"?"Produit":"Projet"}</div>
+    <div class="key">Statut</div><div class="value">${esc(p.statut||"—")}</div>
+    <div class="key">Priorité</div><div class="value">${esc(p.priorite||"—")}</div>
+    <div class="key">Avancement</div><div class="value">${pct(p.progression)}%</div>
+    <div class="key">Tâches actives</div><div class="value">${active}</div>
+    <div class="key">Jalons</div><div class="value">${milestones.length}</div>
+  </div>`;
+
+  let alerts=[];
+  if(criticalLate.length) alerts.push(`🔴 ${criticalLate.length} tâche(s) critique(s) ou haute priorité en retard`);
+  else if(overdue.length) alerts.push(`🟠 ${overdue.length} tâche(s) en retard`);
+  if(/haut|élev|critique|high/i.test(String(p.risque||""))) alerts.push(`🟠 Risque projet : ${p.risque}`);
+  if(as.some(a=>Number(a.Allocation||0)>1)) alerts.push("🟠 Allocation ressource supérieure à 100%");
+  if(ts.some(t=>!refs(t.assignees).length)) alerts.push("🟡 Certaines tâches ne sont pas assignées");
+  $("summaryAlerts").innerHTML=alerts.length
+    ? `<div class="alert-list">${alerts.map(x=>`<div class="alert-item warn">${esc(x)}</div>`).join("")}</div>`
+    : `<div class="alert-item ok">🟢 Aucune alerte majeure</div>`;
+
+  $("summaryDates").innerHTML=`<div class="kv">
+    <div class="key">Début</div><div class="value">${dt(p.dateDebut)}</div>
+    <div class="key">Fin prévue</div><div class="value">${dt(p.dateFin)}</div>
+    <div class="key">Prochaine échéance</div><div class="value">${nextDue?`${esc(nextDue.titre||"")} — ${dt(nextDue.dateEcheance)}`:"—"}</div>
+    <div class="key">Charge passée</div><div class="value">${Math.round(spent)} h</div>
+    <div class="key">Charge estimée</div><div class="value">${Math.round(est)} h</div>
+  </div>`;
+
+  const objNames=cs.map(c=>get("objectives",id(c.Objectif_Libelle)||id(c.Objectif_Code2))?.Nom).filter(Boolean);
+  $("summaryStrategy").innerHTML=`<div><strong>${cs.length} objectif(s) stratégique(s)</strong></div><div class="muted" style="margin-top:8px">${esc(objNames.slice(0,3).join(" • ")||"Aucun objectif associé")}</div>`;
+
+  $("summaryBusiness").innerHTML=`<div class="kv">
+    <div class="key">Offre</div><div class="value">${esc(offer?.Nom||"—")}</div>
+    <div class="key">Activité OFS</div><div class="value">${esc(ao?.Activites_Nom||"—")}</div>
+    <div class="key">Activité</div><div class="value">${esc(a?.Nom||"—")}</div>
+  </div>`;
+
+  $("summaryResources").innerHTML=`<div class="kv">
+    <div class="key">Allocations</div><div class="value">${as.length}</div>
+    <div class="key">Allocation cumulée</div><div class="value">${Math.round(allocTotal*100)}%</div>
+    <div class="key">Ressources actives</div><div class="value">${new Set(as.map(a=>id(a.Ressource_Code)).filter(Boolean)).size}</div>
+  </div>`;
+
+  let nextText="Aucune attention particulière.";
+  if(criticalLate.length) nextText=`Traiter en priorité ${criticalLate.length} tâche(s) critique(s) en retard.`;
+  else if(overdue.length) nextText=`Résorber les ${overdue.length} tâche(s) en retard.`;
+  else if(nextDue) nextText=`Sécuriser la prochaine échéance : ${nextDue.titre} (${dt(nextDue.dateEcheance)}).`;
+  else if(cs.length===0) nextText="Associer au moins un objectif stratégique au projet.";
+  $("summaryNext").innerHTML=`<div>${esc(nextText)}</div>`;
+}
 function strategy(cs){
   $("objectiveCount").textContent=`${cs.length} contribution${cs.length>1?"s":""}`;
   if(!cs.length){$("strategy").innerHTML='<div class="empty">Aucun objectif rattaché.</div>';return}

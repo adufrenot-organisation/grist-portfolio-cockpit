@@ -119,3 +119,9 @@ Le cockpit principal est désormais strictement métier. Aucun référentiel n�
 Le Cockpit alimente `JOURNAL_ACTIONS` lorsqu'elle est disponible.
 Le champ `Details` conserve un diff avant/après pour les updates et l'état avant suppression.
 L'identité utilisateur doit être renseignée côté Grist par trigger formula si souhaitée.
+
+
+## V4.5.2 — Synthèse projet
+
+Le sous-onglet `Infos` devient `Synthèse`.
+Il agrège des indicateurs calculés en lecture depuis les tables Grist, sans nouvelle persistance.

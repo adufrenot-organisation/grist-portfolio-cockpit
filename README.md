@@ -120,3 +120,20 @@ effectuée depuis le cockpit ajoute une ligne contenant :
 La Plugin API publique ne fournit pas directement l'identité de l'utilisateur au widget.
 Pour renseigner automatiquement `Utilisateur`, configure dans Grist cette colonne avec une
 **trigger formula** basée sur `user.Email` ou `user.Name`, appliquée à la création de la ligne.
+
+
+## V4.5.2 — Onglet Synthèse
+
+Le sous-onglet `Infos` est renommé **Synthèse**.
+
+Son ancien contenu est entièrement remplacé par :
+- Synthèse projet
+- Alertes
+- Échéances & rythme
+- Stratégie
+- Offre & activité
+- Ressources
+- Prochaine attention
+
+Les alertes affichées dans cet onglet sont calculées à partir des données Grist déjà présentes :
+retards, priorité, risque, allocations et affectations.
