@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grist Portfolio Cockpit</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">GRIST • COCKPIT PROJET</div>
+        <h1 id="projectTitle">Chargement…</h1>
+        <div id="projectMeta" class="muted"></div>
+      </div>
+      <div class="project-picker">
+        <label for="projectSelect">Projet</label>
+        <select id="projectSelect"></select>
+      </div>
+    </header>
+    <div id="banner" class="banner hidden"></div>
+    <section class="kpis" id="kpis"></section>
+    <main class="grid">
+      <section class="panel span-2">
+        <div class="panel-head"><h2>🎯 Alignement stratégique</h2><span class="badge" id="objectiveCount"></span></div>
+        <div id="strategy"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>🏢 Positionnement métier</h2></div>
+        <div id="business"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>👥 Équipe & allocations</h2></div>
+        <div id="team"></div>
+      </section>
+      <section class="panel span-2">
+        <div class="panel-head">
+          <h2>🧭 Tâches & jalons</h2>
+          <div class="filters">
+            <button class="filter active" data-task-filter="all">Tout</button>
+            <button class="filter" data-task-filter="jalon">Jalons</button>
+            <button class="filter" data-task-filter="late">En retard</button>
+          </div>
+        </div>
+        <div id="tasks"></div>
+      </section>
+    </main>
+    <footer>Lecture seule • Les données restent dans Grist • V1</footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
