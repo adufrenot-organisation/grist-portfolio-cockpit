@@ -1,4 +1,4 @@
-# GRIST. COCKPIT Pilotage PMO — V4.3.1.1
+# GRIST. COCKPIT Pilotage PMO — V4.3.2.1
 
 Cette version implémente la nouvelle interface validée visuellement.
 
@@ -59,17 +59,17 @@ Le widget continue à utiliser les vraies tables :
 
 Remplace les fichiers GitHub Pages et utilise temporairement :
 
-`?v=4.3.1`
+`?v=4.3.2`
 
 dans l'URL du widget Grist pour forcer le rafraîchissement.
 
 
-## Correctif 4.3.1
+## Correctif 4.3.2
 
 La V4.3.0 contenait une erreur de syntaxe JavaScript dans le bloc d'événements.
 Conséquence : le HTML/CSS s'affichait, mais `app.js` ne s'exécutait jamais ; l'interface paraissait donc statique et aucune table Grist n'était lue.
 
-La V4.3.1 corrige ce bloc et réactive :
+La V4.3.2 corrige ce bloc et réactive :
 - lecture des tables via `fetchTable`;
 - liste réelle Projects / Produits;
 - KPI calculés;
@@ -79,3 +79,14 @@ La V4.3.1 corrige ce bloc et réactive :
 - écritures Grist via `applyUserActions`.
 
 Un message d'erreur de chargement est maintenant affiché dans le cockpit si le JavaScript rencontre une erreur à l'initialisation.
+
+
+## Correctif V4.3.2
+
+La V4.3.1 appelait `objectiveCount.textContent` mais l'élément `#objectiveCount`
+n'existait plus dans le nouveau HTML. Cela provoquait :
+
+`Cannot set properties of null (setting 'textContent')`
+
+La V4.3.2 réintroduit ce compteur dans l'onglet Objectifs et ajoute un diagnostic
+plus explicite si un identifiant HTML attendu manque à l'avenir.
