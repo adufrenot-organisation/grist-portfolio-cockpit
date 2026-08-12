@@ -171,3 +171,13 @@ Le widget lit en priorité les colonnes Grist :
 
 Si elles ne sont pas encore présentes ou vides, il utilise provisoirement la logique calculée actuelle
 (retards, priorités et risque) pour afficher Vert / Orange / Rouge.
+
+
+## V4.5.6 — Correctif des anciens renderers
+
+Après le remplacement de l'onglet `Infos` par `Synthèse`, plusieurs anciens renderers restaient
+encore présents dans le JavaScript alors que leurs conteneurs HTML avaient disparu :
+`diagnostic`, `business`, `alerts` et `computedProgress`.
+
+Ils ont été retirés du cockpit métier. Le diagnostic reste disponible dans le widget
+**GRIST. ADMIN & AUDIT PMO**.

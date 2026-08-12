@@ -143,3 +143,9 @@ Le sous-onglet par défaut du détail est `infos`, affiché sous le libellé `Sy
 `Projects.Meteo_Projet` et `Projects.Motif_Meteo` deviennent les sources de vérité préférées pour
 la météo affichée dans la fiche. Un fallback calculé reste présent tant que les formules Grist ne sont
 pas encore configurées.
+
+
+## V4.5.6
+
+Nettoyage des renderers hérités de l'ancienne vue Infos.
+Le cockpit ne référence plus de conteneurs DOM supprimés.

@@ -1,5 +1,5 @@
 
-const VERSION="4.5.5";
+const VERSION="4.5.6";
 const T={projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="";
 const $=id=>{
@@ -103,7 +103,7 @@ function renderProject(){
   const resp=get("team",id(p.responsable));
   $("projectMeta").textContent=[p.code,p.statut,resp?.nom?`Responsable : ${resp.nom}`:null].filter(Boolean).join(" • ");
   progressSummary(p,ts);dateSummary(p,ts);loadSummary(ts);activitySummary(p);offerSummary(p);objectiveSummary(cs);statusSummary(p);
-  strategy(cs);team(ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);projectStagesView(p,ts);productFeaturesView(p,ts);renderSynthesis(p,ts,cs,as);diagnostic();
+  strategy(cs);team(ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);projectStagesView(p,ts);productFeaturesView(p,ts);renderSynthesis(p,ts,cs,as);
   switchDetailTab(detailTab,false);
 }
 function progressSummary(p,ts){
@@ -229,28 +229,10 @@ function strategy(cs){
   $("strategy").innerHTML=`<table><thead><tr><th>Axe</th><th>Objectif</th><th>Contribution</th><th>Échéance</th><th></th></tr></thead><tbody>${cs.map(c=>{const oid=id(c.Objectif_Libelle)||id(c.Objectif_Code2);const o=get("objectives",oid),a=o?get("axes",id(o.Axe_Code)):null;return`<tr><td>${esc(a?.Nom||"—")}</td><td><strong>${esc(o?.Nom||"—")}</strong><br><span class="muted">${esc(o?.KPI||"")}</span></td><td>${pct(c.Contributions_Objectifs)}%</td><td>${dt(o?.Echeance)}</td><td><button class="danger" data-rmcontrib="${c.id}">Retirer</button></td></tr>`}).join("")}</tbody></table>`;
   document.querySelectorAll("[data-rmcontrib]").forEach(b=>b.onclick=()=>removeContribution(Number(b.dataset.rmcontrib)))
 }
-function business(p){
-  const a=get("activities",id(p.activite));const ao=a?get("activityOffers",id(a.Service_Code)):null;const offer=ao?get("offers",id(ao.OFS_Code)):null;
-  $("business").innerHTML=`<div class="kv"><div class="key">Type</div><div class="value">${typeBadge(p)}</div><div class="key">Offre</div><div class="value">${esc(offer?.Nom||"—")}</div><div class="key">Activité OFS</div><div class="value">${esc(ao?.Activites_Nom||"—")}</div><div class="key">Activité</div><div class="value">${esc(a?.Nom||"—")}</div><div class="key">Risque</div><div class="value">${esc(p.risque||"—")}</div><div class="key">Valeur stratégique</div><div class="value">${esc(p.valeurStrategique??"—")}</div></div>`
-}
 function team(ts,as){
   const ids=new Set();ts.forEach(t=>refs(t.assignees).forEach(x=>ids.add(x)));as.forEach(a=>{const x=id(a.Ressource_Code);if(x)ids.add(x)});
   if(!ids.size){$("team").innerHTML='<div class="empty">Aucune ressource affectée.</div>';return}
   $("team").innerHTML=[...ids].map(x=>{const m=get("team",x),alloc=as.filter(a=>id(a.Ressource_Code)===x).reduce((n,a)=>n+Number(a.Allocation||0),0);return`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f1f3"><div><strong>${esc(m?.nom||`#${x}`)}</strong><div class="muted">${esc(m?.role||"")} • capacité ${m?.capacite_ETP??"—"} ETP</div></div><span>${alloc?pct(alloc)+"%":""}</span></div>`}).join("")
-}
-function alerts(p,ts,as){
-  const items=[];const overdue=ts.filter(late);if(overdue.length)items.push(["danger","⚠️",`${overdue.length} tâche(s) en retard.`]);
-  const overAlloc=as.filter(a=>Number(a.Allocation||0)>1);if(overAlloc.length)items.push(["danger","👥",`${overAlloc.length} allocation(s) > 100%.`]);
-  const noDates=ts.filter(t=>!t.dateDebut&&!t.dateEcheance);if(noDates.length)items.push(["warn","📅",`${noDates.length} tâche(s) sans date.`]);
-  const unassigned=ts.filter(t=>!refs(t.assignees).length);if(unassigned.length)items.push(["warn","🙋",`${unassigned.length} tâche(s) non assignée(s).`]);
-  if(/haut|élev|critique|high/i.test(String(p.risque||"")))items.push(["danger","🔥",`Risque ${p.risque}.`]);
-  if(!items.length)items.push(["ok","✅","Aucune alerte majeure."]);
-  $("alerts").innerHTML=`<div class="alert-list">${items.map(([l,i,t])=>`<div class="alert-item ${l}"><div class="alert-icon">${i}</div><div>${esc(t)}</div></div>`).join("")}</div>`;
-}
-function computedProgress(p,ts){
-  const xs=ts.filter(t=>!/jalon/i.test(String(t.type||"")));const avg=xs.length?Math.round(xs.reduce((n,t)=>n+pct(t.progression),0)/xs.length):0;
-  const est=xs.reduce((n,t)=>n+Number(t.estimationH||0),0),weighted=est?Math.round(xs.reduce((n,t)=>n+pct(t.progression)*Number(t.estimationH||0),0)/est):avg,decl=pct(p.progression);
-  $("computedProgress").innerHTML=`<div class="metric-stack"><div class="metric-line"><span>Déclaré</span><div class="metric-bar"><div style="width:${decl}%"></div></div><strong>${decl}%</strong></div><div class="metric-line"><span>Moyenne tâches</span><div class="metric-bar"><div style="width:${avg}%"></div></div><strong>${avg}%</strong></div><div class="metric-line"><span>Pondéré charge</span><div class="metric-bar"><div style="width:${weighted}%"></div></div><strong>${weighted}%</strong></div></div>`;
 }
 function gantt(ts){
   const ds=ts.map(t=>({t,s:dms(t.dateDebut),e:dms(t.dateEcheance)})).filter(x=>x.s||x.e);if(!ds.length){$("gantt").innerHTML='<div class="empty">Aucune tâche datée.</div>';return}
@@ -269,22 +251,6 @@ function tasks(ts){
   if(!f.length){$("tasks").innerHTML='<div class="empty">Aucune tâche.</div>';return}
   $("tasks").innerHTML=`<table><thead><tr><th>Code</th><th>Titre</th><th>Type</th><th>Statut</th><th>Progression</th><th>Charge</th><th>Assignés</th><th></th></tr></thead><tbody>${f.map(t=>`<tr><td>${esc(t.Code||"")}</td><td><strong>${esc(t.titre||"")}</strong></td><td>${esc(t.type||"")}</td><td>${esc(t.statut||"")}</td><td>${pct(t.progression)}%</td><td>${Number(t.tempsPasse||0)}h / ${Number(t.estimationH||0)}h</td><td>${refs(t.assignees).map(x=>esc(get("team",x)?.nom||`#${x}`)).join(", ")}</td><td class="task-actions"><button data-edit="${t.id}">Modifier</button><button class="danger" data-del="${t.id}">Supprimer</button></td></tr>`).join("")}</tbody></table>`;
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openTask(Number(b.dataset.edit)));document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>deleteTask(Number(b.dataset.del)))
-}
-function diagnostic(){
-  $("diagnostic").innerHTML=`<div class="diag">VERSION ${VERSION}
-Projects: ${db.projects.length} (${db.projects.filter(p=>typeOf(p)==="projet").length} projets / ${db.projects.filter(p=>typeOf(p)==="produit").length} produits)
-Tasks: ${db.tasks.length}
-Team: ${db.team.length}
-CONTRIBUTIONS_OBJECTIFS: ${db.contrib.length}
-Objectifs: ${db.objectives.length}
-Axes_Strategiques: ${db.axes.length}
-Activites: ${db.activities.length}
-Activites_OFS: ${db.activityOffers.length}
-Offres_Services: ${db.offers.length}
-Allocations: ${db.allocations.length}
-Etapes_Projet: ${db.projectStages.length}
-Stades_Fonctionnalite: ${db.featureStages.length}
-Fonctionnalites: ${db.features.length}</div>`;
 }
 
 /* ---------- Offre de services ---------- */
