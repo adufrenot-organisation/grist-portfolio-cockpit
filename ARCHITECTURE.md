@@ -41,3 +41,27 @@ Elle calcule uniquement des vues dérivées :
 - dépendances visuelles du Gantt.
 
 Aucune de ces données dérivées n'est persistée côté navigateur ni réécrite automatiquement dans Grist.
+
+
+## V4.2.0 — Offre, CRUD et Projet / Produit
+
+### Typologie portefeuille
+
+`Projects.Type` est la source de vérité pour distinguer :
+- Projet
+- Produit
+
+Cette distinction est uniquement une dimension métier du même référentiel `Projects`.
+Aucune table `Produits` séparée n'est créée.
+
+### Vue Offre
+
+La vue Offre agrège les objets `Projects` de type Projet ou Produit à travers :
+
+`Projects.activite -> Activites.Service_Code -> Activites_OFS.OFS_Code -> Offres_Services`
+
+### Administration
+
+Le CRUD porte sur les référentiels maîtres.
+Une suppression est interdite tant qu'une dépendance connue existe.
+Le widget ne fait aucune suppression en cascade automatique sur les référentiels.

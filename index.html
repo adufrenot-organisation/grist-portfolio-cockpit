@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Grist Portfolio Cockpit V4.1.0</title>
-  <link rel="stylesheet" href="styles.css?v=4.1.0" />
+  <title>Grist Portfolio Cockpit V4.2.0</title>
+  <link rel="stylesheet" href="styles.css?v=4.2.0" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
 <div id="app">
   <header class="topbar">
     <div>
-      <div class="eyebrow">GRIST • COCKPIT PROJET <span class="version">v4.1.0</span></div>
+      <div class="eyebrow">GRIST • COCKPIT PORTEFEUILLE <span class="version">v4.2.0</span></div>
       <h1 id="projectTitle">Chargement…</h1>
       <div id="projectMeta" class="muted"></div>
     </div>
-    <div class="project-picker">
-      <label>Projet</label>
+    <div class="project-picker" id="projectPickerWrap">
+      <label>Projet / Produit</label>
       <div class="inline">
         <select id="projectSelect"></select>
         <button class="primary" id="editProjectBtn">Modifier</button>
@@ -27,89 +27,167 @@
 
   <div id="banner" class="banner hidden"></div>
 
-  <section class="kpis" id="kpis"></section>
+  <nav class="main-tabs">
+    <button class="main-tab active" data-main-tab="project">📁 Projet / Produit</button>
+    <button class="main-tab" data-main-tab="offer">🏢 Offre de services</button>
+    <button class="main-tab" data-main-tab="admin">⚙️ Administration</button>
+  </nav>
 
-  <main class="grid">
-    <section class="panel span-2">
-      <div class="panel-head">
-        <h2>🎯 Alignement stratégique</h2>
-        <div class="actions">
-          <span class="badge" id="objectiveCount"></span>
-          <button class="primary small" id="addContributionBtn">+ Objectif</button>
-        </div>
+  <section id="projectView">
+    <div class="toolbar">
+      <div class="segmented">
+        <button class="seg active" data-type-filter="all">Tous</button>
+        <button class="seg" data-type-filter="projet">Projets</button>
+        <button class="seg" data-type-filter="produit">Produits</button>
       </div>
-      <div id="strategy"></div>
-    </section>
+      <span class="muted">Distinction basée sur <code>Projects.Type</code></span>
+    </div>
 
-    <section class="panel">
-      <div class="panel-head"><h2>🏢 Offre / activité</h2></div>
-      <div id="business"></div>
-    </section>
+    <section class="kpis" id="kpis"></section>
 
-    <section class="panel">
-      <div class="panel-head"><h2>👥 Équipe & capacité</h2></div>
-      <div id="team"></div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head"><h2>🚦 Alertes projet</h2></div>
-      <div id="alerts"></div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head"><h2>📈 Avancement calculé</h2></div>
-      <div id="computedProgress"></div>
-    </section>
-
-    <section class="panel span-2">
-      <div class="panel-head">
-        <h2>📅 Gantt projet</h2>
-        <div class="actions">
-          <span class="muted">dépendances, jalons et progression issus de Tasks</span>
-          <button id="zoomGanttBtn">Zoom auto</button>
-        </div>
-      </div>
-      <div id="gantt"></div>
-    </section>
-
-    <section class="panel span-2">
-      <div class="panel-head">
-        <h2>⚖️ Charge ressources</h2>
-        <span class="muted">allocations projet + charge estimée des tâches</span>
-      </div>
-      <div id="resourceLoad"></div>
-    </section>
-
-    <section class="panel span-2">
-      <div class="panel-head">
-        <h2>🧭 Tâches & jalons</h2>
-        <div class="actions">
-          <div class="filters">
-            <button class="filter active" data-task-filter="all">Tout</button>
-            <button class="filter" data-task-filter="jalon">Jalons</button>
-            <button class="filter" data-task-filter="late">En retard</button>
+    <main class="grid">
+      <section class="panel span-2">
+        <div class="panel-head">
+          <h2>🎯 Alignement stratégique</h2>
+          <div class="actions">
+            <span class="badge" id="objectiveCount"></span>
+            <button class="primary small" id="addContributionBtn">+ Objectif</button>
           </div>
-          <button class="primary" id="newTaskBtn">+ Nouvelle tâche</button>
         </div>
+        <div id="strategy"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>🏢 Offre / activité</h2></div>
+        <div id="business"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>👥 Équipe & capacité</h2></div>
+        <div id="team"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>🚦 Alertes</h2></div>
+        <div id="alerts"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>📈 Avancement calculé</h2></div>
+        <div id="computedProgress"></div>
+      </section>
+
+      <section class="panel span-2">
+        <div class="panel-head">
+          <h2>📅 Gantt</h2>
+          <span class="muted">dépendances, jalons et progression issus de Tasks</span>
+        </div>
+        <div id="gantt"></div>
+      </section>
+
+      <section class="panel span-2">
+        <div class="panel-head">
+          <h2>⚖️ Charge ressources</h2>
+          <span class="muted">allocations + estimation / temps passé</span>
+        </div>
+        <div id="resourceLoad"></div>
+      </section>
+
+      <section class="panel span-2">
+        <div class="panel-head">
+          <h2>🧭 Tâches & jalons</h2>
+          <div class="actions">
+            <div class="filters">
+              <button class="filter active" data-task-filter="all">Tout</button>
+              <button class="filter" data-task-filter="jalon">Jalons</button>
+              <button class="filter" data-task-filter="late">En retard</button>
+            </div>
+            <button class="primary" id="newTaskBtn">+ Nouvelle tâche</button>
+          </div>
+        </div>
+        <div id="tasks"></div>
+      </section>
+
+      <section class="panel span-2">
+        <div class="panel-head"><h2>🩺 Diagnostic modèle</h2><button id="refreshBtn">Rafraîchir</button></div>
+        <div id="diagnostic"></div>
+      </section>
+    </main>
+  </section>
+
+  <section id="offerView" class="hidden view-shell">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">PILOTAGE PAR OFFRE</div>
+        <h2 class="page-title">Offre de services</h2>
       </div>
-      <div id="tasks"></div>
-    </section>
+      <select id="offerSelect"></select>
+    </div>
 
-    <section class="panel span-2">
-      <div class="panel-head"><h2>🩺 Diagnostic modèle</h2><button id="refreshBtn">Rafraîchir</button></div>
-      <div id="diagnostic"></div>
-    </section>
-  </main>
+    <div class="toolbar">
+      <div class="segmented">
+        <button class="seg active" data-offer-type-filter="all">Tous</button>
+        <button class="seg" data-offer-type-filter="projet">Projets</button>
+        <button class="seg" data-offer-type-filter="produit">Produits</button>
+      </div>
+    </div>
 
-  <footer>Cockpit v4.1.0 • modèle adapté au fichier Grist fourni • Grist reste l’unique source de vérité</footer>
+    <section class="kpis" id="offerKpis"></section>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-head"><h2>🧩 Activités OFS</h2></div>
+        <div id="offerActivities"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>📁 Projets / Produits liés</h2></div>
+        <div id="offerProjects"></div>
+      </section>
+      <section class="panel span-2">
+        <div class="panel-head"><h2>🎯 Objectifs couverts</h2></div>
+        <div id="offerObjectives"></div>
+      </section>
+      <section class="panel span-2">
+        <div class="panel-head"><h2>👥 Charge par ressource</h2></div>
+        <div id="offerResources"></div>
+      </section>
+    </div>
+  </section>
+
+  <section id="adminView" class="hidden view-shell">
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">RÉFÉRENTIELS</div>
+        <h2 class="page-title">Administration CRUD</h2>
+      </div>
+      <select id="adminTableSelect">
+        <option value="axes">Axes stratégiques</option>
+        <option value="objectives">Objectifs</option>
+        <option value="offers">Offres de services</option>
+        <option value="activityOffers">Activités OFS</option>
+        <option value="activities">Activités</option>
+        <option value="team">Équipe / Team</option>
+      </select>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 id="adminTitle">Référentiel</h2>
+        <button class="primary" id="adminNewBtn">+ Nouvel enregistrement</button>
+      </div>
+      <div id="adminTable"></div>
+    </div>
+  </section>
+
+  <footer>Cockpit v4.2.0 • projets et produits distingués via Projects.Type • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
 <form method="dialog" id="projectForm">
-<div class="dialog-head"><h3>Modifier le projet</h3><button type="button" class="icon" data-close="projectDialog">×</button></div>
+<div class="dialog-head"><h3>Modifier Projet / Produit</h3><button type="button" class="icon" data-close="projectDialog">×</button></div>
 <div class="form-grid">
 <label>Nom<input name="nom" required /></label>
 <label>Code<input name="code" /></label>
+<label>Type<select name="Type"><option value="Projet">Projet</option><option value="Produit">Produit</option></select></label>
 <label>Statut<input name="statut" /></label>
 <label>Priorité<input name="priorite" /></label>
 <label>Sponsor<input name="sponsor" /></label>
@@ -117,7 +195,6 @@
 <label>Budget<input name="budget" type="number" /></label>
 <label>Risque<input name="risque" /></label>
 <label>Valeur stratégique<input name="valeurStrategique" type="number" /></label>
-<label>Type<input name="Type" /></label>
 <label>Activité<select name="activite"></select></label>
 <label>Responsable<select name="responsable"></select></label>
 <label>Date début<input name="dateDebut" type="date" /></label>
@@ -160,11 +237,21 @@
 <label>Contribution (%)<input name="contribution" type="number" min="0" max="100" value="100" /></label>
 <label class="wide">Commentaire<textarea name="commentaire" rows="3"></textarea></label>
 </div>
-<div class="schema-hint">Dans ton modèle, <b>Projet_Code</b> est un <b>RefList:Projects</b>. Le widget écrit donc une liste de références Grist.</div>
+<div class="schema-hint"><b>Projet_Code</b> est un <b>RefList:Projects</b> dans ton modèle.</div>
 <div class="dialog-actions"><button type="button" data-close="contributionDialog">Annuler</button><button class="primary" type="submit">Ajouter</button></div>
 </form>
 </dialog>
 
-<script src="app.js?v=4.1.0"></script>
+<dialog id="adminDialog">
+<form method="dialog" id="adminForm">
+<input type="hidden" name="id" />
+<div class="dialog-head"><h3 id="adminDialogTitle">Référentiel</h3><button type="button" class="icon" data-close="adminDialog">×</button></div>
+<div id="adminFields" class="form-grid"></div>
+<div id="adminDependencyHint" class="schema-hint"></div>
+<div class="dialog-actions"><button type="button" data-close="adminDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div>
+</form>
+</dialog>
+
+<script src="app.js?v=4.2.0"></script>
 </body>
 </html>

@@ -1,68 +1,63 @@
-# Grist Portfolio Cockpit — V4.1.0.0
+# Grist Portfolio Cockpit — V4.2.0
 
-Cette version est adaptée au fichier `.grist` fourni.
+Cette version ajoute deux fonctions structurantes au cockpit V4.1.
 
-## Schéma réel pris en compte
+## 1. Distinction Projets / Produits
 
-- `Projects`
-- `Tasks`
-- `Team`
-- `CONTRIBUTIONS_OBJECTIFS`
-- `Objectifs`
+La distinction utilise la colonne réelle :
+
+`Projects.Type`
+
+Le cockpit considère :
+- une valeur contenant `Produit` comme un **Produit** ;
+- toute autre valeur comme un **Projet**.
+
+Les vues Projet et Offre de services proposent désormais les filtres :
+- Tous
+- Projets
+- Produits
+
+Les badges Projet / Produit apparaissent dans le cockpit et la vue Offre.
+
+## 2. Pilotage par Offre de services
+
+Nouvel onglet **Offre de services** :
+- sélection d'une offre ;
+- activités OFS ;
+- projets et produits rattachés ;
+- nombre de projets / produits ;
+- avancement moyen ;
+- objectifs stratégiques couverts ;
+- charge cumulée des ressources.
+
+Chaîne utilisée :
+
+`Offres_Services ← Activites_OFS ← Activites ← Projects`
+
+## 3. Administration CRUD
+
+Nouvel onglet **Administration** permettant de créer, lire, modifier et supprimer :
 - `Axes_Strategiques`
-- `Activites`
-- `Activites_OFS`
+- `Objectifs`
 - `Offres_Services`
-- `Allocations`
+- `Activites_OFS`
+- `Activites`
+- `Team`
 
-## Relations réelles
+### Protection des suppressions
 
-- `Projects.activite` → `Activites`
-- `Activites.Service_Code` → `Activites_OFS`
-- `Activites_OFS.OFS_Code` → `Offres_Services`
-- `Tasks.projet` → `Projects`
-- `Tasks.assignees` → `Team` (`RefList`)
-- `Tasks.dependDe` → `Tasks` (`RefList`)
-- `Tasks.parentTask` → `Tasks`
-- `CONTRIBUTIONS_OBJECTIFS.Projet_Code` → `Projects` (`RefList`)
-- `CONTRIBUTIONS_OBJECTIFS.Objectif_Libelle` → `Objectifs`
-- `CONTRIBUTIONS_OBJECTIFS.Objectif_Code2` → `Objectifs`
-- `Allocations.Projet_Code` → `Projects`
-- `Allocations.Ressource_Code` → `Team`
+Le widget calcule les dépendances avant suppression.
 
-## Nouveautés V4
-
-- correction définitive du lien objectif ↔ projet avec `RefList`;
-- chaîne métier corrigée via `Activites_OFS`;
-- édition du responsable projet;
-- dépendances de tâches;
-- tâche parente;
-- estimation et temps passé;
-- tags;
-- mini-Gantt;
-- diagnostic du modèle intégré;
-- suppression persistante des projets/tâches;
-- aucune donnée métier persistée côté navigateur.
+Par exemple :
+- une activité utilisée par un Project ne peut pas être supprimée ;
+- une offre utilisée par une Activites_OFS ne peut pas être supprimée ;
+- un objectif utilisé dans CONTRIBUTIONS_OBJECTIFS ne peut pas être supprimé ;
+- un membre Team affecté dans Projects, Tasks ou Allocations ne peut pas être supprimé.
 
 ## Déploiement
 
-Publie `index.html`, `app.js`, `styles.css`, `README.md`, `ARCHITECTURE.md` sur GitHub Pages.
+Remplace les fichiers GitHub Pages puis utilise temporairement :
 
-L'URL du widget peut rester la même. Pour forcer le rafraîchissement dans Grist, ajoute `?v=4.1.0` à l'URL du widget.
+`?v=4.2.0`
 
-
-## Nouveautés V4.1
-
-- **Gantt enrichi** : progression dans les barres, jalons, ligne “aujourd’hui”, dépendances visuelles.
-- **Alertes projet** : retards, allocations >100 %, tâches sans dates, tâches non assignées, risque élevé.
-- **Avancement calculé** :
-  - progression déclarée du projet ;
-  - moyenne des tâches ;
-  - progression pondérée par `estimationH`.
-- **Charge ressources** :
-  - allocation Grist ;
-  - charge estimée issue de `Tasks.estimationH` ;
-  - temps passé issu de `Tasks.tempsPasse`.
-- Diagnostic mis à jour.
-
-Le modèle de données reste inchangé par rapport à la V4.
+sur l'URL du widget Grist pour forcer le rafraîchissement.
