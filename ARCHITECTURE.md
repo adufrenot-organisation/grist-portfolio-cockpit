@@ -306,3 +306,7 @@ La navigation et la fiche projet existantes restent fonctionnellement inchangée
 ## V4.8.2 — Navigation portefeuille
 La navigation passe d'une liste latérale à un tableau portefeuille pleine largeur.
 La fiche détaillée existante reste inchangée et s'affiche sous la liste.
+
+## V4.8.3 — Navigation interne
+Le module Pilotage possède deux états d'écran : `portfolioPage` et `projectPage`.
+La fiche n'est plus affichée sous la liste ; elle remplace la liste jusqu'au retour utilisateur.

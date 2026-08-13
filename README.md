@@ -383,3 +383,11 @@ inspirée de la maquette, avec :
 
 Un clic sur une ligne sélectionne l'élément et conserve la **fiche projet / produit actuelle juste en dessous**
 avec Synthèse, Planning, Fonctionnalités, Releases, Tâches, Objectifs et Ressources.
+
+## V4.8.3 — Navigation Liste → Fiche
+
+- Correction du bandeau de filtres : plus de chevauchement/coupure sur les largeurs normales.
+- La vue Pilotage s'ouvre sur le portefeuille.
+- Un clic sur un projet ou produit ouvre désormais une **vue fiche dédiée**.
+- Bouton **← Retour à la liste** en haut de la fiche.
+- L'URL utilise `#projet-ID`, ce qui permet aussi de revenir à une fiche via l'historique/navigation.

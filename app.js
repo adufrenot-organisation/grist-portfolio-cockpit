@@ -1,5 +1,5 @@
 
-const VERSION="4.8.2";
+const VERSION="4.8.3";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
 const $=id=>{
@@ -106,6 +106,24 @@ function renderPortfolioKpis(){
     kpi("Avancement moyen",`${avg}%`,"Global portefeuille")+
     kpi("Charge totale",`${Math.round(remaining)} h`,"Estimation restante");
 }
+
+function showPortfolioPage(){
+  $("portfolioPage").classList.remove("hidden");
+  $("projectPage").classList.add("hidden");
+  try{history.replaceState(null,"",location.pathname+location.search)}catch(_){}
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function showProjectPage(pid){
+  currentProjectId=Number(pid);detailTab="infos";
+  $("portfolioPage").classList.add("hidden");
+  $("projectPage").classList.remove("hidden");
+  renderProject();
+  const p=get("projects",currentProjectId);
+  $("projectBreadcrumb").textContent=p?.nom||p?.code||"Projet / Produit";
+  try{history.replaceState(null,"",`#projet-${currentProjectId}`)}catch(_){}
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
 function renderProjectList(){
   const ps=visibleProjects();
   if(!ps.length){
@@ -146,11 +164,10 @@ function renderProjectList(){
   $("projectListFooter").textContent=`${ps.length} élément(s)`;
   document.querySelectorAll("[data-project-open]").forEach(el=>el.onclick=e=>{
     e.stopPropagation();
-    currentProjectId=Number(el.dataset.projectOpen);detailTab="infos";renderProjectList();renderProject();
-    document.querySelector(".project-detail-panel")?.scrollIntoView({behavior:"smooth",block:"start"});
+    showProjectPage(Number(el.dataset.projectOpen));
   });
   document.querySelectorAll("#projectList tr[data-project-id]").forEach(el=>el.onclick=()=>{
-    currentProjectId=Number(el.dataset.projectId);detailTab="infos";renderProjectList();renderProject();
+    showProjectPage(Number(el.dataset.projectId));
   });
 }
 function renderProject(){
@@ -726,3 +743,13 @@ $("serviceFilter").addEventListener("change",e=>{serviceFilter=e.target.value;po
 document.querySelectorAll("[data-detail-tab]").forEach(b=>b.onclick=()=>switchDetailTab(b.dataset.detailTab));
 
 grist.ready({requiredAccess:"full"});grist.onOptions(()=>load());load();
+
+$("backToPortfolioBtn").onclick=()=>{renderProjectList();showPortfolioPage();};
+window.addEventListener("hashchange",()=>{
+  const m=location.hash.match(/^#projet-(\d+)$/);
+  if(m)showProjectPage(Number(m[1]));else showPortfolioPage();
+});
+setTimeout(()=>{
+  const m=location.hash.match(/^#projet-(\d+)$/);
+  if(m&&get("projects",Number(m[1])))showProjectPage(Number(m[1]));
+},0);
