@@ -310,3 +310,11 @@ La fiche détaillée existante reste inchangée et s'affiche sous la liste.
 ## V4.8.3 — Navigation interne
 Le module Pilotage possède deux états d'écran : `portfolioPage` et `projectPage`.
 La fiche n'est plus affichée sous la liste ; elle remplace la liste jusqu'au retour utilisateur.
+
+## V4.8.4 — Préférences de vue portefeuille
+La sélection des colonnes est une préférence UI stockée dans `localStorage`.
+Elle n'altère jamais le schéma ni les données Grist.
+
+## V4.8.5 — Relation Releases / Fonctionnalités
+La table de liaison `Release_Fonctionnalites` est pilotable depuis les deux objets métier :
+Release -> Fonctionnalités et Fonctionnalité -> Releases.

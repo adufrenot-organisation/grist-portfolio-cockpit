@@ -392,3 +392,31 @@ dialog{width:min(780px,calc(100vw - 32px));border:1px solid var(--line);border-r
 .back-button:hover{background:#f5f8ff}
 .project-page-breadcrumb{display:flex;gap:8px;align-items:center;color:#667085;font-size:13px}
 #projectPage .project-detail-panel{border:1px solid #dfe5ee;border-radius:14px;background:#fff}
+
+/* V4.8.4 — choix des colonnes du portefeuille */
+.portfolio-list-tools{display:flex;align-items:center;gap:9px}
+.columns-control{position:relative}
+.secondary-btn{height:38px;border:1px solid #cfd8e6;background:#fff;color:#155eef;border-radius:8px;padding:0 12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.secondary-btn:hover{background:#f5f8ff}
+.columns-menu{
+  position:absolute;right:0;top:calc(100% + 7px);z-index:50;width:270px;
+  background:#fff;border:1px solid #d8e0eb;border-radius:12px;
+  box-shadow:0 14px 36px rgba(15,23,42,.16);padding:12px;
+}
+.columns-menu-head{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:2px 2px 10px;border-bottom:1px solid #eef1f5}
+.columns-menu-head span{font-size:10px;color:#667085}
+.columns-choices{padding:7px 0;max-height:330px;overflow:auto}
+.column-choice{display:flex;align-items:center;gap:9px;padding:7px 5px;border-radius:7px;cursor:pointer}
+.column-choice:hover{background:#f8fafc}
+.column-choice input{width:16px;height:16px}
+.column-choice span{flex:1;font-size:13px}
+.column-choice small{font-size:9px;color:#98a2b3}
+.columns-menu-actions{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #eef1f5;padding-top:10px}
+.columns-menu-actions button{border:1px solid #d0d5dd;background:#fff;border-radius:7px;padding:7px 10px;cursor:pointer}
+.columns-menu-actions button.primary{background:#1769e0;color:#fff;border-color:#1769e0}
+.configurable-table .actions-col{width:42px;text-align:center}
+@media(max-width:700px){.portfolio-list-tools{align-items:stretch;flex-direction:column}.columns-control,.secondary-btn{width:100%}.columns-menu{left:0;right:auto;width:min(300px,90vw)}}
+
+/* V4.8.5 — rattachement Releases / Fonctionnalités */
+#releaseForm select[multiple],#featureForm select[multiple]{min-height:120px}
+#releaseForm label.wide,#featureForm label.wide{grid-column:1/-1}

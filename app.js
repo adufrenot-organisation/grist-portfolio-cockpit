@@ -1,5 +1,5 @@
 
-const VERSION="4.8.3";
+const VERSION="4.8.5";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
 const $=id=>{
@@ -124,6 +124,57 @@ function showProjectPage(pid){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
+
+const PROJECT_COLUMNS=[
+  {key:"code",label:"Code"},
+  {key:"nom",label:"Nom",required:true},
+  {key:"type",label:"Type"},
+  {key:"nature",label:"Nature"},
+  {key:"domaine",label:"Domaine"},
+  {key:"service",label:"Service"},
+  {key:"statut",label:"Statut"},
+  {key:"avancement",label:"Avancement"},
+  {key:"debut",label:"Début"},
+  {key:"fin",label:"Fin"},
+  {key:"meteo",label:"Météo"}
+];
+const DEFAULT_PROJECT_COLUMNS=PROJECT_COLUMNS.map(c=>c.key);
+let projectColumns=loadProjectColumns();
+function loadProjectColumns(){
+  try{
+    const saved=JSON.parse(localStorage.getItem("gristPmoProjectColumns")||"null");
+    if(Array.isArray(saved)){
+      const valid=saved.filter(k=>PROJECT_COLUMNS.some(c=>c.key===k));
+      if(!valid.includes("nom"))valid.unshift("nom");
+      return valid.length?valid:DEFAULT_PROJECT_COLUMNS.slice();
+    }
+  }catch(_){}
+  return DEFAULT_PROJECT_COLUMNS.slice();
+}
+function saveProjectColumns(){
+  try{localStorage.setItem("gristPmoProjectColumns",JSON.stringify(projectColumns))}catch(_){}
+}
+function columnVisible(k){return projectColumns.includes(k)}
+function renderColumnsMenu(){
+  $("columnsChoices").innerHTML=PROJECT_COLUMNS.map(c=>`<label class="column-choice">
+    <input type="checkbox" value="${c.key}" ${columnVisible(c.key)?"checked":""} ${c.required?"disabled":""}>
+    <span>${esc(c.label)}</span>${c.required?'<small>obligatoire</small>':""}
+  </label>`).join("");
+  $("columnsChoices").querySelectorAll('input:not([disabled])').forEach(cb=>cb.onchange=()=>{
+    if(cb.checked){if(!projectColumns.includes(cb.value))projectColumns.push(cb.value)}
+    else projectColumns=projectColumns.filter(k=>k!==cb.value);
+    // preserve canonical order
+    projectColumns=PROJECT_COLUMNS.map(c=>c.key).filter(k=>projectColumns.includes(k));
+    saveProjectColumns();renderProjectList();
+  });
+}
+function toggleColumnsMenu(force){
+  const menu=$("columnsMenu");
+  const open=typeof force==="boolean"?force:menu.classList.contains("hidden");
+  menu.classList.toggle("hidden",!open);
+  if(open)renderColumnsMenu();
+}
+
 function renderProjectList(){
   const ps=visibleProjects();
   if(!ps.length){
@@ -131,11 +182,13 @@ function renderProjectList(){
     $("projectListFooter").textContent="0 élément";
     return;
   }
-  $("projectList").innerHTML=`<table class="portfolio-table">
-    <thead><tr>
-      <th>Code</th><th>Nom</th><th>Type</th><th>Nature</th><th>Domaine</th><th>Service</th>
-      <th>Statut</th><th>Avancement</th><th>Début</th><th>Fin</th><th>Météo</th><th></th>
-    </tr></thead>
+  const header={
+    code:"Code",nom:"Nom",type:"Type",nature:"Nature",domaine:"Domaine",service:"Service",
+    statut:"Statut",avancement:"Avancement",debut:"Début",fin:"Fin",meteo:"Météo"
+  };
+  const th=PROJECT_COLUMNS.filter(c=>columnVisible(c.key)).map(c=>`<th>${header[c.key]}</th>`).join("");
+  $("projectList").innerHTML=`<table class="portfolio-table configurable-table">
+    <thead><tr>${th}<th class="actions-col"></th></tr></thead>
     <tbody>${ps.map(p=>{
       const progress=pct(p.progression),active=p.id===currentProjectId;
       const act=get("activities",id(p.activite));
@@ -146,25 +199,28 @@ function renderProjectList(){
         taskRows(p.id).some(t=>late(t)&&/haute|critique|high/i.test(String(t.priorite||"")))?"🔴 Rouge":
         taskRows(p.id).some(late)||/haut|élev|critique|high/i.test(String(p.risque||""))?"🟠 Orange":"🟢 Vert"
       );
+      const cells={
+        code:`<td><button class="table-link" data-project-open="${p.id}">${esc(p.code||`#${p.id}`)}</button></td>`,
+        nom:`<td><strong>${esc(p.nom||`#${p.id}`)}</strong></td>`,
+        type:`<td>${typeBadge(p)}</td>`,
+        nature:`<td>${esc(p.Nature_Projet||"—")}</td>`,
+        domaine:`<td>${esc(domain?.Nom||domain?.Libelle||domain?.Code||"—")}</td>`,
+        service:`<td>${esc(offer?.Nom||offer?.Code||"—")}</td>`,
+        statut:`<td>${esc(p.statut||"—")}</td>`,
+        avancement:`<td><div class="table-progress"><span>${progress}%</span><div class="mini-progress"><div style="width:${progress}%"></div></div></div></td>`,
+        debut:`<td>${dt(p.dateDebut)}</td>`,
+        fin:`<td>${dt(p.dateFin)}</td>`,
+        meteo:`<td>${esc(weather)}</td>`
+      };
       return `<tr class="${active?"selected-row":""}" data-project-id="${p.id}">
-        <td><button class="table-link" data-project-open="${p.id}">${esc(p.code||`#${p.id}`)}</button></td>
-        <td><strong>${esc(p.nom||`#${p.id}`)}</strong></td>
-        <td>${typeBadge(p)}</td>
-        <td>${esc(p.Nature_Projet||"—")}</td>
-        <td>${esc(domain?.Nom||domain?.Libelle||domain?.Code||"—")}</td>
-        <td>${esc(offer?.Nom||offer?.Code||"—")}</td>
-        <td>${esc(p.statut||"—")}</td>
-        <td><div class="table-progress"><span>${progress}%</span><div class="mini-progress"><div style="width:${progress}%"></div></div></div></td>
-        <td>${dt(p.dateDebut)}</td><td>${dt(p.dateFin)}</td>
-        <td>${esc(weather)}</td>
-        <td><button class="row-open" data-project-open="${p.id}" title="Ouvrir la fiche">›</button></td>
+        ${PROJECT_COLUMNS.filter(c=>columnVisible(c.key)).map(c=>cells[c.key]).join("")}
+        <td class="actions-col"><button class="row-open" data-project-open="${p.id}" title="Ouvrir la fiche">›</button></td>
       </tr>`;
     }).join("")}</tbody>
   </table>`;
   $("projectListFooter").textContent=`${ps.length} élément(s)`;
   document.querySelectorAll("[data-project-open]").forEach(el=>el.onclick=e=>{
-    e.stopPropagation();
-    showProjectPage(Number(el.dataset.projectOpen));
+    e.stopPropagation();showProjectPage(Number(el.dataset.projectOpen));
   });
   document.querySelectorAll("#projectList tr[data-project-id]").forEach(el=>el.onclick=()=>{
     showProjectPage(Number(el.dataset.projectId));
@@ -444,14 +500,36 @@ function productFeaturesView(p,ts){
   }
   $("productFeaturesView").innerHTML=`<div class="feature-grid">${fs.map(f=>{
     const st=get("featureStages",id(f.stade));
-    const linked=ts.filter(t=>id(t.fonctionnalite)===f.id);
+    const linked=ts.filter(t=>id(t.fonctionnalite)===f.id);const rels=releaseIdsForFeature(f.id).map(rid=>get("releases",rid)).filter(Boolean);
     const start=f.Date_Debut||f.dateDebut||null;
     const end=f.Date_Fin||f.dateFin||f.Date_Cible||null;
-    return `<div class="feature-card"><div class="feature-card-head"><div><h4>${esc(f.Nom||"")}</h4><div class="feature-meta">${esc(f.Code||"")} • ${esc(st?.Nom||"Sans stade")}</div></div><strong>${pct(f.Progression)}%</strong></div><div class="feature-meta">${esc(f.Description||"")}</div><div class="metric-bar" style="margin-top:10px"><div style="width:${pct(f.Progression)}%"></div></div><div class="feature-meta">${linked.length} tâche(s) • ${dt(start)} → ${dt(end)}</div><div class="feature-actions"><button class="primary-outline" data-feature-task="${f.id}">+ Tâche</button><button data-feature-edit="${f.id}">Modifier</button><button class="danger" data-feature-del="${f.id}">Supprimer</button></div></div>`;
+    return `<div class="feature-card"><div class="feature-card-head"><div><h4>${esc(f.Nom||"")}</h4><div class="feature-meta">${esc(f.Code||"")} • ${esc(st?.Nom||"Sans stade")}</div></div><strong>${pct(f.Progression)}%</strong></div><div class="feature-meta">${esc(f.Description||"")}</div><div class="metric-bar" style="margin-top:10px"><div style="width:${pct(f.Progression)}%"></div></div><div class="feature-meta">${linked.length} tâche(s) • ${dt(start)} → ${dt(end)}</div><div class="feature-meta">Release(s) : ${rels.length?rels.map(r=>esc(r.Nom||r.Code||"")).join(" • "):"—"}</div><div class="feature-actions"><button class="primary-outline" data-feature-task="${f.id}">+ Tâche</button><button data-feature-edit="${f.id}">Modifier</button><button class="danger" data-feature-del="${f.id}">Supprimer</button></div></div>`;
   }).join("")}</div>`;
   document.querySelectorAll("[data-feature-task]").forEach(b=>b.onclick=()=>openTask(null,{featureId:Number(b.dataset.featureTask)}));
   document.querySelectorAll("[data-feature-edit]").forEach(b=>b.onclick=()=>openFeature(Number(b.dataset.featureEdit)));
   document.querySelectorAll("[data-feature-del]").forEach(b=>b.onclick=()=>deleteFeature(Number(b.dataset.featureDel)));
+}
+
+
+function releaseIdsForFeature(fid){
+  return db.releaseFeatures.filter(x=>id(x.fonctionnalite)===Number(fid)).map(x=>id(x.release)).filter(Boolean);
+}
+async function syncFeatureReleases(fid,selectedReleaseIds){
+  const selected=new Set((selectedReleaseIds||[]).map(Number));
+  const existing=db.releaseFeatures.filter(x=>id(x.fonctionnalite)===Number(fid));
+  const existingIds=new Set(existing.map(x=>id(x.release)));
+  const actions=[];
+  existing.filter(x=>!selected.has(id(x.release))).forEach(x=>actions.push(["RemoveRecord","Release_Fonctionnalites",x.id]));
+  [...selected].filter(rid=>!existingIds.has(rid)).forEach((rid,i)=>actions.push(["AddRecord","Release_Fonctionnalites",null,{release:rid,fonctionnalite:Number(fid),Ordre:i+1}]));
+  if(actions.length)await grist.docApi.applyUserActions(actions);
+}
+async function syncReleaseFeatures(rid,selectedFeatureIds){
+  const selected=new Set((selectedFeatureIds||[]).map(Number));
+  const existing=releaseFeatureRows(rid),existingIds=new Set(existing.map(x=>id(x.fonctionnalite)));
+  const actions=[];
+  existing.filter(x=>!selected.has(id(x.fonctionnalite))).forEach(x=>actions.push(["RemoveRecord","Release_Fonctionnalites",x.id]));
+  [...selected].filter(fid=>!existingIds.has(fid)).forEach((fid,i)=>actions.push(["AddRecord","Release_Fonctionnalites",null,{release:Number(rid),fonctionnalite:fid,Ordre:i+1}]));
+  if(actions.length)await grist.docApi.applyUserActions(actions);
 }
 
 /* ---------- Releases (Projet / Produit) ---------- */
@@ -464,15 +542,33 @@ function openRelease(rid=null){
     f.Statut.value=row.Statut||"À venir";f.Objectif.value=row.Objectif||"";f.Actif.value=String(row.Actif!==false);
   }else{f.Statut.value="À venir";f.Actif.value="true"}
   opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");
+  fillMulti(f.Fonctionnalites,featureRowsForProject(currentProjectId),x=>x.Nom,row?releaseFeatureIds(row.id):[]);
   $("releaseDialog").showModal();
 }
 $("releaseForm").onsubmit=async e=>{
-  e.preventDefault();const f=e.currentTarget,rid=Number(f.id.value)||null,p=get("projects",currentProjectId);
+  e.preventDefault();
+  const f=e.currentTarget,rid=Number(f.id.value)||null,p=get("projects",currentProjectId);
   const fields={Code:f.Code.value,Nom:f.Nom.value,Date_Debut:gd(f.Date_Debut.value),Date_Fin:gd(f.Date_Fin.value),Statut:f.Statut.value,Objectif:f.Objectif.value,Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
   fields[releaseParentField()]=currentProjectId;
   if("Type" in (db.releases[0]||{}))fields.Type=p?.Type||null;
+  const selected=[...f.Fonctionnalites.selectedOptions].map(o=>Number(o.value));
   $("releaseDialog").close();
-  await apply([[rid?"UpdateRecord":"AddRecord","Releases",rid||null,fields]],rid?"Release mise à jour.":"Release créée.");
+
+  if(rid){
+    await apply([["UpdateRecord","Releases",rid,fields]],"Release mise à jour.");
+    await load();
+    await syncReleaseFeatures(rid,selected);
+    await load();renderProject();
+  }else{
+    // Create first, reload to resolve generated id, then link selected features.
+    await apply([["AddRecord","Releases",null,fields]],"Release créée.");
+    await load();
+    const created=[...db.releases].filter(r=>releaseParentId(r)===Number(currentProjectId)&&String(r.Code||"")===String(fields.Code||"")&&String(r.Nom||"")===String(fields.Nom||"")).sort((a,b)=>Number(b.id)-Number(a.id))[0];
+    if(created&&selected.length){
+      await syncReleaseFeatures(created.id,selected);
+      await load();renderProject();
+    }
+  }
 }
 function openReleaseFeatures(rid){
   const r=get("releases",rid);if(!r)return;
@@ -507,18 +603,31 @@ function openFeature(fid=null){
   else{f.Progression.value=0;f.Actif.value="true"}
   opt(f.stade,db.featureStages,r=>r.Nom,row?id(row.stade):null,"— stade —");
   opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");
+  fillMulti(f.Releases,releaseRowsForProject(currentProjectId),x=>`${x.Nom||x.Code||"Release"} — ${dt(x.Date_Debut)} → ${dt(x.Date_Fin)}`,row?releaseIdsForFeature(row.id):[]);
   $("featureDialog").showModal()
 }
-$("featureForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,fid=Number(f.id.value)||null,fields={Code:f.Code.value,Nom:f.Nom.value,Description:f.Description.value,stade:f.stade.value?Number(f.stade.value):null,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(f.Date_Debut.value),Date_Fin:gd(f.Date_Fin.value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};fields[featureParentField()]=currentProjectId;$("featureDialog").close();await apply([[fid?"UpdateRecord":"AddRecord","Fonctionnalites",fid||null,fields]],fid?"Fonctionnalité mise à jour.":"Fonctionnalité créée.")}
-async function deleteFeature(fid){const used=db.tasks.filter(t=>id(t.fonctionnalite)===fid).length;if(used){banner(`Suppression bloquée : ${used} tâche(s) utilisent cette fonctionnalité.`);return}if(confirm("Supprimer définitivement cette fonctionnalité ?"))await apply([["RemoveRecord","Fonctionnalites",fid]],"Fonctionnalité supprimée.")}
+$("featureForm").onsubmit=async e=>{
+  e.preventDefault();
+  const f=e.currentTarget,fid=Number(f.id.value)||null;
+  const fields={Code:f.Code.value,Nom:f.Nom.value,Description:f.Description.value,stade:f.stade.value?Number(f.stade.value):null,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(f.Date_Debut.value),Date_Fin:gd(f.Date_Fin.value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
+  fields[featureParentField()]=currentProjectId;
+  const selected=[...f.Releases.selectedOptions].map(o=>Number(o.value));
+  $("featureDialog").close();
 
-/* ---------- Project CRUD ---------- */
-function banner(t){$("banner").textContent=t;$("banner").classList.remove("hidden")}function hideBanner(){$("banner").classList.add("hidden")}
-function tableKeyFromName(name){return Object.keys(T).find(k=>T[k]===name)||null}
-function auditValue(v){
-  if(Array.isArray(v))return v;
-  if(v && typeof v==="object")return v;
-  return v??null;
+  if(fid){
+    await apply([["UpdateRecord","Fonctionnalites",fid,fields]],"Fonctionnalité mise à jour.");
+    await load();
+    await syncFeatureReleases(fid,selected);
+    await load();renderProject();
+  }else{
+    await apply([["AddRecord","Fonctionnalites",null,fields]],"Fonctionnalité créée.");
+    await load();
+    const created=[...featureRowsForProject(currentProjectId)].filter(x=>String(x.Code||"")===String(fields.Code||"")&&String(x.Nom||"")===String(fields.Nom||"")).sort((a,b)=>Number(b.id)-Number(a.id))[0];
+    if(created&&selected.length){
+      await syncFeatureReleases(created.id,selected);
+      await load();renderProject();
+    }
+  }
 }
 function auditPayload(action){
   const [kind,table,recordId,fields]=action;
@@ -753,3 +862,11 @@ setTimeout(()=>{
   const m=location.hash.match(/^#projet-(\d+)$/);
   if(m&&get("projects",Number(m[1])))showProjectPage(Number(m[1]));
 },0);
+
+$("columnsBtn").onclick=e=>{e.stopPropagation();toggleColumnsMenu()};
+$("closeColumnsBtn").onclick=()=>toggleColumnsMenu(false);
+$("resetColumnsBtn").onclick=()=>{
+  projectColumns=DEFAULT_PROJECT_COLUMNS.slice();saveProjectColumns();renderColumnsMenu();renderProjectList();
+};
+$("columnsMenu").onclick=e=>e.stopPropagation();
+document.addEventListener("click",()=>toggleColumnsMenu(false));

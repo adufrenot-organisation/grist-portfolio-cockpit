@@ -391,3 +391,30 @@ avec Synthèse, Planning, Fonctionnalités, Releases, Tâches, Objectifs et Ress
 - Un clic sur un projet ou produit ouvre désormais une **vue fiche dédiée**.
 - Bouton **← Retour à la liste** en haut de la fiche.
 - L'URL utilise `#projet-ID`, ce qui permet aussi de revenir à une fiche via l'historique/navigation.
+
+## V4.8.4 — Colonnes personnalisables
+
+Le tableau portefeuille propose désormais un bouton **▦ Colonnes**.
+
+Colonnes disponibles :
+Code, Nom, Type, Nature, Domaine, Service, Statut, Avancement, Début, Fin et Météo.
+
+- Toutes les colonnes actuelles sont affichées par défaut.
+- `Nom` reste toujours visible.
+- Le choix est mémorisé localement dans le navigateur de l'utilisateur.
+- **Réinitialiser** restaure la vue par défaut.
+- Cette fonction masque uniquement des colonnes de la vue : aucune donnée ni colonne Grist n'est supprimée.
+
+## V4.8.5 — Rattachement Releases ↔ Fonctionnalités
+
+Le lien `Release_Fonctionnalites` est maintenant géré dans les deux sens depuis le Cockpit.
+
+### Depuis une Release
+Le formulaire Créer / Modifier une release contient désormais un champ multi-sélection
+**Fonctionnalités** permettant d'embarquer directement les fonctionnalités du Projet / Produit courant.
+
+### Depuis une Fonctionnalité
+Le formulaire Créer / Modifier une fonctionnalité contient désormais un champ multi-sélection
+**Release(s)** permettant de rattacher la fonctionnalité à une ou plusieurs releases.
+
+Les cartes Fonctionnalités affichent également les releases auxquelles elles appartiennent.

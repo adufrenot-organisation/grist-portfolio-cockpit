@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=4.8.3" />
+  <link rel="stylesheet" href="styles.css?v=4.8.5" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="brand">
       <div class="brand-mark">▦</div>
       <div class="brand-title">GRIST. COCKPIT Pilotage PMO</div>
-      <span class="version">v4.8.3</span>
+      <span class="version">v4.8.5</span>
     </div>
 
     <nav class="top-nav">
@@ -57,7 +57,20 @@
           <h2>Liste des projets / produits</h2>
           <div class="muted" id="projectListFooter"></div>
         </div>
-        <input id="projectSearch" class="search-input portfolio-search" placeholder="Rechercher un élément..." />
+        <div class="portfolio-list-tools">
+  <input id="projectSearch" class="search-input portfolio-search" placeholder="Rechercher un élément..." />
+  <div class="columns-control">
+    <button id="columnsBtn" class="secondary-btn" type="button">▦ Colonnes</button>
+    <div id="columnsMenu" class="columns-menu hidden">
+      <div class="columns-menu-head"><strong>Colonnes affichées</strong><span>Nom toujours visible</span></div>
+      <div id="columnsChoices" class="columns-choices"></div>
+      <div class="columns-menu-actions">
+        <button id="resetColumnsBtn" type="button">Réinitialiser</button>
+        <button id="closeColumnsBtn" class="primary" type="button">Terminé</button>
+      </div>
+    </div>
+  </div>
+</div>
       </div>
       <div id="projectList" class="project-table-wrap"></div>
     </div>
@@ -231,7 +244,7 @@
     </div>
   </section>
 
-  <footer>GRIST. COCKPIT Pilotage PMO • v4.8.3 • Grist reste l’unique source de vérité</footer>
+  <footer>GRIST. COCKPIT Pilotage PMO • v4.8.5 • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -309,7 +322,7 @@
 <label>Date début<input name="Date_Debut" type="date" required /></label>
 <label>Date fin<input name="Date_Fin" type="date" required /></label>
 <label>Statut<select name="Statut"><option>À venir</option><option>En cours</option><option>Terminée</option><option>Annulée</option></select></label>
-<label>Responsable<select name="Responsable"></select></label>
+<label>Responsable<select name="Responsable"></select></label><label class="wide">Fonctionnalités<select name="Fonctionnalites" multiple size="7"></select></label><label class="wide">Release(s)<select name="Releases" multiple size="5"></select></label>
 <label class="wide">Objectif<textarea name="Objectif" rows="3"></textarea></label>
 <label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label>
 </div>
@@ -332,6 +345,6 @@
 <dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date début<input name="Date_Debut" type="date" /></label><label>Date fin<input name="Date_Fin" type="date" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
 
 
-<script src="app.js?v=4.8.3"></script>
+<script src="app.js?v=4.8.5"></script>
 </body>
 </html>
