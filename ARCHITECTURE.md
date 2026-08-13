@@ -269,3 +269,8 @@ Restauration complète du renderer de la vue Offre de services.
 
 ## V4.7.6
 Restauration de `projectsForOffer()` et contrôle de complétude des fonctions historiques du cockpit.
+
+## V4.7.8 — Classification
+`Projects.Type` = Projet / Produit.
+`Projects.Nature_Projet` = Métier / Support.
+Ces deux dimensions ne doivent pas être confondues.

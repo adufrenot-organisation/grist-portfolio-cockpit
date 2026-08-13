@@ -312,3 +312,17 @@ V4.6.3 afin d'éviter qu'un autre helper historique manque dans cette release.
 
 ## V4.7.7 — MCD consolidé
 MCD recalé au 13 août 2026. Voir `MCD.md` et `ARCHITECTURE.md`.
+
+## V4.7.8 — Nature des projets
+
+Ajout de `Projects.Nature_Projet` avec les valeurs :
+- `Métier`
+- `Support`
+
+La distinction `Projet / Produit` reste dans `Projects.Type`.
+`Nature_Projet` est une dimension séparée, principalement pertinente pour les Projets.
+
+Le cockpit permet de saisir/modifier la nature et de filtrer le portefeuille par Nature.
+
+### Pré-requis Grist
+Ajouter dans `Projects` une colonne `Nature_Projet`, de type Choice/Text, avec les choix `Métier` et `Support`.

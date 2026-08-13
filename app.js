@@ -1,7 +1,7 @@
 
-const VERSION="4.7.7";
+const VERSION="4.7.8";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
-let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all";
+let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
 const $=id=>{
   const el=document.getElementById(id);
   if(!el) throw new Error(`Élément UI introuvable: #${id}`);
@@ -53,7 +53,7 @@ function populatePortfolioFilters(){
   $("domainFilter").value=domainFilter;$("serviceFilter").value=serviceFilter;
 }
 function filteredProjects(filter=typeFilter){return db.projects.filter(p=>{
-  if(filter!=="all"&&typeOf(p)!==filter)return false;
+  if(filter!=="all"&&typeOf(p)!==filter)return false;if(natureFilter!=="all"&&String(p.Nature_Projet||"")!==natureFilter)return false;
   const offer=projectOffer(p);
   if(serviceFilter!=="all"&&Number(offer?.id)!==Number(serviceFilter))return false;
   if(domainFilter!=="all"&&Number(projectDomainId(p))!==Number(domainFilter))return false;
@@ -184,7 +184,7 @@ function renderSynthesis(p,ts,cs,as){
 
   $("summaryMain").innerHTML=`<div class="kv">
     <div class="key">Météo</div><div class="value">${weatherBadge(p,ts)}</div>
-    <div class="key">Type</div><div class="value">${typeOf(p)==="produit"?"Produit":"Projet"}</div>
+    <div class="key">Type</div><div class="value">${typeOf(p)==="produit"?"Produit":"Projet"}</div><div class="key">Nature</div><div class="value">${esc(p.Nature_Projet||"—")}</div>
     <div class="key">Statut</div><div class="value">${esc(p.statut||"—")}</div>
     <div class="key">Priorité</div><div class="value">${esc(p.priorite||"—")}</div>
     <div class="key">Avancement</div><div class="value">${pct(p.progression)}%</div>
@@ -437,7 +437,7 @@ function openProject(create=false){
     f.id.value=String(p.id);
     $("projectDialogTitle").textContent="Modifier Projet / Produit";
     ["nom","code","statut","priorite","sponsor","risque"].forEach(k=>f[k].value=p[k]??"");
-    f.Type.value=/produit/i.test(p.Type||"")?"Produit":"Projet";
+    f.Type.value=/produit/i.test(p.Type||"")?"Produit":"Projet";f.Nature_Projet.value=p.Nature_Projet||"";
     f.progression.value=pct(p.progression);
     f.budget.value=p.budget??"";
     f.valeurStrategique.value=p.valeurStrategique??"";
@@ -445,7 +445,7 @@ function openProject(create=false){
     f.dateFin.value=din(p.dateFin);
   }else{
     $("projectDialogTitle").textContent="Nouveau Projet / Produit";
-    f.Type.value=typeFilter==="produit"?"Produit":"Projet";
+    f.Type.value=typeFilter==="produit"?"Produit":"Projet";f.Nature_Projet.value="";
     f.progression.value=0;
     f.statut.value="À faire";
   }
@@ -463,6 +463,7 @@ $("projectForm").onsubmit=async e=>{
     nom:f.nom.value,
     code:f.code.value,
     Type:f.Type.value,
+    Nature_Projet:f.Nature_Projet.value||null,
     statut:f.statut.value,
     priorite:f.priorite.value,
     sponsor:f.sponsor.value,
@@ -587,7 +588,7 @@ document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const d=$(b.
 
 $("projectSearch").addEventListener("input",e=>{projectSearch=e.target.value;populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
 $("domainFilter").addEventListener("change",e=>{domainFilter=e.target.value;populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
-$("serviceFilter").addEventListener("change",e=>{serviceFilter=e.target.value;populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
+$("serviceFilter").addEventListener("change",e=>{serviceFilter=e.target.value;populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});$("natureFilter").addEventListener("change",e=>{natureFilter=e.target.value;populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
 document.querySelectorAll("[data-detail-tab]").forEach(b=>b.onclick=()=>switchDetailTab(b.dataset.detailTab));
 
 grist.ready({requiredAccess:"full"});grist.onOptions(()=>load());load();

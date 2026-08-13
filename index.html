@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=4.7.7" />
+  <link rel="stylesheet" href="styles.css?v=4.7.8" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="brand">
       <div class="brand-mark">▦</div>
       <div class="brand-title">GRIST. COCKPIT Pilotage PMO</div>
-      <span class="version">v4.7.7</span>
+      <span class="version">v4.7.8</span>
     </div>
 
     <nav class="top-nav">
@@ -44,7 +44,7 @@
         </div>
         <div class="filter-box compact-filter"><span>Domaine</span><select id="domainFilter"><option value="all">Tous les domaines</option></select></div>
         <div class="filter-box compact-filter"><span>Service</span><select id="serviceFilter"><option value="all">Tous les services</option></select></div>
-        <button class="primary" id="newProjectBtn">+ Nouveau</button>
+        <div class="filter-box compact-filter"><span>Nature</span><select id="natureFilter"><option value="all">Toutes</option><option value="Métier">Métier</option><option value="Support">Support</option></select></div><button class="primary" id="newProjectBtn">+ Nouveau</button>
       </div>
     </div>
 
@@ -211,7 +211,7 @@
     </div>
   </section>
 
-  <footer>GRIST. COCKPIT Pilotage PMO • v4.7.7 • Grist reste l’unique source de vérité</footer>
+  <footer>GRIST. COCKPIT Pilotage PMO • v4.7.8 • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -221,7 +221,7 @@
 <div class="form-grid">
 <label>Nom<input name="nom" required /></label>
 <label>Code<input name="code" /></label>
-<label>Type<select name="Type"><option value="Projet">Projet</option><option value="Produit">Produit</option></select></label>
+<label>Type<select name="Type"><option value="Projet">Projet</option><option value="Produit">Produit</option></select></label><label>Nature projet<select name="Nature_Projet"><option value="">—</option><option value="Métier">Métier</option><option value="Support">Support</option></select></label>
 <label>Statut<input name="statut" /></label>
 <label>Priorité<input name="priorite" /></label>
 <label>Sponsor<input name="sponsor" /></label>
@@ -282,6 +282,6 @@
 <dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date début<input name="Date_Debut" type="date" /></label><label>Date fin<input name="Date_Fin" type="date" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
 
 
-<script src="app.js?v=4.7.7"></script>
+<script src="app.js?v=4.7.8"></script>
 </body>
 </html>
