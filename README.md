@@ -418,3 +418,29 @@ Le formulaire Créer / Modifier une fonctionnalité contient désormais un champ
 **Release(s)** permettant de rattacher la fonctionnalité à une ou plusieurs releases.
 
 Les cartes Fonctionnalités affichent également les releases auxquelles elles appartiennent.
+
+## V4.8.6 — Correctif modification Projet / Produit
+
+Le formulaire de modification n'envoie désormais que :
+- les colonnes réellement présentes dans `Projects` ;
+- les valeurs qui ont effectivement changé.
+
+Cela évite qu'une colonne absente du document ou ajoutée dans une version récente bloque tout le `UpdateRecord`.
+
+La fonction `apply()` renvoie maintenant explicitement succès/échec afin que le formulaire ne se ferme
+qu'après un enregistrement réussi.
+
+## V4.9.0 — Onglet Documentation
+
+Nouvel onglet principal **📚 Documentation**.
+
+Le Cockpit lit la table Grist `Documentation` et affiche automatiquement toutes les lignes actives,
+triées par `Ordre`.
+
+Chaque carte affiche :
+- l'icône choisie ;
+- le nom ;
+- l'URL ;
+- ouverture dans un nouvel onglet.
+
+La configuration est entièrement gérée dans Admin & Audit V1.9.

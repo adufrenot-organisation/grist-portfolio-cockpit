@@ -318,3 +318,9 @@ Elle n'altère jamais le schéma ni les données Grist.
 ## V4.8.5 — Relation Releases / Fonctionnalités
 La table de liaison `Release_Fonctionnalites` est pilotable depuis les deux objets métier :
 Release -> Fonctionnalités et Fonctionnalité -> Releases.
+
+## V4.8.6
+Le CRUD Projects utilise un diff de champs et filtre les colonnes à partir du schéma réellement lu dans Grist.
+
+## V4.9.0 — Documentation dynamique
+Source : table `Documentation`. Admin = CRUD ; Cockpit = restitution en lecture.

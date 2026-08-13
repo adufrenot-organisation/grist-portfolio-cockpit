@@ -1,6 +1,6 @@
 
-const VERSION="4.8.5";
-const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS"};
+const VERSION="4.9.0";
+const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
 const $=id=>{
   const el=document.getElementById(id);
@@ -89,7 +89,19 @@ function populateOfferSelect(){
   $("offerSelect").innerHTML=db.offers.map(o=>`<option value="${o.id}">${esc(o.Nom||o.Code||`#${o.id}`)}</option>`).join("");
   if(currentOfferId)$("offerSelect").value=currentOfferId;
 }
-function renderAll(){renderPortfolioKpis();renderProject();renderOffer();}
+
+function renderDocumentation(){
+  const docs=[...(db.documentation||[])].filter(d=>d.Actif!==false).sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0)||String(a.Nom||"").localeCompare(String(b.Nom||"")));
+  $("docsCards").classList.toggle("hidden",!docs.length);
+  $("docsEmpty").classList.toggle("hidden",!!docs.length);
+  $("docsCards").innerHTML=docs.map(d=>`<a class="doc-card" href="${esc(d.URL||"#")}" target="_blank" rel="noopener noreferrer">
+    <div class="doc-card-icon">${esc(d.Icone||"📄")}</div>
+    <div class="doc-card-body"><h3>${esc(d.Nom||"Documentation")}</h3><div class="doc-card-url">${esc(d.URL||"")}</div></div>
+    <div class="doc-card-arrow">↗</div>
+  </a>`).join("");
+}
+
+function renderAll(){renderPortfolioKpis();renderProject();renderOffer();renderDocumentation();}
 function renderPortfolioKpis(){
   const ps=visibleProjects(), all=filteredProjects();
   const active=ps.filter(p=>!/termin|clos|done/i.test(String(p.statut||""))).length;
@@ -659,14 +671,13 @@ function auditPayload(action){
   };
 }
 async function apply(actions,msg){
-  if(busy)return;
+  if(busy)return false;
   busy=true;document.body.classList.add("busy");
   try{
     const finalActions=[...actions];
-    // JOURNAL_ACTIONS est optionnelle : on journalise si elle est accessible.
     if(db.audit!==undefined){
       for(const a of actions){
-        if(["AddRecord","UpdateRecord","RemoveRecord"].includes(a[0]) && a[1]!=="JOURNAL_ACTIONS"){
+        if(["AddRecord","UpdateRecord","RemoveRecord"].includes(a[0])&&a[1]!=="JOURNAL_ACTIONS"){
           finalActions.push(["AddRecord","JOURNAL_ACTIONS",null,auditPayload(a)]);
         }
       }
@@ -674,17 +685,52 @@ async function apply(actions,msg){
     try{
       await grist.docApi.applyUserActions(finalActions);
     }catch(e){
-      // Si JOURNAL_ACTIONS n'existe pas ou son schéma diffère, ne pas bloquer l'action métier.
       if(finalActions.length!==actions.length){
         console.warn("Journalisation impossible, action métier appliquée sans journal",e);
         await grist.docApi.applyUserActions(actions);
       }else throw e;
     }
-    await load();banner(msg);setTimeout(()=>{if(!busy)hideBanner()},1700)
-  }catch(e){console.error(e);banner(`Erreur Grist: ${e?.message||e}`)}
-  finally{busy=false;document.body.classList.remove("busy")}
+    await load();
+    banner(msg);
+    setTimeout(()=>{if(!busy)hideBanner()},1700);
+    return true;
+  }catch(e){
+    console.error(e);
+    banner(`Erreur Grist: ${e?.message||e}`);
+    return false;
+  }finally{
+    busy=false;document.body.classList.remove("busy");
+  }
 }
 function opt(el,rows,label,selected=null,empty="—"){el.innerHTML=`<option value="">${empty}</option>`+rows.map(r=>`<option value="${r.id}" ${Number(selected)===Number(r.id)?"selected":""}>${esc(label(r))}</option>`).join("")}
+
+function existingProjectFieldNames(){
+  const sample=(db.projects&&db.projects[0])||{};
+  return new Set(Object.keys(sample));
+}
+function normalizeComparable(v){
+  if(Array.isArray(v))return JSON.stringify(v);
+  if(v===undefined)return null;
+  return v;
+}
+function projectWritableFields(fields, before=null){
+  const known=existingProjectFieldNames();
+  const out={};
+  for(const [k,v] of Object.entries(fields)){
+    // If table has no rows, keep fields for creation. Otherwise only send columns that really exist.
+    if(db.projects.length && !known.has(k))continue;
+    if(before){
+      const old=before[k];
+      if(normalizeComparable(old)===normalizeComparable(v))continue;
+      // Dates in Grist may be numbers with equivalent values; avoid false changes.
+      if(["dateDebut","dateFin"].includes(k) && dms(old)===dms(v))continue;
+      if(["progression"].includes(k) && Math.abs(Number(old||0)-Number(v||0))<1e-9)continue;
+    }
+    out[k]=v;
+  }
+  return out;
+}
+
 function openProject(create=false){
   const f=$("projectForm");
   f.reset();
@@ -719,7 +765,7 @@ $("projectForm").onsubmit=async e=>{
   e.preventDefault();
   const f=e.currentTarget;
   const rid=Number(f.id.value)||null;
-  const fields={
+  const rawFields={
     nom:f.nom.value,
     code:f.code.value,
     Type:f.Type.value,
@@ -737,52 +783,56 @@ $("projectForm").onsubmit=async e=>{
     dateDebut:gd(f.dateDebut.value),
     dateFin:gd(f.dateFin.value)
   };
-  const lookup={nom:fields.nom,code:fields.code};
-  $("projectDialog").close();
+  const lookup={nom:rawFields.nom,code:rawFields.code};
 
   if(rid){
-    await apply([["UpdateRecord","Projects",rid,fields]],"Projet / Produit mis à jour.");
-  }else{
-    if(busy)return;
-    busy=true;document.body.classList.add("busy");
-    try{
-      const actions=[["AddRecord","Projects",null,fields]];
-      const finalActions=[...actions];
-      if(db.audit!==undefined){
-        for(const a of actions){
-          finalActions.push(["AddRecord","JOURNAL_ACTIONS",null,auditPayload(a)]);
-        }
-      }
-      try{
-        await grist.docApi.applyUserActions(finalActions);
-      }catch(e){
-        if(finalActions.length!==actions.length){
-          console.warn("Journalisation impossible, création appliquée sans journal",e);
-          await grist.docApi.applyUserActions(actions);
-        }else throw e;
-      }
-      await load();
-      const created=[...db.projects]
-        .filter(p=>String(p.nom||"")===lookup.nom && String(p.code||"")===lookup.code)
-        .sort((a,b)=>Number(b.id)-Number(a.id))[0];
-      if(created){
-        currentProjectId=created.id;
-        projectSearch="";
-        $("projectSearch").value="";
-        typeFilter="all";
-        document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x.dataset.typeFilter==="all"));
-        populateProjectSelect();
-        renderPortfolioKpis();
-        detailTab="infos";
-        renderProject();
-      }
-      banner("Projet / Produit créé.");
-    }catch(e){
-      console.error(e);
-      banner(`Erreur Grist: ${e?.message||e}`);
-    }finally{
-      busy=false;document.body.classList.remove("busy");
+    const before=get("projects",rid);
+    const fields=projectWritableFields(rawFields,before);
+    if(!Object.keys(fields).length){
+      $("projectDialog").close();
+      banner("Aucune modification à enregistrer.");
+      return;
     }
+    const ok=await apply([["UpdateRecord","Projects",rid,fields]],"Projet / Produit mis à jour.");
+    if(ok){
+      currentProjectId=rid;
+      detailTab="infos";
+      renderProject();
+      $("projectDialog").close();
+    }
+    return;
+  }
+
+  const fields=projectWritableFields(rawFields,null);
+  $("projectDialog").close();
+  if(busy)return;
+  busy=true;document.body.classList.add("busy");
+  try{
+    const actions=[["AddRecord","Projects",null,fields]];
+    const finalActions=[...actions];
+    if(db.audit!==undefined){
+      for(const a of actions)finalActions.push(["AddRecord","JOURNAL_ACTIONS",null,auditPayload(a)]);
+    }
+    try{
+      await grist.docApi.applyUserActions(finalActions);
+    }catch(e){
+      if(finalActions.length!==actions.length){
+        console.warn("Journalisation impossible, création appliquée sans journal",e);
+        await grist.docApi.applyUserActions(actions);
+      }else throw e;
+    }
+    await load();
+    const created=[...db.projects].filter(p=>String(p.nom||"")===lookup.nom&&String(p.code||"")===lookup.code).sort((a,b)=>Number(b.id)-Number(a.id))[0];
+    if(created){
+      currentProjectId=created.id;projectSearch="";$("projectSearch").value="";typeFilter="all";
+      document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x.dataset.typeFilter==="all"));
+      populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject();
+    }
+    banner("Projet / Produit créé.");
+  }catch(e){
+    console.error(e);banner(`Erreur Grist: ${e?.message||e}`);
+  }finally{
+    busy=false;document.body.classList.remove("busy");
   }
 }
 
@@ -835,7 +885,7 @@ function renderOffer(){
   $("offerResources").innerHTML=byRes.size?`<div class="resource-row header"><div>Ressource</div><div>Allocation cumulée</div><div></div><div></div></div>${[...byRes.entries()].map(([rid,v])=>`<div class="resource-row"><div><strong>${esc(get("team",rid)?.nom||`#${rid}`)}</strong></div><div><div class="load-track"><div class="load-fill ${v>1?"over":""}" style="width:${Math.min(100,v*100)}%"></div></div><div class="muted">${Math.round(v*100)}%</div></div><div></div><div></div></div>`).join("")}`:'<div class="empty">Aucune allocation.</div>';
 }
 
-document.querySelectorAll("[data-main-tab]").forEach(b=>b.onclick=()=>{currentTab=b.dataset.mainTab;document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x===b));$("projectView").classList.toggle("hidden",currentTab!=="project");$("offerView").classList.toggle("hidden",currentTab!=="offer")});
+document.querySelectorAll("[data-main-tab]").forEach(b=>b.onclick=()=>{currentTab=b.dataset.mainTab;document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x===b));$("projectView").classList.toggle("hidden",currentTab!=="project");$("offerView").classList.toggle("hidden",currentTab!=="offer");$("docsView").classList.toggle("hidden",currentTab!=="docs");if(currentTab==="docs")renderDocumentation()});
 document.querySelectorAll("[data-type-filter]").forEach(b=>b.onclick=()=>{typeFilter=b.dataset.typeFilter;document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x===b));populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
 document.querySelectorAll("[data-offer-type-filter]").forEach(b=>b.onclick=()=>{offerTypeFilter=b.dataset.offerTypeFilter;document.querySelectorAll("[data-offer-type-filter]").forEach(x=>x.classList.toggle("active",x===b));renderOffer()});
 $("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer()};

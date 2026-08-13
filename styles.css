@@ -420,3 +420,12 @@ dialog{width:min(780px,calc(100vw - 32px));border:1px solid var(--line);border-r
 /* V4.8.5 — rattachement Releases / Fonctionnalités */
 #releaseForm select[multiple],#featureForm select[multiple]{min-height:120px}
 #releaseForm label.wide,#featureForm label.wide{grid-column:1/-1}
+
+/* V4.9 — Documentation */
+.docs-page{padding:20px 24px 32px}.docs-head{margin-bottom:18px}.docs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.doc-card{display:flex;align-items:center;gap:14px;min-height:92px;padding:16px;background:#fff;border:1px solid #dfe5ee;border-radius:14px;text-decoration:none;color:inherit;box-shadow:0 3px 10px rgba(15,23,42,.03);transition:.15s ease}
+.doc-card:hover{transform:translateY(-1px);border-color:#9dbcf8;box-shadow:0 8px 22px rgba(23,105,224,.10)}
+.doc-card-icon{width:48px;height:48px;border-radius:12px;background:#eef4ff;display:flex;align-items:center;justify-content:center;font-size:26px;flex:0 0 48px}
+.doc-card-body{min-width:0;flex:1}.doc-card-body h3{margin:0 0 6px;font-size:15px;color:#101828}.doc-card-url{font-size:11px;color:#667085;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-card-arrow{font-size:18px;color:#1769e0}
+@media(max-width:1100px){.docs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.docs-grid{grid-template-columns:1fr}.docs-page{padding:14px}}
