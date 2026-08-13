@@ -282,3 +282,17 @@ alors que `renderProject()` continuait à les appeler. Cette version restaure :
 - `tasks()`
 
 La météo, la Synthèse, le Planning projet et les Fonctionnalités restent inchangés.
+
+
+## V4.7.5 — Correctif Pilotage par offre de services
+
+Correction de l'erreur `renderOffer is not defined`.
+
+Les fonctions de rendu de l'onglet **Pilotage par offre de services** ont été restaurées :
+- `renderOffer()`
+- `offerActivities()`
+- `offerProjects()`
+- `offerObjectives()`
+- `offerResources()`
+
+Cette version ne modifie pas le modèle Grist.

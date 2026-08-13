@@ -1,5 +1,5 @@
 
-const VERSION="4.7.4";
+const VERSION="4.7.5";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all";
 const $=id=>{
@@ -549,6 +549,25 @@ async function removeContribution(cid){if(confirm("Retirer cet objectif ?"))awai
 async function deleteProject(){const p=get("projects",currentProjectId),ts=taskRows(currentProjectId),cs=contribRows(currentProjectId),as=allocRows(currentProjectId);if(!p)return;if(!confirm(`Supprimer définitivement « ${p.nom} » (${typeOf(p)}) ?`))return;const actions=[...ts.map(x=>["RemoveRecord","Tasks",x.id]),...cs.map(x=>["RemoveRecord","CONTRIBUTIONS_OBJECTIFS",x.id]),...as.map(x=>["RemoveRecord","Allocations",x.id]),["RemoveRecord","Projects",p.id]];currentProjectId=null;await apply(actions,"Projet / Produit supprimé.")}
 
 /* ---------- events ---------- */
+function renderOffer(){
+  const o=get("offers",currentOfferId);if(!o)return;
+  const aos=db.activityOffers.filter(x=>id(x.OFS_Code)===Number(o.id));
+  const projects=projectsForOffer(o.id);
+  const projectIds=new Set(projects.map(p=>p.id));
+  const contribs=db.contrib.filter(c=>refs(c.Projet_Code).some(pid=>projectIds.has(pid)));
+  const objectiveIds=new Set(contribs.map(c=>id(c.Objectif_Libelle)||id(c.Objectif_Code2)).filter(Boolean));
+  const allocations=db.allocations.filter(a=>projectIds.has(id(a.Projet_Code)));
+  const projCount=projects.filter(p=>typeOf(p)==="projet").length,prodCount=projects.filter(p=>typeOf(p)==="produit").length;
+  const avg=projects.length?Math.round(projects.reduce((n,p)=>n+pct(p.progression),0)/projects.length):0;
+  $("offerKpis").innerHTML=kpi("Projets",projCount,"")+kpi("Produits",prodCount,"")+kpi("Total",projects.length,"éléments liés")+kpi("Avancement moyen",`${avg}%`,bar(avg))+kpi("Objectifs",objectiveIds.size,"couverts");
+  $("offerActivities").innerHTML=aos.length?`<div class="offer-tree">${aos.map(ao=>{const acts=db.activities.filter(a=>id(a.Service_Code)===ao.id);return`<div class="offer-node"><div class="title">${esc(ao.Activites_Nom||ao.Nom||`#${ao.id}`)}</div><div class="sub">${acts.length} activité(s) internes</div></div>`}).join("")}</div>`:'<div class="empty">Aucune activité OFS.</div>';
+  $("offerProjects").innerHTML=projects.length?`<table><thead><tr><th>Type</th><th>Nom</th><th>Statut</th><th>Avancement</th><th>Risque</th></tr></thead><tbody>${projects.map(p=>`<tr><td>${typeBadge(p)}</td><td><strong>${esc(p.nom||"")}</strong></td><td>${esc(p.statut||"")}</td><td>${pct(p.progression)}%</td><td>${esc(p.risque||"—")}</td></tr>`).join("")}</tbody></table>`:'<div class="empty">Aucun projet/produit lié.</div>';
+  const objectives=[...objectiveIds].map(i=>get("objectives",i)).filter(Boolean);
+  $("offerObjectives").innerHTML=objectives.length?`<table><thead><tr><th>Objectif</th><th>KPI</th><th>Échéance</th><th>Statut</th></tr></thead><tbody>${objectives.map(x=>`<tr><td><strong>${esc(x.Nom||"")}</strong></td><td>${esc(x.KPI||"")}</td><td>${dt(x.Echeance)}</td><td>${esc(x.Statut||"")}</td></tr>`).join("")}</tbody></table>`:'<div class="empty">Aucun objectif couvert.</div>';
+  const byRes=new Map();for(const a of allocations){const rid=id(a.Ressource_Code);if(!rid)continue;byRes.set(rid,(byRes.get(rid)||0)+Number(a.Allocation||0))}
+  $("offerResources").innerHTML=byRes.size?`<div class="resource-row header"><div>Ressource</div><div>Allocation cumulée</div><div></div><div></div></div>${[...byRes.entries()].map(([rid,v])=>`<div class="resource-row"><div><strong>${esc(get("team",rid)?.nom||`#${rid}`)}</strong></div><div><div class="load-track"><div class="load-fill ${v>1?"over":""}" style="width:${Math.min(100,v*100)}%"></div></div><div class="muted">${Math.round(v*100)}%</div></div><div></div><div></div></div>`).join("")}`:'<div class="empty">Aucune allocation.</div>';
+}
+
 document.querySelectorAll("[data-main-tab]").forEach(b=>b.onclick=()=>{currentTab=b.dataset.mainTab;document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x===b));$("projectView").classList.toggle("hidden",currentTab!=="project");$("offerView").classList.toggle("hidden",currentTab!=="offer")});
 document.querySelectorAll("[data-type-filter]").forEach(b=>b.onclick=()=>{typeFilter=b.dataset.typeFilter;document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x===b));populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
 document.querySelectorAll("[data-offer-type-filter]").forEach(b=>b.onclick=()=>{offerTypeFilter=b.dataset.offerTypeFilter;document.querySelectorAll("[data-offer-type-filter]").forEach(x=>x.classList.toggle("active",x===b));renderOffer()});

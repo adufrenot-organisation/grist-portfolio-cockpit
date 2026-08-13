@@ -194,3 +194,7 @@ Ajout d'un accès direct Synthèse -> Fonctionnalités pour rendre le CRUD méti
 
 ## V4.7.4
 Restauration des renderers métier historiques appelés par `renderProject()`.
+
+
+## V4.7.5
+Restauration complète du renderer de la vue Offre de services.
