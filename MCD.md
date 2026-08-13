@@ -1,5 +1,25 @@
+
 # MCD — GRIST. COCKPIT Pilotage PMO
-**Version 4.7.7 — 13 août 2026**
+**Version 4.8.0 — 13 août 2026**
+
+## Extension Releases
+
+```mermaid
+erDiagram
+  PROJECTS ||--o{ RELEASES : possede
+  RELEASES ||--o{ RELEASE_FONCTIONNALITES : contient
+  FONCTIONNALITES ||--o{ RELEASE_FONCTIONNALITES : planifie
+```
+
+Une Release est un objet métier borné dans le temps, rattaché à un Projet ou Produit et constitué de Fonctionnalités.
+
+- Projet -> Releases <-> Fonctionnalites
+- Produit -> Releases <-> Fonctionnalites
+- Les tâches restent rattachées aux fonctionnalités ; la Release ne contient pas directement les tâches.
+
+
+# MCD — GRIST. COCKPIT Pilotage PMO
+**Version 4.8.0 — 13 août 2026**
 
 ## Vue conceptuelle
 ```mermaid

@@ -326,3 +326,28 @@ Le cockpit permet de saisir/modifier la nature et de filtrer le portefeuille par
 
 ### Pré-requis Grist
 Ajouter dans `Projects` une colonne `Nature_Projet`, de type Choice/Text, avec les choix `Métier` et `Support`.
+
+
+## V4.8.0 — Releases
+
+Deux nouvelles tables métier sont prises en charge :
+- `Releases`
+- `Release_Fonctionnalites`
+
+Une release :
+- appartient à un Projet ou un Produit ;
+- possède `Date_Debut` et `Date_Fin` ;
+- regroupe des Fonctionnalités ;
+- est gérée exclusivement dans le Cockpit.
+
+Nouvel onglet **📦 Releases** sur les fiches Projet et Produit avec CRUD complet et gestion du contenu de la release.
+
+### Schéma attendu
+
+`Releases` :
+`Code`, `Nom`, `parent` (Ref Projects), `Type`, `Date_Debut`, `Date_Fin`, `Statut`, `Objectif`, `Responsable` (Ref Team), `Actif`.
+
+`Release_Fonctionnalites` :
+`release` (Ref Releases), `fonctionnalite` (Ref Fonctionnalites), `Ordre`, `Statut`, `Commentaire`.
+
+Le champ `Type` peut être une formule Grist : `$parent.Type if $parent else None`.

@@ -1,6 +1,6 @@
 
-const VERSION="4.7.8";
-const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
+const VERSION="4.8.0";
+const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
 const $=id=>{
   const el=document.getElementById(id);
@@ -139,7 +139,7 @@ function renderProject(){
   const resp=get("team",id(p.responsable));
   $("projectMeta").textContent=[p.code,p.statut,resp?.nom?`Responsable : ${resp.nom}`:null].filter(Boolean).join(" • ");
   
-  strategy(cs);team(ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);projectStagesView(p,ts);productFeaturesView(p,ts);renderSynthesis(p,ts,cs,as);
+  strategy(cs);team(ts,as);gantt(ts);resourceLoad(ts,as);tasks(ts);projectStagesView(p,ts);productFeaturesView(p,ts);releasesView(p);renderSynthesis(p,ts,cs,as);
   switchDetailTab(detailTab,false);
 }
 
@@ -226,10 +226,10 @@ function renderSynthesis(p,ts,cs,as){
   </div>`;
 
 
-  const featureCount=featureRowsForProject(p.id).length;
-  $("summaryFeatures").innerHTML=typeOf(p)==="produit"
+  const featureCount=featureRowsForProject(p.id).length;const releaseCount=releaseRowsForProject(p.id).length;
+  $("summaryFeatures").innerHTML=`<div><strong>${releaseCount} release(s)</strong></div>`+(typeOf(p)==="produit"
     ?`<strong>${featureCount} fonctionnalité(s)</strong><div class="muted" style="margin-top:6px">La roadmap produit se construit à partir des fonctionnalités.</div>`
-    :`<strong>${featureCount} fonctionnalité(s)</strong><div class="muted" style="margin-top:6px">Elles peuvent être reliées aux tâches du planning projet.</div>`;
+    :`<strong>${featureCount} fonctionnalité(s)</strong><div class="muted" style="margin-top:6px">Elles peuvent être reliées aux tâches du planning projet.</div>`);
 
   $("summaryResources").innerHTML=`<div class="kv">
     <div class="key">Allocations</div><div class="value">${as.length}</div>
@@ -248,7 +248,7 @@ function renderSynthesis(p,ts,cs,as){
 function switchDetailTab(tab,rerender=true){
   detailTab=tab;
   document.querySelectorAll("[data-detail-tab]").forEach(b=>b.classList.toggle("active",b.dataset.detailTab===tab));
-  const map={tasks:"detailTasks",stages:"detailStages",features:"detailFeatures",objectives:"detailObjectives",resources:"detailResources",infos:"detailInfos"};
+  const map={tasks:"detailTasks",stages:"detailStages",features:"detailFeatures",releases:"detailReleases",objectives:"detailObjectives",resources:"detailResources",infos:"detailInfos"};
   Object.entries(map).forEach(([k,id])=>$(id).classList.toggle("hidden",k!==tab));
   if(rerender&&tab==="tasks")gantt(taskRows(currentProjectId));
 }
@@ -328,6 +328,62 @@ function featureParentField(){
   if("produit" in s)return "produit";
   return "parent";
 }
+
+function releaseParentId(r){
+  return id(r.parent)||id(r.projet_produit)||id(r.produit)||id(r.projet)||id(r.Project)||id(r.Projet);
+}
+function releaseRowsForProject(pid){
+  return db.releases.filter(r=>releaseParentId(r)===Number(pid));
+}
+function releaseParentField(){
+  const s=db.releases[0]||{};
+  if("parent" in s)return "parent";
+  if("projet_produit" in s)return "projet_produit";
+  if("produit" in s)return "produit";
+  if("projet" in s)return "projet";
+  return "parent";
+}
+function releaseFeatureRows(releaseId){
+  return db.releaseFeatures.filter(r=>id(r.release)===Number(releaseId));
+}
+function releaseFeatureIds(releaseId){
+  return releaseFeatureRows(releaseId).map(r=>id(r.fonctionnalite)).filter(Boolean);
+}
+function releaseProgress(releaseId){
+  const ids=releaseFeatureIds(releaseId), fs=ids.map(fid=>get("features",fid)).filter(Boolean);
+  return fs.length?Math.round(fs.reduce((n,f)=>n+pct(f.Progression),0)/fs.length):0;
+}
+function releasesView(p){
+  const rs=releaseRowsForProject(p.id).sort((a,b)=>(dms(a.Date_Debut)||0)-(dms(b.Date_Debut)||0));
+  if(!rs.length){
+    $("releasesView").innerHTML='<div class="empty">Aucune release. Crée la première fenêtre de livraison.</div>';
+    return;
+  }
+  $("releasesView").innerHTML=`<div class="release-grid">${rs.map(r=>{
+    const fids=releaseFeatureIds(r.id), progress=releaseProgress(r.id);
+    const type=String(r.Type||p.Type||"");
+    return `<article class="release-card">
+      <div class="release-card-head">
+        <div><h4>${esc(r.Nom||r.Code||"Release")}</h4><div class="feature-meta">${esc(r.Code||"")} • ${esc(type||"")}</div></div>
+        <span class="release-status">${esc(r.Statut||"—")}</span>
+      </div>
+      <div class="release-dates">${dt(r.Date_Debut)} → ${dt(r.Date_Fin)}</div>
+      <div class="feature-meta">${esc(r.Objectif||"")}</div>
+      <div class="metric-bar" style="margin-top:10px"><div style="width:${progress}%"></div></div>
+      <div class="feature-meta">${fids.length} fonctionnalité(s) • ${progress}%</div>
+      <div class="release-features">${fids.slice(0,6).map(fid=>`<span>${esc(get("features",fid)?.Nom||`#${fid}`)}</span>`).join("")}</div>
+      <div class="feature-actions">
+        <button class="primary-outline" data-release-features="${r.id}">Fonctionnalités</button>
+        <button data-release-edit="${r.id}">Modifier</button>
+        <button class="danger" data-release-del="${r.id}">Supprimer</button>
+      </div>
+    </article>`;
+  }).join("")}</div>`;
+  document.querySelectorAll("[data-release-features]").forEach(b=>b.onclick=()=>openReleaseFeatures(Number(b.dataset.releaseFeatures)));
+  document.querySelectorAll("[data-release-edit]").forEach(b=>b.onclick=()=>openRelease(Number(b.dataset.releaseEdit)));
+  document.querySelectorAll("[data-release-del]").forEach(b=>b.onclick=()=>deleteRelease(Number(b.dataset.releaseDel)));
+}
+
 function productFeaturesView(p,ts){
   const fs=featureRowsForProject(p.id);
   if(!fs.length){
@@ -347,6 +403,51 @@ function productFeaturesView(p,ts){
   document.querySelectorAll("[data-feature-edit]").forEach(b=>b.onclick=()=>openFeature(Number(b.dataset.featureEdit)));
   document.querySelectorAll("[data-feature-del]").forEach(b=>b.onclick=()=>deleteFeature(Number(b.dataset.featureDel)));
 }
+
+/* ---------- Releases (Projet / Produit) ---------- */
+function openRelease(rid=null){
+  const p=get("projects",currentProjectId);if(!p){banner("Sélectionne un Projet ou un Produit.");return}
+  const f=$("releaseForm"),row=rid?get("releases",rid):null;f.reset();f.id.value=rid||"";
+  $("releaseDialogTitle").textContent=row?"Modifier la release":"Nouvelle release";
+  if(row){
+    f.Code.value=row.Code||"";f.Nom.value=row.Nom||"";f.Date_Debut.value=din(row.Date_Debut);f.Date_Fin.value=din(row.Date_Fin);
+    f.Statut.value=row.Statut||"À venir";f.Objectif.value=row.Objectif||"";f.Actif.value=String(row.Actif!==false);
+  }else{f.Statut.value="À venir";f.Actif.value="true"}
+  opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");
+  $("releaseDialog").showModal();
+}
+$("releaseForm").onsubmit=async e=>{
+  e.preventDefault();const f=e.currentTarget,rid=Number(f.id.value)||null,p=get("projects",currentProjectId);
+  const fields={Code:f.Code.value,Nom:f.Nom.value,Date_Debut:gd(f.Date_Debut.value),Date_Fin:gd(f.Date_Fin.value),Statut:f.Statut.value,Objectif:f.Objectif.value,Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
+  fields[releaseParentField()]=currentProjectId;
+  if("Type" in (db.releases[0]||{}))fields.Type=p?.Type||null;
+  $("releaseDialog").close();
+  await apply([[rid?"UpdateRecord":"AddRecord","Releases",rid||null,fields]],rid?"Release mise à jour.":"Release créée.");
+}
+function openReleaseFeatures(rid){
+  const r=get("releases",rid);if(!r)return;
+  const f=$("releaseFeaturesForm");f.releaseId.value=rid;
+  $("releaseFeaturesTitle").textContent=`Fonctionnalités — ${r.Nom||r.Code||"Release"}`;
+  fillMulti(f.features,featureRowsForProject(currentProjectId),x=>x.Nom,releaseFeatureIds(rid));
+  $("releaseFeaturesDialog").showModal();
+}
+$("releaseFeaturesForm").onsubmit=async e=>{
+  e.preventDefault();const f=e.currentTarget,rid=Number(f.releaseId.value),selected=[...f.features.selectedOptions].map(o=>Number(o.value));
+  const existing=releaseFeatureRows(rid),existingIds=new Set(existing.map(x=>id(x.fonctionnalite)));
+  const selectedIds=new Set(selected),actions=[];
+  existing.filter(x=>!selectedIds.has(id(x.fonctionnalite))).forEach(x=>actions.push(["RemoveRecord","Release_Fonctionnalites",x.id]));
+  selected.filter(fid=>!existingIds.has(fid)).forEach((fid,i)=>actions.push(["AddRecord","Release_Fonctionnalites",null,{release:rid,fonctionnalite:fid,Ordre:i+1}]));
+  $("releaseFeaturesDialog").close();
+  if(actions.length)await apply(actions,"Fonctionnalités de la release mises à jour.");else banner("Aucun changement.");
+}
+async function deleteRelease(rid){
+  const links=releaseFeatureRows(rid);
+  if(!confirm(`Supprimer cette release${links.length?` et ses ${links.length} rattachement(s) de fonctionnalité`:""} ?`))return;
+  const actions=links.map(x=>["RemoveRecord","Release_Fonctionnalites",x.id]);
+  actions.push(["RemoveRecord","Releases",rid]);
+  await apply(actions,"Release supprimée.");
+}
+
 /* ---------- Fonctionnalités (Projet / Produit) ---------- */
 function openFeature(fid=null){
   const p=get("projects",currentProjectId);if(!p){banner("Sélectionne un Projet ou un Produit.");return}
@@ -582,7 +683,7 @@ $("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer(
 $("editProjectBtn").onclick=()=>openProject(false);$("newProjectBtn").onclick=()=>openProject(true);
 $("deleteProjectBtn").onclick=deleteProject;
 $("newTaskBtn").onclick=()=>openTask();$("newStageTaskBtn").onclick=()=>openTask();
-$("addContributionBtn").onclick=openContribution;$("newFeatureBtn").onclick=()=>openFeature();$("summaryFeatureBtn").onclick=()=>switchDetailTab("features");
+$("addContributionBtn").onclick=openContribution;$("newFeatureBtn").onclick=()=>openFeature();$("newReleaseBtn").onclick=()=>openRelease();$("summaryFeatureBtn").onclick=()=>switchDetailTab("features");
 document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{taskFilter=b.dataset.taskFilter;document.querySelectorAll("[data-task-filter]").forEach(x=>x.classList.toggle("active",x===b));tasks(taskRows(currentProjectId))});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const d=$(b.dataset.close);if(d?.open)d.close()});
 

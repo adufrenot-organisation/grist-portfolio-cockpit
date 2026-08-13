@@ -143,3 +143,13 @@ dialog{width:min(780px,calc(100vw - 32px));border:1px solid var(--line);border-r
 
 .feature-cta-card{display:flex;flex-direction:column;gap:10px}
 .feature-cta-card #summaryFeatureBtn{align-self:flex-start}
+
+.release-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.release-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.release-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.release-card h4{margin:0 0 4px}
+.release-status{font-size:11px;font-weight:800;padding:4px 8px;border-radius:999px;background:#f2f4f7;color:#344054}
+.release-dates{font-weight:700;margin:10px 0 6px}
+.release-features{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.release-features span{font-size:11px;padding:4px 7px;border-radius:999px;background:#f2f4f7;color:#475467}
+@media(max-width:900px){.release-grid{grid-template-columns:1fr}}
