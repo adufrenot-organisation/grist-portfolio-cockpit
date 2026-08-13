@@ -351,3 +351,35 @@ Nouvel onglet **📦 Releases** sur les fiches Projet et Produit avec CRUD compl
 `release` (Ref Releases), `fonctionnalite` (Ref Fonctionnalites), `Ordre`, `Statut`, `Commentaire`.
 
 Le champ `Type` peut être une formule Grist : `$parent.Type if $parent else None`.
+
+
+## V4.8.1 — Bandeau portfolio intégré à l'interface actuelle
+
+Le bandeau **Pilotage par projets / produits** encadre maintenant le titre, la description,
+les filtres Type / Domaine / Service / Nature et le bouton **+ Nouveau** dans une seule carte.
+
+La structure actuelle est conservée sous le bandeau :
+- liste des projets / produits à gauche ;
+- fiche sélectionnée à droite ;
+- Synthèse et sous-onglets existants ;
+- CRUD, fonctionnalités, releases et planning inchangés.
+
+La fiche projet reçoit seulement une légère harmonisation visuelle pour rester cohérente avec le nouveau bandeau.
+
+## V4.8.2 — Liste portefeuille en tableau
+
+La liste latérale des projets / produits est remplacée par une vue portefeuille pleine largeur,
+inspirée de la maquette, avec :
+- Code
+- Nom
+- Type
+- Nature
+- Domaine
+- Service
+- Statut
+- Avancement
+- Dates début / fin
+- Météo
+
+Un clic sur une ligne sélectionne l'élément et conserve la **fiche projet / produit actuelle juste en dessous**
+avec Synthèse, Planning, Fonctionnalités, Releases, Tâches, Objectifs et Ressources.

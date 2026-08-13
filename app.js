@@ -1,5 +1,5 @@
 
-const VERSION="4.8.0";
+const VERSION="4.8.2";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
 const $=id=>{
@@ -108,17 +108,50 @@ function renderPortfolioKpis(){
 }
 function renderProjectList(){
   const ps=visibleProjects();
-  $("projectList").innerHTML=ps.length?ps.map(p=>{
-    const progress=pct(p.progression),active=p.id===currentProjectId;
-    return`<div class="project-item ${active?"active":""}" data-project-id="${p.id}">
-      <div>
-        <div class="project-item-title">📁 ${esc(p.nom||`#${p.id}`)} ${typeBadge(p)}</div>
-        <div class="project-item-meta">${esc(p.code||"")} • ${esc(p.statut||"")}</div>
-      </div>
-      <div class="project-item-progress"><strong>${progress}%</strong><div class="mini-progress"><div style="width:${progress}%"></div></div></div>
-    </div>`}).join(""):'<div class="empty-state"><h3>Aucun résultat</h3><p>Modifiez le filtre ou la recherche.</p></div>';
+  if(!ps.length){
+    $("projectList").innerHTML='<div class="empty-state"><h3>Aucun résultat</h3><p>Modifiez le filtre ou la recherche.</p></div>';
+    $("projectListFooter").textContent="0 élément";
+    return;
+  }
+  $("projectList").innerHTML=`<table class="portfolio-table">
+    <thead><tr>
+      <th>Code</th><th>Nom</th><th>Type</th><th>Nature</th><th>Domaine</th><th>Service</th>
+      <th>Statut</th><th>Avancement</th><th>Début</th><th>Fin</th><th>Météo</th><th></th>
+    </tr></thead>
+    <tbody>${ps.map(p=>{
+      const progress=pct(p.progression),active=p.id===currentProjectId;
+      const act=get("activities",id(p.activite));
+      const ao=act?get("activityOffers",id(act.Service_Code)):null;
+      const offer=ao?get("offers",id(ao.OFS_Code)):null;
+      const domain=get("domains",projectDomainId(p));
+      const weather=String(p.Meteo_Projet||"").trim()||(
+        taskRows(p.id).some(t=>late(t)&&/haute|critique|high/i.test(String(t.priorite||"")))?"🔴 Rouge":
+        taskRows(p.id).some(late)||/haut|élev|critique|high/i.test(String(p.risque||""))?"🟠 Orange":"🟢 Vert"
+      );
+      return `<tr class="${active?"selected-row":""}" data-project-id="${p.id}">
+        <td><button class="table-link" data-project-open="${p.id}">${esc(p.code||`#${p.id}`)}</button></td>
+        <td><strong>${esc(p.nom||`#${p.id}`)}</strong></td>
+        <td>${typeBadge(p)}</td>
+        <td>${esc(p.Nature_Projet||"—")}</td>
+        <td>${esc(domain?.Nom||domain?.Libelle||domain?.Code||"—")}</td>
+        <td>${esc(offer?.Nom||offer?.Code||"—")}</td>
+        <td>${esc(p.statut||"—")}</td>
+        <td><div class="table-progress"><span>${progress}%</span><div class="mini-progress"><div style="width:${progress}%"></div></div></div></td>
+        <td>${dt(p.dateDebut)}</td><td>${dt(p.dateFin)}</td>
+        <td>${esc(weather)}</td>
+        <td><button class="row-open" data-project-open="${p.id}" title="Ouvrir la fiche">›</button></td>
+      </tr>`;
+    }).join("")}</tbody>
+  </table>`;
   $("projectListFooter").textContent=`${ps.length} élément(s)`;
-  document.querySelectorAll("[data-project-id]").forEach(el=>el.onclick=()=>{currentProjectId=Number(el.dataset.projectId);detailTab="infos";renderProjectList();renderProject();});
+  document.querySelectorAll("[data-project-open]").forEach(el=>el.onclick=e=>{
+    e.stopPropagation();
+    currentProjectId=Number(el.dataset.projectOpen);detailTab="infos";renderProjectList();renderProject();
+    document.querySelector(".project-detail-panel")?.scrollIntoView({behavior:"smooth",block:"start"});
+  });
+  document.querySelectorAll("#projectList tr[data-project-id]").forEach(el=>el.onclick=()=>{
+    currentProjectId=Number(el.dataset.projectId);detailTab="infos";renderProjectList();renderProject();
+  });
 }
 function renderProject(){
   const p=get("projects",currentProjectId);

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=4.8.0" />
+  <link rel="stylesheet" href="styles.css?v=4.8.2" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="brand">
       <div class="brand-mark">▦</div>
       <div class="brand-title">GRIST. COCKPIT Pilotage PMO</div>
-      <span class="version">v4.8.0</span>
+      <span class="version">v4.8.2</span>
     </div>
 
     <nav class="top-nav">
@@ -25,15 +25,15 @@
   <div id="banner" class="banner hidden"></div>
 
   <section id="projectView" class="view-shell">
-    <div class="page-head project-page-head">
-      <div class="page-intro">
+    <div class="page-head project-page-head framed-pilotage-head">
+      <div class="page-intro pilotage-intro">
         <div class="page-icon">📁</div>
         <div>
           <h1>Pilotage par projets / produits</h1>
           <p>Vue d'ensemble et suivi détaillé des projets et produits du portefeuille PMO</p>
         </div>
       </div>
-      <div class="page-actions">
+      <div class="page-actions pilotage-filters">
         <div class="filter-box">
           <span>Filtrer par type</span>
           <div class="segmented">
@@ -50,16 +50,18 @@
 
     <section class="portfolio-kpis" id="portfolioKpis"></section>
 
-    <div class="project-layout">
-      <aside class="project-list-panel">
-        <div class="panel-head stacked">
+    <div class="portfolio-list-section">
+      <div class="portfolio-list-head">
+        <div>
           <h2>Liste des projets / produits</h2>
-          <input id="projectSearch" class="search-input" placeholder="Rechercher un élément..." />
+          <div class="muted" id="projectListFooter"></div>
         </div>
-        <div id="projectList" class="project-list"></div>
-        <div class="list-footer" id="projectListFooter"></div>
-      </aside>
+        <input id="projectSearch" class="search-input portfolio-search" placeholder="Rechercher un élément..." />
+      </div>
+      <div id="projectList" class="project-table-wrap"></div>
+    </div>
 
+    <div class="project-layout table-detail-layout">
       <section class="project-detail-panel">
         <div id="projectEmpty" class="empty-state hidden">
           <div class="empty-icon">📁</div>
@@ -221,7 +223,7 @@
     </div>
   </section>
 
-  <footer>GRIST. COCKPIT Pilotage PMO • v4.8.0 • Grist reste l’unique source de vérité</footer>
+  <footer>GRIST. COCKPIT Pilotage PMO • v4.8.2 • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -322,6 +324,6 @@
 <dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date début<input name="Date_Debut" type="date" /></label><label>Date fin<input name="Date_Fin" type="date" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
 
 
-<script src="app.js?v=4.8.0"></script>
+<script src="app.js?v=4.8.2"></script>
 </body>
 </html>

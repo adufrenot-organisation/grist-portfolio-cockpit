@@ -296,3 +296,13 @@ Restauration de `projectsForOffer()` et contrôle de complétude des fonctions h
 `Projects.Type` = Projet / Produit.
 `Projects.Nature_Projet` = Métier / Support.
 Ces deux dimensions ne doivent pas être confondues.
+
+
+## V4.8.1 — UI hybride
+
+Le nouveau cadre de pilotage est appliqué uniquement au bandeau portefeuille.
+La navigation et la fiche projet existantes restent fonctionnellement inchangées.
+
+## V4.8.2 — Navigation portefeuille
+La navigation passe d'une liste latérale à un tableau portefeuille pleine largeur.
+La fiche détaillée existante reste inchangée et s'affiche sous la liste.
