@@ -1,5 +1,5 @@
 
-const VERSION="4.9.0";
+const VERSION="4.9.1";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
 const $=id=>{
@@ -90,15 +90,34 @@ function populateOfferSelect(){
   if(currentOfferId)$("offerSelect").value=currentOfferId;
 }
 
+function attachmentIds(v){
+  if(!Array.isArray(v))return [];
+  return v.map(Number).filter(n=>Number.isFinite(n)&&n>0);
+}
+async function openDocAttachment(attId){
+  try{
+    const tokenInfo=grist.getAccessToken?await grist.getAccessToken({readOnly:true}):await grist.docApi.getAccessToken({readOnly:true});
+    const base=String(tokenInfo.baseUrl||"").replace(/\/$/,"");
+    const docId=tokenInfo.docId;
+    if(!base||!docId)throw new Error("Accès pièce jointe indisponible.");
+    const url=`${base}/api/docs/${encodeURIComponent(docId)}/attachments/${encodeURIComponent(attId)}/download?auth=${encodeURIComponent(tokenInfo.token)}`;
+    window.open(url,"_blank","noopener,noreferrer");
+  }catch(e){console.error(e);banner(`Impossible d'ouvrir la pièce jointe : ${e?.message||e}`);}
+}
 function renderDocumentation(){
   const docs=[...(db.documentation||[])].filter(d=>d.Actif!==false).sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0)||String(a.Nom||"").localeCompare(String(b.Nom||"")));
   $("docsCards").classList.toggle("hidden",!docs.length);
   $("docsEmpty").classList.toggle("hidden",!!docs.length);
-  $("docsCards").innerHTML=docs.map(d=>`<a class="doc-card" href="${esc(d.URL||"#")}" target="_blank" rel="noopener noreferrer">
-    <div class="doc-card-icon">${esc(d.Icone||"📄")}</div>
-    <div class="doc-card-body"><h3>${esc(d.Nom||"Documentation")}</h3><div class="doc-card-url">${esc(d.URL||"")}</div></div>
-    <div class="doc-card-arrow">↗</div>
-  </a>`).join("");
+  $("docsCards").innerHTML=docs.map(d=>{
+    const atts=attachmentIds(d.Piece_Jointe),isAttachment=d.Type_Document==="Pièce jointe";
+    const sourceLabel=isAttachment?(atts.length?`${atts.length} pièce(s) jointe(s)`:"Pièce jointe non chargée"):(d.URL||"");
+    const action=isAttachment
+      ? (atts.length?`<button class="doc-card doc-card-button" data-doc-att="${atts[0]}"><div class="doc-card-icon">${esc(d.Icone||"📎")}</div><div class="doc-card-body"><h3>${esc(d.Nom||"Document")}</h3><div class="doc-card-url">${esc(sourceLabel)}</div></div><div class="doc-card-arrow">↗</div></button>`:
+        `<div class="doc-card doc-card-disabled"><div class="doc-card-icon">${esc(d.Icone||"📎")}</div><div class="doc-card-body"><h3>${esc(d.Nom||"Document")}</h3><div class="doc-card-url">${esc(sourceLabel)}</div></div></div>`)
+      : `<a class="doc-card" href="${esc(d.URL||"#")}" target="_blank" rel="noopener noreferrer"><div class="doc-card-icon">${esc(d.Icone||"🔗")}</div><div class="doc-card-body"><h3>${esc(d.Nom||"Documentation")}</h3><div class="doc-card-url">${esc(sourceLabel)}</div></div><div class="doc-card-arrow">↗</div></a>`;
+    return action;
+  }).join("");
+  document.querySelectorAll("[data-doc-att]").forEach(b=>b.onclick=()=>openDocAttachment(Number(b.dataset.docAtt)));
 }
 
 function renderAll(){renderPortfolioKpis();renderProject();renderOffer();renderDocumentation();}

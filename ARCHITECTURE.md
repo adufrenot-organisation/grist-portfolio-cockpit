@@ -324,3 +324,6 @@ Le CRUD Projects utilise un diff de champs et filtre les colonnes à partir du s
 
 ## V4.9.0 — Documentation dynamique
 Source : table `Documentation`. Admin = CRUD ; Cockpit = restitution en lecture.
+
+## V4.9.1
+Le renderer Documentation distingue URL et Attachment Grist.

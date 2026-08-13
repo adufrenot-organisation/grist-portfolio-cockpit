@@ -444,3 +444,11 @@ Chaque carte affiche :
 - ouverture dans un nouvel onglet.
 
 La configuration est entièrement gérée dans Admin & Audit V1.9.
+
+## V4.9.1 — Documentation : URL ou pièce jointe
+
+L'onglet Documentation restitue désormais :
+- les URL externes ;
+- les pièces jointes Grist de la colonne `Piece_Jointe`.
+
+Pour une pièce jointe, la carte ouvre le fichier via l'accès au document Grist.
