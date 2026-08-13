@@ -36,3 +36,100 @@ dialog{width:min(780px,calc(100vw - 32px));border:1px solid var(--line);border-r
 .stage-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.stage-head h4{margin:0 0 3px}
 
 .compact-filter{min-width:180px}.compact-filter select{min-width:180px;border:1px solid #d0d5dd;border-radius:9px;padding:8px 10px;background:#fff;color:#344054}
+
+/* V4.6.2 — correction de mise en page du bandeau Pilotage projets/produits */
+.project-page-head{
+  display:grid;
+  grid-template-columns:minmax(280px, 1fr) auto;
+  align-items:center;
+  gap:24px;
+}
+.project-page-head .page-intro{
+  min-width:0;
+  align-items:flex-start;
+}
+.project-page-head .page-intro > div:last-child{
+  min-width:0;
+}
+.project-page-head .page-intro h1{
+  white-space:normal;
+  overflow-wrap:normal;
+  word-break:normal;
+  line-height:1.12;
+  max-width:720px;
+}
+.project-page-head .page-intro p{
+  max-width:720px;
+}
+.project-page-head .page-actions{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.project-page-head .filter-box{
+  flex:0 1 auto;
+  min-width:0;
+}
+.project-page-head .compact-filter{
+  min-width:210px;
+}
+.project-page-head .compact-filter select{
+  width:100%;
+  min-width:0;
+}
+.project-page-head #newProjectBtn{
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+
+/* éviter que les boutons de type s'étirent inutilement */
+.project-page-head .segmented{
+  flex-wrap:nowrap;
+}
+.project-page-head .seg{
+  white-space:nowrap;
+}
+
+/* Adaptation propre aux largeurs intermédiaires typiques des widgets Grist */
+@media (max-width: 1380px){
+  .project-page-head{
+    grid-template-columns:1fr;
+    align-items:start;
+  }
+  .project-page-head .page-actions{
+    justify-content:flex-start;
+    width:100%;
+  }
+}
+@media (max-width: 980px){
+  .project-page-head .page-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    width:100%;
+  }
+  .project-page-head .filter-box:first-child{
+    grid-column:1 / -1;
+  }
+  .project-page-head #newProjectBtn{
+    grid-column:1 / -1;
+    justify-self:start;
+  }
+}
+@media (max-width: 680px){
+  .project-page-head .page-actions{
+    grid-template-columns:1fr;
+  }
+  .project-page-head .filter-box:first-child,
+  .project-page-head #newProjectBtn{
+    grid-column:auto;
+  }
+  .project-page-head .filter-box{
+    width:100%;
+  }
+  .project-page-head .segmented{
+    flex-wrap:wrap;
+  }
+}

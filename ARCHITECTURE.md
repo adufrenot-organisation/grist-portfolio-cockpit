@@ -159,3 +159,15 @@ Produit → Fonctionnalites → Tasks est exposé comme Roadmap produit.
 
 ## V4.6.1
 Filtres cumulables Type + Domaine + Service + Recherche.
+
+
+## V4.6.2
+
+Correction purement UI/responsive du bandeau portefeuille.
+Aucun changement du modèle Grist ni de la logique de filtrage.
+
+
+## V4.6.3
+Responsabilités :
+- Cockpit : CRUD Fonctionnalites
+- Admin & Audit : CRUD Stades_Fonctionnalite uniquement pour le référentiel de stades

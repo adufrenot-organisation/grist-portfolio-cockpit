@@ -202,3 +202,23 @@ Les étapes restent un référentiel global géré dans Admin & Audit. Elles ne 
 
 ## V4.6.1 — Filtres Domaine / Service
 Ajout de filtres cumulables Domaine et Service dans le portefeuille. Le service est résolu par `Projects.activite → Activites.Service_Code → Activites_OFS.OFS_Code → Offres_Services`. Le domaine est lu sur l'offre ou l'activité via une référence `Domaine_code`, `Domaine_Code` ou `Domaine`.
+
+
+## V4.6.2 — Correction responsive du bandeau portefeuille
+
+Correction de la présentation de la vue **Pilotage par projets / produits** :
+- le titre ne se compacte plus sur quelques caractères par ligne ;
+- les filtres Type / Domaine / Service se réorganisent automatiquement selon la largeur disponible ;
+- le bouton **+ Nouveau** reste visible ;
+- le bandeau passe proprement sur une ou deux lignes dans un widget Grist étroit.
+
+
+## V4.6.3 — Fonctionnalités gérées dans le cockpit
+
+Le CRUD métier des `Fonctionnalites` est confirmé dans **Roadmap produit** :
+création, modification et suppression sont réalisées depuis le cockpit.
+
+Le référentiel `Stades_Fonctionnalite` reste administré dans Admin & Audit.
+
+Correction complémentaire : après suppression de Vue d'ensemble, les changements de contexte
+Projet/Produit reviennent désormais sur **Synthèse** et non sur l'ancien onglet `overview`.

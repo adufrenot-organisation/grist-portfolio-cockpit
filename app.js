@@ -1,5 +1,5 @@
 
-const VERSION="4.6.1";
+const VERSION="4.6.3";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all";
 const $=id=>{
@@ -130,7 +130,7 @@ function renderProject(){
   $("projectWeatherBadge").innerHTML=weatherBadge(p,ts);
   document.querySelectorAll(".project-only").forEach(x=>x.classList.toggle("hidden",typeOf(p)!=="projet"));
   document.querySelectorAll(".product-only").forEach(x=>x.classList.toggle("hidden",typeOf(p)!=="produit"));
-  if(typeOf(p)==="projet"&&detailTab==="features")detailTab="overview";if(typeOf(p)==="produit"&&detailTab==="stages")detailTab="overview";
+  if(typeOf(p)==="projet"&&detailTab==="features")detailTab="infos";if(typeOf(p)==="produit"&&detailTab==="stages")detailTab="infos";
   const resp=get("team",id(p.responsable));
   $("projectMeta").textContent=[p.code,p.statut,resp?.nom?`Responsable : ${resp.nom}`:null].filter(Boolean).join(" • ");
   
