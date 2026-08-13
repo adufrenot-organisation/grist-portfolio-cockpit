@@ -255,3 +255,15 @@ La Synthèse affiche maintenant :
 Le sélecteur `Dépend de` reste global à tout le portefeuille.
 
 Cette version restaure également le renderer de l'onglet Synthèse qui avait été perdu lors de l'évolution V4.7.
+
+
+## V4.7.3 — Correctif météo et accès aux fonctionnalités
+
+- restauration de `weatherBadge()` ;
+- correction de l'erreur `weatherBadge is not defined` ;
+- Synthèse reste l'onglet d'arrivée ;
+- ajout d'une carte **Fonctionnalités** dans Synthèse ;
+- bouton **Ouvrir les fonctionnalités** pour accéder directement au CRUD ;
+- la création se fait ensuite avec **+ Nouvelle fonctionnalité** dans l'onglet Fonctionnalités / Roadmap produit.
+
+Le CRUD des fonctionnalités reste exclusivement dans le Cockpit.

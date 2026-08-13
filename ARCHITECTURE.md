@@ -185,3 +185,8 @@ Les dépendances de tâches sont globales au portefeuille et peuvent traverser l
 ## V4.7.2
 La Synthèse analyse `Tasks.dependDe` et distingue les dépendances internes des dépendances inter-projets.
 Une dépendance externe en retard est remontée comme alerte PMO.
+
+
+## V4.7.3
+Correction du renderer météo.
+Ajout d'un accès direct Synthèse -> Fonctionnalités pour rendre le CRUD métier explicite.

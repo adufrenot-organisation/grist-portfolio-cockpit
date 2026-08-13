@@ -1,5 +1,5 @@
 
-const VERSION="4.7.2";
+const VERSION="4.7.3";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",audit:"JOURNAL_ACTIONS"};
 let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all";
 const $=id=>{
@@ -149,6 +149,24 @@ function renderProject(){
 
 
 
+
+function weatherBadge(p,ts){
+  const raw=String(p.Meteo_Projet||p.Météo_Projet||"").trim();
+  let label=raw,cls="neutral";
+  if(raw){
+    if(/rouge|red/i.test(raw))cls="red";
+    else if(/orange|amber/i.test(raw))cls="orange";
+    else if(/vert|green/i.test(raw))cls="green";
+  }else{
+    const overdue=ts.filter(late);
+    const critical=overdue.filter(t=>/haute|critique|high/i.test(String(t.priorite||"")));
+    if(critical.length){label="🔴 Rouge";cls="red"}
+    else if(overdue.length||/haut|élev|critique|high/i.test(String(p.risque||""))){label="🟠 Orange";cls="orange"}
+    else{label="🟢 Vert";cls="green"}
+  }
+  return `<span class="weather-badge ${cls}" title="${esc(p.Motif_Meteo||p.Motif_Météo||"")}">${esc(label||"Météo")}</span>`;
+}
+
 function renderSynthesis(p,ts,cs,as){
   const externalDeps=externalDependenciesForProject(p.id);
   const lateExternalDeps=externalDeps.filter(x=>late(x.dependency));
@@ -206,6 +224,12 @@ function renderSynthesis(p,ts,cs,as){
     <div class="key">Activité OFS</div><div class="value">${esc(ao?.Activites_Nom||"—")}</div>
     <div class="key">Activité</div><div class="value">${esc(a?.Nom||"—")}</div>
   </div>`;
+
+
+  const featureCount=featureRowsForProject(p.id).length;
+  $("summaryFeatures").innerHTML=typeOf(p)==="produit"
+    ?`<strong>${featureCount} fonctionnalité(s)</strong><div class="muted" style="margin-top:6px">La roadmap produit se construit à partir des fonctionnalités.</div>`
+    :`<strong>${featureCount} fonctionnalité(s)</strong><div class="muted" style="margin-top:6px">Elles peuvent être reliées aux tâches du planning projet.</div>`;
 
   $("summaryResources").innerHTML=`<div class="kv">
     <div class="key">Allocations</div><div class="value">${as.length}</div>
@@ -496,7 +520,7 @@ $("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer(
 $("editProjectBtn").onclick=()=>openProject(false);$("newProjectBtn").onclick=()=>openProject(true);
 $("deleteProjectBtn").onclick=deleteProject;
 $("newTaskBtn").onclick=()=>openTask();$("newStageTaskBtn").onclick=()=>openTask();
-$("addContributionBtn").onclick=openContribution;$("newFeatureBtn").onclick=()=>openFeature();
+$("addContributionBtn").onclick=openContribution;$("newFeatureBtn").onclick=()=>openFeature();$("summaryFeatureBtn").onclick=()=>switchDetailTab("features");
 document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{taskFilter=b.dataset.taskFilter;document.querySelectorAll("[data-task-filter]").forEach(x=>x.classList.toggle("active",x===b));tasks(taskRows(currentProjectId))});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const d=$(b.dataset.close);if(d?.open)d.close()});
 
