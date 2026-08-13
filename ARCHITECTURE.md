@@ -190,3 +190,7 @@ Une dépendance externe en retard est remontée comme alerte PMO.
 ## V4.7.3
 Correction du renderer météo.
 Ajout d'un accès direct Synthèse -> Fonctionnalités pour rendre le CRUD métier explicite.
+
+
+## V4.7.4
+Restauration des renderers métier historiques appelés par `renderProject()`.

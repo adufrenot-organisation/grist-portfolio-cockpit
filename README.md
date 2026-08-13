@@ -267,3 +267,18 @@ Cette version restaure également le renderer de l'onglet Synthèse qui avait é
 - la création se fait ensuite avec **+ Nouvelle fonctionnalité** dans l'onglet Fonctionnalités / Roadmap produit.
 
 Le CRUD des fonctionnalités reste exclusivement dans le Cockpit.
+
+
+## V4.7.4 — Correctif renderers fiche projet
+
+Correction de l'erreur `strategy is not a function`.
+
+Lors des refontes successives de la fiche, plusieurs fonctions de rendu avaient disparu du JavaScript
+alors que `renderProject()` continuait à les appeler. Cette version restaure :
+- `strategy()`
+- `team()`
+- `gantt()`
+- `resourceLoad()`
+- `tasks()`
+
+La météo, la Synthèse, le Planning projet et les Fonctionnalités restent inchangés.
