@@ -171,3 +171,17 @@ Aucun changement du modèle Grist ni de la logique de filtrage.
 Responsabilités :
 - Cockpit : CRUD Fonctionnalites
 - Admin & Audit : CRUD Stades_Fonctionnalite uniquement pour le référentiel de stades
+
+
+## V4.7.0
+Projet: Projects -> Etapes_Projet -> Tasks, avec Tasks -> Fonctionnalites facultatif.
+Produit: Projects -> Fonctionnalites -> Tasks, sans Etapes_Projet.
+
+
+## V4.7.1
+Les dépendances de tâches sont globales au portefeuille et peuvent traverser les projets/produits.
+
+
+## V4.7.2
+La Synthèse analyse `Tasks.dependDe` et distingue les dépendances internes des dépendances inter-projets.
+Une dépendance externe en retard est remontée comme alerte PMO.

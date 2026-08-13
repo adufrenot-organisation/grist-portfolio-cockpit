@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=4.6.3" />
+  <link rel="stylesheet" href="styles.css?v=4.7.2" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="brand">
       <div class="brand-mark">▦</div>
       <div class="brand-title">GRIST. COCKPIT Pilotage PMO</div>
-      <span class="version">v4.6.3</span>
+      <span class="version">v4.7.2</span>
     </div>
 
     <nav class="top-nav">
@@ -89,7 +89,7 @@
             
             <button class="detail-tab" data-detail-tab="tasks">▣ Tâches / Gantt</button>
             <button class="detail-tab project-only" data-detail-tab="stages">📅 Planning projet</button>
-            <button class="detail-tab product-only hidden" data-detail-tab="features">🧩 Roadmap produit</button>
+            <button class="detail-tab" id="featuresTabBtn" data-detail-tab="features">🧩 Fonctionnalités</button>
             <button class="detail-tab" data-detail-tab="objectives">◎ Objectifs</button>
             <button class="detail-tab" data-detail-tab="resources">♧ Ressources</button>
           </nav>
@@ -115,7 +115,7 @@
 
           <div id="detailStages" class="detail-section hidden"><div class="section-toolbar"><div><h3>Planning projet</h3><div class="muted">Les étapes proviennent du référentiel Etapes_Projet. Crée les tâches dans chaque étape pour construire le planning.</div></div><button class="primary" id="newStageTaskBtn">+ Tâche dans une étape</button></div><div id="projectStagesView"></div></div>
 
-          <div id="detailFeatures" class="detail-section hidden"><div class="section-toolbar"><div><h3>Roadmap produit</h3><div class="muted">Crée les fonctionnalités puis rattache les tâches à chacune d’elles.</div></div><button class="primary" id="newFeatureBtn">+ Nouvelle fonctionnalité</button></div><div id="productFeaturesView"></div></div>
+          <div id="detailFeatures" class="detail-section hidden"><div class="section-toolbar"><div><h3 id="featuresSectionTitle">Fonctionnalités</h3><div class="muted" id="featuresSectionHelp">Crée les fonctionnalités puis rattache les tâches à chacune d’elles.</div></div><button class="primary" id="newFeatureBtn">+ Nouvelle fonctionnalité</button></div><div id="productFeaturesView"></div></div>
 
           <div id="detailObjectives" class="detail-section hidden">
             <div class="section-toolbar">
@@ -206,7 +206,7 @@
     </div>
   </section>
 
-  <footer>GRIST. COCKPIT Pilotage PMO • v4.6.3 • Grist reste l’unique source de vérité</footer>
+  <footer>GRIST. COCKPIT Pilotage PMO • v4.7.2 • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -274,9 +274,9 @@
 </form>
 </dialog>
 
-<dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
+<dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date début<input name="Date_Debut" type="date" /></label><label>Date fin<input name="Date_Fin" type="date" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
 
 
-<script src="app.js?v=4.6.3"></script>
+<script src="app.js?v=4.7.2"></script>
 </body>
 </html>

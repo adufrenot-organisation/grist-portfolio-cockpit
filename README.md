@@ -222,3 +222,36 @@ Le référentiel `Stades_Fonctionnalite` reste administré dans Admin & Audit.
 
 Correction complémentaire : après suppression de Vue d'ensemble, les changements de contexte
 Projet/Produit reviennent désormais sur **Synthèse** et non sur l'ancien onglet `overview`.
+
+
+## V4.7.0 — Fonctionnalités Projet / Produit
+
+Une fonctionnalité peut appartenir à un Projet ou à un Produit.
+Le cockpit privilégie `Fonctionnalites.parent -> Projects`, avec compatibilité `projet_produit` et l'ancienne colonne `produit`.
+
+- Projet : borné, structuré par étapes ; une tâche appartient à une étape et peut aussi appartenir à une fonctionnalité.
+- Produit : non forcément borné, sans étape ; roadmap par fonctionnalités uniquement.
+- Fonctionnalité : stade + Date_Debut + Date_Fin + progression + priorité + responsable.
+
+Le CRUD Fonctionnalites reste exclusivement dans le Cockpit.
+
+
+## V4.7.1 — Dépendances inter-projets
+
+Le champ `Tasks.dependDe` n'est plus limité aux tâches du projet courant.
+Le sélecteur propose désormais toutes les tâches du portefeuille, avec un libellé explicite :
+`[Projet/Produit] Nom de la tâche`.
+
+Le modèle reste `Tasks.dependDe -> RefList Tasks` : aucune nouvelle table n'est requise.
+
+
+## V4.7.2 — Visualisation des dépendances inter-projets
+
+La Synthèse affiche maintenant :
+- le nombre de dépendances vers d'autres Projets / Produits ;
+- le nombre de dépendances externes dont la tâche amont est en retard ;
+- jusqu'à six liens explicites `tâche courante -> [Projet externe] tâche dépendante`.
+
+Le sélecteur `Dépend de` reste global à tout le portefeuille.
+
+Cette version restaure également le renderer de l'onglet Synthèse qui avait été perdu lors de l'évolution V4.7.
