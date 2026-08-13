@@ -331,3 +331,6 @@ Le renderer Documentation distingue URL et Attachment Grist.
 
 ## V4.9.2
 Responsive du bandeau Pilotage repris avec seuils 1500 / 1180 / 680 px.
+
+## V4.9.3 — Header Pilotage
+Structure responsive : ligne 1 = introduction ; ligne 2 = contrôles de filtrage et création.

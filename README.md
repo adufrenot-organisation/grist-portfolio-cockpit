@@ -456,3 +456,13 @@ Pour une pièce jointe, la carte ouvre le fichier via l'accès au document Grist
 
 ## V4.9.2 — Correctif responsive du bandeau Pilotage
 Grille adaptative pour éviter les coupures à zoom réduit et dans les widgets Grist.
+
+## V4.9.3 — Bandeau Pilotage sur deux lignes
+
+Le bandeau est maintenant structuré de façon permanente en deux niveaux :
+
+1. titre + description ;
+2. filtres + bouton `+ Nouveau`.
+
+Le titre ne partage donc plus sa largeur avec les filtres. Seule la seconde ligne se réorganise
+lorsque la largeur du widget diminue.

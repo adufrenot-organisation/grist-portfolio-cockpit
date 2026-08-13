@@ -526,3 +526,128 @@ dialog{width:min(780px,calc(100vw - 32px));border:1px solid var(--line);border-r
 }
 .top-nav{min-width:0 !important;flex-wrap:wrap !important}
 .top-tab{white-space:nowrap !important}
+
+/* V4.9.3 — bandeau Pilotage en deux lignes */
+.framed-pilotage-head{
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  grid-template-rows:auto auto !important;
+  gap:0 !important;
+  padding:0 !important;
+  overflow:visible !important;
+}
+
+.framed-pilotage-head .pilotage-intro{
+  grid-column:1 !important;
+  grid-row:1 !important;
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  padding:20px 24px 18px !important;
+  border-right:0 !important;
+  border-bottom:1px solid #d9e1ec !important;
+  display:flex !important;
+  align-items:center !important;
+}
+
+.framed-pilotage-head .pilotage-intro h1{
+  margin:0 0 5px !important;
+  max-width:none !important;
+  font-size:clamp(22px,1.55vw,28px) !important;
+  line-height:1.12 !important;
+}
+
+.framed-pilotage-head .pilotage-intro p{
+  margin:0 !important;
+  max-width:760px !important;
+  font-size:clamp(13px,.9vw,16px) !important;
+}
+
+.framed-pilotage-head .pilotage-filters{
+  grid-column:1 !important;
+  grid-row:2 !important;
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  padding:16px 24px 18px !important;
+  display:grid !important;
+  grid-template-columns:
+    minmax(330px,1.35fr)
+    minmax(190px,1fr)
+    minmax(190px,1fr)
+    minmax(160px,.8fr)
+    auto !important;
+  gap:12px !important;
+  align-items:end !important;
+  overflow:visible !important;
+}
+
+.framed-pilotage-head .filter-box{
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+.framed-pilotage-head .filter-box:first-child{
+  display:grid !important;
+  grid-template-columns:auto repeat(3,minmax(76px,1fr)) !important;
+  gap:7px !important;
+  align-items:center !important;
+}
+
+.framed-pilotage-head .filter-box:first-child > span{
+  white-space:nowrap !important;
+  margin-right:6px !important;
+}
+
+.framed-pilotage-head .filter-box select{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+}
+
+.framed-pilotage-head #newProjectBtn{
+  min-width:126px !important;
+  white-space:nowrap !important;
+  justify-self:end !important;
+  align-self:end !important;
+}
+
+/* Les filtres seuls se replient désormais, jamais le titre. */
+@media (max-width:1180px){
+  .framed-pilotage-head .pilotage-filters{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+  .framed-pilotage-head .filter-box:first-child{
+    grid-column:1/-1 !important;
+  }
+  .framed-pilotage-head .pilotage-filters .compact-filter:nth-of-type(4){
+    grid-column:auto !important;
+  }
+  .framed-pilotage-head #newProjectBtn{
+    grid-column:1/-1 !important;
+    justify-self:end !important;
+  }
+}
+
+@media (max-width:680px){
+  .framed-pilotage-head .pilotage-intro{
+    padding:16px !important;
+    align-items:flex-start !important;
+  }
+  .framed-pilotage-head .pilotage-filters{
+    padding:14px 16px 16px !important;
+    grid-template-columns:1fr !important;
+  }
+  .framed-pilotage-head .filter-box:first-child{
+    grid-column:auto !important;
+    grid-template-columns:1fr 1fr !important;
+  }
+  .framed-pilotage-head .filter-box:first-child > span{
+    grid-column:1/-1 !important;
+  }
+  .framed-pilotage-head #newProjectBtn{
+    grid-column:auto !important;
+    width:100% !important;
+  }
+}
