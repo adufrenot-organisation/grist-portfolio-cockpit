@@ -651,3 +651,6 @@ dialog{width:min(780px,calc(100vw - 32px));border:1px solid var(--line);border-r
     width:100% !important;
   }
 }
+
+.docs-status{margin:0 0 14px;padding:12px 14px;border:1px solid #f79009;background:#fffaeb;color:#7a2e0e;border-radius:10px}
+.docs-status code{background:#fff3cd;padding:2px 5px;border-radius:5px}

@@ -1,14 +1,24 @@
 
-const VERSION="4.9.3";
+const VERSION="4.9.5";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
-let db={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
+let db={},tableLoadErrors={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
 const $=id=>{
   const el=document.getElementById(id);
   if(!el) throw new Error(`Élément UI introuvable: #${id}`);
   return el;
 };
 function rows(d){if(!d||!Array.isArray(d.id))return[];const ks=Object.keys(d);return d.id.map((_,i)=>Object.fromEntries(ks.map(k=>[k,Array.isArray(d[k])?d[k][i]:d[k]])))}
-async function fetchTable(k,t){try{return rows(await grist.docApi.fetchTable(t))}catch(e){console.warn(t,e);return[]}}
+async function fetchTable(k,t){
+  try{
+    const result=rows(await grist.docApi.fetchTable(t));
+    delete tableLoadErrors[k];
+    return result;
+  }catch(e){
+    tableLoadErrors[k]=e?.message||String(e);
+    console.warn(`Table ${t} inaccessible`,e);
+    return [];
+  }
+}
 function id(v){if(Array.isArray(v))return v.find(x=>Number.isInteger(x))??null;const n=Number(v);return Number.isFinite(n)?n:null}
 function refs(v){if(!v)return[];return Array.isArray(v)?v.filter(x=>Number.isInteger(x)):Number.isInteger(v)?[v]:[]}
 function reflist(xs){return["L",...xs.map(Number).filter(Number.isFinite)]}
@@ -105,11 +115,24 @@ async function openDocAttachment(attId){
   }catch(e){console.error(e);banner(`Impossible d'ouvrir la pièce jointe : ${e?.message||e}`);}
 }
 function renderDocumentation(){
+  const error=tableLoadErrors.documentation;
+  const status=$("docsStatus");
+  if(error){
+    status.classList.remove("hidden");
+    status.innerHTML=`<strong>Table Documentation introuvable ou inaccessible.</strong>
+      <div>Le Cockpit cherche exactement la table technique <code>Documentation</code>.</div>
+      <div class="muted">Erreur Grist : ${esc(error)}</div>
+      <div class="muted">Vérifie l'ID technique de la table et les droits de lecture du widget/utilisateur.</div>`;
+  }else{
+    status.classList.add("hidden");
+    status.innerHTML="";
+  }
+
   const docs=[...(db.documentation||[])].filter(d=>d.Actif!==false).sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0)||String(a.Nom||"").localeCompare(String(b.Nom||"")));
   $("docsCards").classList.toggle("hidden",!docs.length);
-  $("docsEmpty").classList.toggle("hidden",!!docs.length);
+  $("docsEmpty").classList.toggle("hidden",!!docs.length||!!error);
   $("docsCards").innerHTML=docs.map(d=>{
-    const atts=attachmentIds(d.Piece_Jointe),isAttachment=d.Type_Document==="Pièce jointe";
+    const atts=attachmentIds(d.Piece_Jointe),isAttachment=/pièce jointe|fichier/i.test(String(d.Type_Document||""));
     const sourceLabel=isAttachment?(atts.length?`${atts.length} pièce(s) jointe(s)`:"Pièce jointe non chargée"):(d.URL||"");
     const action=isAttachment
       ? (atts.length?`<button class="doc-card doc-card-button" data-doc-att="${atts[0]}"><div class="doc-card-icon">${esc(d.Icone||"📎")}</div><div class="doc-card-body"><h3>${esc(d.Nom||"Document")}</h3><div class="doc-card-url">${esc(sourceLabel)}</div></div><div class="doc-card-arrow">↗</div></button>`:

@@ -334,3 +334,9 @@ Responsive du bandeau Pilotage repris avec seuils 1500 / 1180 / 680 px.
 
 ## V4.9.3 — Header Pilotage
 Structure responsive : ligne 1 = introduction ; ligne 2 = contrôles de filtrage et création.
+
+## V4.9.4
+Résolution d'alias pour la table Documentation et compatibilité Fichier/Pièce jointe.
+
+## V4.9.5
+Source Documentation canonique : table technique `Documentation`. Les erreurs de chargement sont exposées dans l'UI.

@@ -466,3 +466,22 @@ Le bandeau est maintenant structuré de façon permanente en deux niveaux :
 
 Le titre ne partage donc plus sa largeur avec les filtres. Seule la seconde ligne se réorganise
 lorsque la largeur du widget diminue.
+
+## V4.9.4 — Compatibilité table Documentation
+
+Le Cockpit lit désormais indifféremment :
+- `Documentation`
+- `Documentation_v1_9_1`
+
+Il accepte aussi `Type_Document = Fichier` comme alias de `Pièce jointe`.
+
+## V4.9.5 — Table Documentation stricte
+
+Le Cockpit cherche désormais **uniquement** la table technique `Documentation`.
+
+Si Grist refuse ou ne trouve pas cette table, l'onglet Documentation affiche directement :
+- le nom exact recherché ;
+- l'erreur renvoyée par Grist ;
+- un rappel de vérifier l'ID technique de la table et les droits d'accès.
+
+L'ancien alias `Documentation_v1_9_1` n'est plus utilisé.
