@@ -296,3 +296,19 @@ Les fonctions de rendu de l'onglet **Pilotage par offre de services** ont été 
 - `offerResources()`
 
 Cette version ne modifie pas le modèle Grist.
+
+
+## V4.7.6 — Correctif Offre de services
+
+Correction de l'erreur `projectsForOffer is not defined`.
+
+`projectsForOffer()` a été restaurée. Cette fonction calcule les Projets / Produits associés à une
+Offre de services via :
+`Offres_Services -> Activites_OFS -> Activites -> Projects`.
+
+Un contrôle supplémentaire compare maintenant toutes les fonctions présentes dans la base stable
+V4.6.3 afin d'éviter qu'un autre helper historique manque dans cette release.
+
+
+## V4.7.7 — MCD consolidé
+MCD recalé au 13 août 2026. Voir `MCD.md` et `ARCHITECTURE.md`.
