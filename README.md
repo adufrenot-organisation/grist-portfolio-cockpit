@@ -452,3 +452,7 @@ L'onglet Documentation restitue désormais :
 - les pièces jointes Grist de la colonne `Piece_Jointe`.
 
 Pour une pièce jointe, la carte ouvre le fichier via l'accès au document Grist.
+
+
+## V4.9.2 — Correctif responsive du bandeau Pilotage
+Grille adaptative pour éviter les coupures à zoom réduit et dans les widgets Grist.

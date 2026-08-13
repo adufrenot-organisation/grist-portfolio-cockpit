@@ -327,3 +327,7 @@ Source : table `Documentation`. Admin = CRUD ; Cockpit = restitution en lecture.
 
 ## V4.9.1
 Le renderer Documentation distingue URL et Attachment Grist.
+
+
+## V4.9.2
+Responsive du bandeau Pilotage repris avec seuils 1500 / 1180 / 680 px.

@@ -431,3 +431,98 @@ dialog{width:min(780px,calc(100vw - 32px));border:1px solid var(--line);border-r
 @media(max-width:1100px){.docs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.docs-grid{grid-template-columns:1fr}.docs-page{padding:14px}}
 
 .doc-card-button{width:100%;text-align:left;font:inherit;cursor:pointer}.doc-card-disabled{opacity:.58;cursor:not-allowed}
+
+/* V4.9.2 — responsive robuste du bandeau Pilotage */
+.framed-pilotage-head{
+  display:grid !important;
+  grid-template-columns:minmax(300px,420px) minmax(0,1fr) !important;
+  gap:22px !important;
+  align-items:stretch !important;
+  padding:18px 20px !important;
+}
+.framed-pilotage-head .pilotage-intro{
+  min-width:0 !important;
+  padding-right:20px !important;
+  border-right:1px solid #d9e1ec !important;
+  border-bottom:0 !important;
+}
+.framed-pilotage-head .pilotage-intro h1{
+  font-size:clamp(21px,1.65vw,28px) !important;
+  line-height:1.12 !important;
+  max-width:none !important;
+}
+.framed-pilotage-head .pilotage-intro p{
+  font-size:clamp(13px,.9vw,16px) !important;
+  max-width:390px !important;
+}
+.framed-pilotage-head .pilotage-filters{
+  min-width:0 !important;
+  width:100% !important;
+  display:grid !important;
+  grid-template-columns:minmax(320px,1.5fr) minmax(170px,.95fr) minmax(170px,.95fr) minmax(145px,.7fr) auto !important;
+  gap:12px !important;
+  align-items:end !important;
+  overflow:visible !important;
+}
+.framed-pilotage-head .filter-box{
+  min-width:0 !important;
+  width:100% !important;
+  box-sizing:border-box !important;
+}
+.framed-pilotage-head .filter-box:first-child{
+  display:grid !important;
+  grid-template-columns:auto repeat(3,minmax(76px,1fr)) !important;
+  align-items:center !important;
+  gap:7px !important;
+}
+.framed-pilotage-head .filter-box:first-child>span{
+  white-space:nowrap !important;
+  margin:0 6px 0 0 !important;
+}
+.framed-pilotage-head .filter-box select{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  text-overflow:ellipsis !important;
+}
+.framed-pilotage-head .segmented{display:contents !important}
+.framed-pilotage-head .seg{
+  min-width:0 !important;
+  white-space:nowrap !important;
+  padding-left:12px !important;
+  padding-right:12px !important;
+}
+.framed-pilotage-head #newProjectBtn{
+  min-width:126px !important;
+  white-space:nowrap !important;
+  justify-self:end !important;
+}
+@media (max-width:1500px){
+  .framed-pilotage-head{grid-template-columns:minmax(280px,360px) minmax(0,1fr) !important}
+  .framed-pilotage-head .pilotage-filters{
+    grid-template-columns:minmax(310px,1.45fr) minmax(165px,.9fr) minmax(165px,.9fr) !important;
+  }
+  .framed-pilotage-head .pilotage-filters .compact-filter:nth-of-type(4){grid-column:1/2}
+  .framed-pilotage-head #newProjectBtn{grid-column:3;justify-self:end !important}
+}
+@media (max-width:1180px){
+  .framed-pilotage-head{grid-template-columns:1fr !important}
+  .framed-pilotage-head .pilotage-intro{
+    border-right:0 !important;border-bottom:1px solid #d9e1ec !important;
+    padding-right:0 !important;padding-bottom:14px !important;
+  }
+  .framed-pilotage-head .pilotage-intro p{max-width:720px !important}
+  .framed-pilotage-head .pilotage-filters{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+  .framed-pilotage-head .filter-box:first-child{grid-column:1/-1 !important}
+  .framed-pilotage-head .pilotage-filters .compact-filter:nth-of-type(4){grid-column:auto !important}
+  .framed-pilotage-head #newProjectBtn{grid-column:1/-1 !important;justify-self:start !important}
+}
+@media (max-width:680px){
+  .framed-pilotage-head{padding:14px !important}
+  .framed-pilotage-head .pilotage-filters{grid-template-columns:1fr !important}
+  .framed-pilotage-head .filter-box:first-child{grid-template-columns:1fr 1fr !important}
+  .framed-pilotage-head .filter-box:first-child>span{grid-column:1/-1 !important}
+  .framed-pilotage-head #newProjectBtn{grid-column:auto !important;width:100% !important}
+}
+.top-nav{min-width:0 !important;flex-wrap:wrap !important}
+.top-tab{white-space:nowrap !important}
