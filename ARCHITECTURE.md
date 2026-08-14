@@ -343,3 +343,6 @@ Source Documentation canonique : table technique `Documentation`. Les erreurs de
 
 ## V4.9.6
 Instrumentation de la lecture de la table Documentation afin de distinguer table absente, table vide et lignes inactives.
+
+## V4.9.7
+Correction structurelle : la vue Documentation appartient désormais au même shell applicatif que les vues Projet et Offre.

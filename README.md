@@ -496,3 +496,10 @@ L'onglet Documentation affiche maintenant explicitement :
 - l'erreur exacte si la table est inaccessible.
 
 Les lignes avec `Actif = false` restent volontairement masquées.
+
+## V4.9.7 — Correction onglet Documentation
+
+- `docsView` est replacé dans le conteneur principal du Cockpit ;
+- navigation principale centralisée dans `switchMainTab()` ;
+- l'onglet Documentation reste affiché même si son rendu rencontre une erreur ;
+- après chaque rechargement des données, l'onglet actif est réappliqué.

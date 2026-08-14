@@ -1,5 +1,5 @@
 
-const VERSION="4.9.6";
+const VERSION="4.9.7";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
 let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
 const $=id=>{
@@ -87,6 +87,7 @@ async function load(){
   if(!currentOfferId&&db.offers.length)currentOfferId=db.offers[0].id;
   populateOfferSelect();
   renderAll();
+  switchMainTab(currentTab);
   }catch(e){
     console.error("Erreur de chargement cockpit",e);
     banner(`Erreur de chargement : ${e?.message||e}`);
@@ -953,7 +954,23 @@ function renderOffer(){
   $("offerResources").innerHTML=byRes.size?`<div class="resource-row header"><div>Ressource</div><div>Allocation cumulée</div><div></div><div></div></div>${[...byRes.entries()].map(([rid,v])=>`<div class="resource-row"><div><strong>${esc(get("team",rid)?.nom||`#${rid}`)}</strong></div><div><div class="load-track"><div class="load-fill ${v>1?"over":""}" style="width:${Math.min(100,v*100)}%"></div></div><div class="muted">${Math.round(v*100)}%</div></div><div></div><div></div></div>`).join("")}`:'<div class="empty">Aucune allocation.</div>';
 }
 
-document.querySelectorAll("[data-main-tab]").forEach(b=>b.onclick=()=>{currentTab=b.dataset.mainTab;document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x===b));$("projectView").classList.toggle("hidden",currentTab!=="project");$("offerView").classList.toggle("hidden",currentTab!=="offer");$("docsView").classList.toggle("hidden",currentTab!=="docs");if(currentTab==="docs")renderDocumentation()});
+function switchMainTab(tab){
+  currentTab=tab;
+  document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x.dataset.mainTab===tab));
+  $("projectView").classList.toggle("hidden",tab!=="project");
+  $("offerView").classList.toggle("hidden",tab!=="offer");
+  $("docsView").classList.toggle("hidden",tab!=="docs");
+  if(tab==="docs"){
+    try{renderDocumentation()}
+    catch(e){
+      console.error("Erreur onglet Documentation",e);
+      $("docsView").classList.remove("hidden");
+      const s=$("docsStatus");s.classList.remove("hidden");
+      s.innerHTML=`<strong>Erreur d'affichage Documentation</strong><div class="muted">${esc(e?.message||e)}</div>`;
+    }
+  }
+}
+document.querySelectorAll("[data-main-tab]").forEach(b=>b.addEventListener("click",()=>switchMainTab(b.dataset.mainTab)));
 document.querySelectorAll("[data-type-filter]").forEach(b=>b.onclick=()=>{typeFilter=b.dataset.typeFilter;document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x===b));populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
 document.querySelectorAll("[data-offer-type-filter]").forEach(b=>b.onclick=()=>{offerTypeFilter=b.dataset.offerTypeFilter;document.querySelectorAll("[data-offer-type-filter]").forEach(x=>x.classList.toggle("active",x===b));renderOffer()});
 $("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer()};
