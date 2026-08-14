@@ -485,3 +485,14 @@ Si Grist refuse ou ne trouve pas cette table, l'onglet Documentation affiche dir
 - un rappel de vérifier l'ID technique de la table et les droits d'accès.
 
 L'ancien alias `Documentation_v1_9_1` n'est plus utilisé.
+
+## V4.9.6 — Diagnostic de lecture Documentation
+
+L'onglet Documentation affiche maintenant explicitement :
+- si la table `Documentation` est trouvée ;
+- le nombre de lignes lues ;
+- le nombre de lignes actives ;
+- les colonnes réellement renvoyées par Grist ;
+- l'erreur exacte si la table est inaccessible.
+
+Les lignes avec `Actif = false` restent volontairement masquées.

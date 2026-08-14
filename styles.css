@@ -654,3 +654,6 @@ dialog{width:min(780px,calc(100vw - 32px));border:1px solid var(--line);border-r
 
 .docs-status{margin:0 0 14px;padding:12px 14px;border:1px solid #f79009;background:#fffaeb;color:#7a2e0e;border-radius:10px}
 .docs-status code{background:#fff3cd;padding:2px 5px;border-radius:5px}
+
+.docs-status{display:block;margin:0 0 14px;padding:11px 13px;border:1px solid #b2ccff;background:#eff8ff;color:#1849a9;border-radius:10px}
+.docs-status strong{display:block;margin-bottom:3px}.docs-status code{background:#d1e9ff;padding:1px 4px;border-radius:4px}

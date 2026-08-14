@@ -1,7 +1,7 @@
 
-const VERSION="4.9.5";
+const VERSION="4.9.6";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
-let db={},tableLoadErrors={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
+let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
 const $=id=>{
   const el=document.getElementById(id);
   if(!el) throw new Error(`Élément UI introuvable: #${id}`);
@@ -10,11 +10,18 @@ const $=id=>{
 function rows(d){if(!d||!Array.isArray(d.id))return[];const ks=Object.keys(d);return d.id.map((_,i)=>Object.fromEntries(ks.map(k=>[k,Array.isArray(d[k])?d[k][i]:d[k]])))}
 async function fetchTable(k,t){
   try{
-    const result=rows(await grist.docApi.fetchTable(t));
+    const raw=await grist.docApi.fetchTable(t);
+    const result=rows(raw);
     delete tableLoadErrors[k];
+    tableLoadMeta[k]={
+      table:t,
+      count:result.length,
+      columns:Object.keys(raw||{}).filter(x=>x!=="id")
+    };
     return result;
   }catch(e){
     tableLoadErrors[k]=e?.message||String(e);
+    tableLoadMeta[k]={table:t,count:0,columns:[]};
     console.warn(`Table ${t} inaccessible`,e);
     return [];
   }
@@ -116,21 +123,40 @@ async function openDocAttachment(attId){
 }
 function renderDocumentation(){
   const error=tableLoadErrors.documentation;
+  const meta=tableLoadMeta.documentation||{table:"Documentation",count:0,columns:[]};
   const status=$("docsStatus");
+
+  const allDocs=[...(db.documentation||[])];
+  const activeDocs=allDocs.filter(d=>{
+    // If the column does not exist, publish the row.
+    if(!Object.prototype.hasOwnProperty.call(d,"Actif"))return true;
+    // Grist Bool returns true/false. Empty/null is treated as visible.
+    return d.Actif!==false && d.Actif!==0;
+  });
+
   if(error){
     status.classList.remove("hidden");
-    status.innerHTML=`<strong>Table Documentation introuvable ou inaccessible.</strong>
-      <div>Le Cockpit cherche exactement la table technique <code>Documentation</code>.</div>
+    status.innerHTML=`<strong>Table <code>Documentation</code> introuvable ou inaccessible.</strong>
       <div class="muted">Erreur Grist : ${esc(error)}</div>
-      <div class="muted">Vérifie l'ID technique de la table et les droits de lecture du widget/utilisateur.</div>`;
+      <div class="muted">Le Cockpit utilise l'ID technique exact <code>Documentation</code>.</div>`;
+  }else if(meta.count===0){
+    status.classList.remove("hidden");
+    status.innerHTML=`<strong>Table <code>Documentation</code> trouvée, mais aucune ligne n'est lue.</strong>
+      <div class="muted">Colonnes détectées : ${meta.columns.length?meta.columns.map(esc).join(", "):"aucune"}</div>`;
+  }else if(!activeDocs.length){
+    status.classList.remove("hidden");
+    status.innerHTML=`<strong>Table <code>Documentation</code> trouvée : ${meta.count} ligne(s), mais aucune ligne active.</strong>
+      <div>Active au moins une ligne dans la colonne <code>Actif</code>.</div>
+      <div class="muted">Colonnes détectées : ${meta.columns.map(esc).join(", ")}</div>`;
   }else{
-    status.classList.add("hidden");
-    status.innerHTML="";
+    status.classList.remove("hidden");
+    status.innerHTML=`<strong>Documentation chargée : ${activeDocs.length} ligne(s) active(s) sur ${meta.count}.</strong>
+      <div class="muted">Source : table technique <code>${esc(meta.table)}</code></div>`;
   }
 
-  const docs=[...(db.documentation||[])].filter(d=>d.Actif!==false).sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0)||String(a.Nom||"").localeCompare(String(b.Nom||"")));
+  const docs=activeDocs.sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0)||String(a.Nom||"").localeCompare(String(b.Nom||"")));
   $("docsCards").classList.toggle("hidden",!docs.length);
-  $("docsEmpty").classList.toggle("hidden",!!docs.length||!!error);
+  $("docsEmpty").classList.toggle("hidden",!!docs.length||!!error||meta.count>0);
   $("docsCards").innerHTML=docs.map(d=>{
     const atts=attachmentIds(d.Piece_Jointe),isAttachment=/pièce jointe|fichier/i.test(String(d.Type_Document||""));
     const sourceLabel=isAttachment?(atts.length?`${atts.length} pièce(s) jointe(s)`:"Pièce jointe non chargée"):(d.URL||"");

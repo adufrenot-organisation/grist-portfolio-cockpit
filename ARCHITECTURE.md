@@ -340,3 +340,6 @@ Résolution d'alias pour la table Documentation et compatibilité Fichier/Pièce
 
 ## V4.9.5
 Source Documentation canonique : table technique `Documentation`. Les erreurs de chargement sont exposées dans l'UI.
+
+## V4.9.6
+Instrumentation de la lecture de la table Documentation afin de distinguer table absente, table vide et lignes inactives.
