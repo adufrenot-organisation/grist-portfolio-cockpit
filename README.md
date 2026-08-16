@@ -503,3 +503,14 @@ Les lignes avec `Actif = false` restent volontairement masquées.
 - navigation principale centralisée dans `switchMainTab()` ;
 - l'onglet Documentation reste affiché même si son rendu rencontre une erreur ;
 - après chaque rechargement des données, l'onglet actif est réappliqué.
+
+
+## v5.0.0 — Pilotage par les ressources
+Nouvel onglet transverse basé sur `Team`, `Team_ref` et `Allocations` :
+- capacité ETP totale et charge planifiée ;
+- détection des surcharges et ressources non allouées ;
+- matrice de charge sur 8 trimestres ;
+- filtres équipe, rôle, projet/produit et état de charge ;
+- détail d'une ressource et de ses allocations ;
+- proratisation d'une allocation sur un trimestre selon ses dates de début/fin.
+Aucune nouvelle table Grist n'est requise.
