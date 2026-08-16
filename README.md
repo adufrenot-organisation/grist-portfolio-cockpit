@@ -514,3 +514,16 @@ Nouvel onglet transverse basé sur `Team`, `Team_ref` et `Allocations` :
 - détail d'une ressource et de ses allocations ;
 - proratisation d'une allocation sur un trimestre selon ses dates de début/fin.
 Aucune nouvelle table Grist n'est requise.
+
+## v5.1.0 — Refonte UX Pilotage des ressources
+La base fonctionnelle reste la v5.0.0 et les tables Grist restent inchangées.
+
+Nouvelle ergonomie :
+- vue Ressources par défaut sous forme de liste de pilotage ;
+- recherche et filtres équipe / rôle / projet ;
+- filtres rapides Toutes / Surchargées / Disponibles / Charge normale / Non allouées ;
+- alertes de tensions sur les quatre prochains trimestres ;
+- vue Plan de charge sur huit trimestres avec jauges ;
+- vue Équipes avec capacité agrégée ;
+- détail d'une ressource dans un drawer latéral ;
+- les ressources sans allocation restent visibles et identifiées comme « Non allouées ».

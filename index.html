@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.0.0-resources" />
+  <link rel="stylesheet" href="styles.css?v=5.1.0-resource-ux" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="brand">
       <div class="brand-mark">▦</div>
       <div class="brand-title">GRIST. COCKPIT Pilotage PMO</div>
-      <span class="version">v5.0.0</span>
+      <span class="version">v5.1.0</span>
     </div>
 
     <nav class="top-nav">
@@ -246,31 +246,38 @@
 
 
   <section id="resourcesView" class="view-shell hidden">
-    <div class="resource-page">
-      <div class="page-head resource-page-head">
-        <div class="page-intro"><div class="page-icon">👥</div><div><h1>Pilotage par les ressources</h1><p>Capacité, allocations et tensions de charge à partir de Team, Team_ref et Allocations.</p></div></div>
-        <div class="resource-head-filters">
-          <label>Équipe<select id="resourceTeamFilter"><option value="all">Toutes</option></select></label>
-          <label>Rôle<select id="resourceRoleFilter"><option value="all">Tous</option></select></label>
-          <label>Projet / Produit<select id="resourceProjectFilter"><option value="all">Tous</option></select></label>
-          <label>Afficher<select id="resourceLoadFilter"><option value="all">Toutes les ressources</option><option value="over">Surchargées</option><option value="available">Disponibles</option><option value="unallocated">Non allouées</option></select></label>
+    <div class="resource-page resource-cockpit">
+      <div class="resource-hero">
+        <div class="page-intro"><div class="page-icon">👥</div><div><h1>Pilotage des ressources</h1><p>Capacité, disponibilité et tensions de charge du portefeuille.</p></div></div>
+        <div class="resource-toolbar">
+          <select id="resourceTeamFilter"><option value="all">Toutes les équipes</option></select>
+          <select id="resourceRoleFilter"><option value="all">Tous les rôles</option></select>
+          <select id="resourceProjectFilter"><option value="all">Tous les projets / produits</option></select>
+          <input id="resourceSearch" type="search" placeholder="Rechercher une ressource…">
         </div>
       </div>
       <section class="portfolio-kpis" id="resourceKpis"></section>
-      <div class="resource-layout">
-        <section class="panel resource-matrix-panel">
-          <div class="panel-head"><div><h2>Plan de charge</h2><div class="muted">Charge moyenne par trimestre, comparée à la capacité ETP de chaque ressource.</div></div></div>
-          <div id="resourceMatrix" class="resource-matrix-wrap"></div>
-        </section>
-        <aside class="panel resource-detail-panel">
-          <div class="panel-head"><h2>Détail ressource</h2></div>
-          <div id="resourceDetail"><div class="empty">Cliquez sur une ressource pour afficher ses allocations.</div></div>
-        </aside>
+      <div id="resourceAlerts" class="resource-alerts"></div>
+      <div class="resource-subtabs">
+        <button class="resource-subtab active" data-resource-view="people">👥 Ressources</button>
+        <button class="resource-subtab" data-resource-view="load">📅 Plan de charge</button>
+        <button class="resource-subtab" data-resource-view="teams">🏢 Équipes</button>
       </div>
+      <div class="resource-quickfilters" id="resourceQuickFilters"></div>
+      <section class="panel resource-main-panel">
+        <div id="resourcePeopleView"></div>
+        <div id="resourceLoadView" class="hidden"></div>
+        <div id="resourceTeamsView" class="hidden"></div>
+      </section>
     </div>
+    <div id="resourceDrawerBackdrop" class="resource-drawer-backdrop hidden"></div>
+    <aside id="resourceDrawer" class="resource-drawer" aria-hidden="true">
+      <button id="resourceDrawerClose" class="resource-drawer-close">×</button>
+      <div id="resourceDrawerContent"></div>
+    </aside>
   </section>
 
-  <section id="docsView" class="view-shell hidden">
+  <section id="docsView class="view-shell hidden">
   <div class="docs-page">
     <div class="page-head docs-head">
       <div class="page-intro"><div class="page-icon">📚</div><div><h1>Documentation</h1><p>Accès aux ressources et liens de référence configurés par l'administrateur.</p></div></div>
@@ -281,7 +288,7 @@
   </div>
 </section>
 
-  <footer>GRIST. COCKPIT Pilotage PMO • v5.0.0 • Grist reste l’unique source de vérité</footer>
+  <footer>GRIST. COCKPIT Pilotage PMO • v5.1.0 • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -382,6 +389,6 @@
 <dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date début<input name="Date_Debut" type="date" /></label><label>Date fin<input name="Date_Fin" type="date" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
 
 
-<script src="app.js?v=5.0.0-resources"></script>
+<script src="app.js?v=5.1.0-resource-ux"></script>
 </body>
 </html>

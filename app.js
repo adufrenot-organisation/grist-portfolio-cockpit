@@ -1,5 +1,5 @@
 
-const VERSION="5.0.0";
+const VERSION="5.1.0";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
 let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all",resourceTeamFilter="all",resourceRoleFilter="all",resourceProjectFilter="all",resourceLoadFilter="all",selectedResourceId=null;
 const $=id=>{
@@ -955,93 +955,87 @@ function renderOffer(){
 }
 
 
-/* ---------- Pilotage par les ressources ---------- */
-function allocFraction(v){
-  let n=Number(v||0); if(!Number.isFinite(n))return 0;
-  return n>2?n/100:n;
-}
-function teamCapacity(m){
-  let n=Number(m?.capacite_ETP??m?.Capacite_ETP??m?.capacite??1);
-  return Number.isFinite(n)&&n>0?n:1;
-}
-function teamRefLabel(m){
-  const rid=id(m?.equipe??m?.Equipe??m?.Equipe_Code??m?.Team_ref);
-  const r=rid?get("teamRef",rid):null;
-  return r?.Libelle||r?.Nom||r?.Code||m?.equipe_libelle||"—";
-}
+/* ---------- Pilotage par les ressources — UX v5.1 ---------- */
+let resourceViewMode="people",resourceQuickFilter="all",resourceSearch="";
+function allocFraction(v){let n=Number(v||0);return Number.isFinite(n)?(n>2?n/100:n):0}
+function teamCapacity(m){let n=Number(m?.capacite_ETP??m?.Capacite_ETP??m?.capacite??1);return Number.isFinite(n)&&n>0?n:1}
+function teamRefLabel(m){const rid=id(m?.equipe??m?.Equipe??m?.Equipe_Code??m?.Team_ref),r=rid?get("teamRef",rid):null;return r?.Libelle||r?.Nom||r?.Code||m?.equipe_libelle||"Sans équipe"}
 function allocationStart(a){return dms(a.Date_Debut??a.dateDebut??a.DateDebut)}
 function allocationEnd(a){return dms(a.Date_Fin??a.dateFin??a.DateFin)}
 function quarterStart(y,q){return Date.UTC(y,(q-1)*3,1)}
 function quarterEnd(y,q){return Date.UTC(y,q*3,1)-1}
-function resourceQuarters(count=8){
-  const now=new Date(),y=now.getUTCFullYear(),q=Math.floor(now.getUTCMonth()/3)+1,out=[];
-  for(let i=0;i<count;i++){const qi=q+i,yy=y+Math.floor((qi-1)/4),qq=((qi-1)%4)+1;out.push({y:yy,q:qq,start:quarterStart(yy,qq),end:quarterEnd(yy,qq),label:`T${qq}${yy===y?"":"-"+String(yy).slice(2)}`})}
-  return out;
-}
-function allocationQuarterLoad(a,q){
-  const raw=allocFraction(a.Allocation);
-  if(!raw)return 0;
-  let s=allocationStart(a),e=allocationEnd(a);
-  if(!s&&!e)return raw;
-  if(!s)s=e;if(!e)e=s;
-  const overlap=Math.max(0,Math.min(e,q.end)-Math.max(s,q.start)+1);
-  if(!overlap)return 0;
-  const qdays=q.end-q.start+1;
-  return raw*(overlap/qdays);
-}
-function resourceLoadForQuarter(mid,q,projectFilter="all"){
-  return db.allocations.filter(a=>id(a.Ressource_Code)===mid&&(projectFilter==="all"||id(a.Projet_Code)===Number(projectFilter))).reduce((n,a)=>n+allocationQuarterLoad(a,q),0);
-}
+function resourceQuarters(count=8,offset=0){const now=new Date(),y=now.getUTCFullYear(),q=Math.floor(now.getUTCMonth()/3)+1,out=[];for(let i=offset;i<count+offset;i++){const qi=q+i,yy=y+Math.floor((qi-1)/4),qq=((qi-1)%4)+1;out.push({y:yy,q:qq,start:quarterStart(yy,qq),end:quarterEnd(yy,qq),label:`T${qq} ${yy}`})}return out}
+function allocationQuarterLoad(a,q){const raw=allocFraction(a.Allocation);if(!raw)return 0;let s=allocationStart(a),e=allocationEnd(a);if(!s&&!e)return raw;if(!s)s=e;if(!e)e=s;const overlap=Math.max(0,Math.min(e,q.end)-Math.max(s,q.start)+1);return overlap?raw*(overlap/(q.end-q.start+1)):0}
+function resourceLoadForQuarter(mid,q,projectFilter="all"){return db.allocations.filter(a=>id(a.Ressource_Code)===mid&&(projectFilter==="all"||id(a.Projet_Code)===Number(projectFilter))).reduce((n,a)=>n+allocationQuarterLoad(a,q),0)}
+function resourceHasAllocation(mid){return db.allocations.some(a=>id(a.Ressource_Code)===mid)}
+function resourceRatio(m,q=resourceQuarters(1)[0]){return resourceLoadForQuarter(m.id,q,resourceProjectFilter)/teamCapacity(m)}
+function resourceStatus(ratio,has){if(!has)return"unallocated";if(ratio>1)return"over";if(ratio<.8)return"available";return"normal"}
+function resourceStatusLabel(s){return s==="over"?"Surcharge":s==="available"?"Disponible":s==="unallocated"?"Non allouée":"Charge normale"}
+function resourceStatusIcon(s){return s==="over"?"🔴":s==="available"?"🟢":s==="unallocated"?"⚪":"🟡"}
 function populateResourceFilters(){
-  const teamRefs=[...new Map(db.team.map(m=>[String(id(m.equipe??m.Equipe??m.Equipe_Code??m.Team_ref)||teamRefLabel(m)),teamRefLabel(m)]).filter(x=>x[0]&&x[1]!=="—")).entries()];
-  $("resourceTeamFilter").innerHTML='<option value="all">Toutes</option>'+teamRefs.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join("");
-  const roles=[...new Set(db.team.map(m=>String(m.role??m.Role??"").trim()).filter(Boolean))].sort();
-  $("resourceRoleFilter").innerHTML='<option value="all">Tous</option>'+roles.map(r=>`<option>${esc(r)}</option>`).join("");
-  $("resourceProjectFilter").innerHTML='<option value="all">Tous</option>'+db.projects.map(p=>`<option value="${p.id}">${esc(p.nom||p.code||"#"+p.id)}</option>`).join("");
-  $("resourceTeamFilter").value=resourceTeamFilter;$("resourceRoleFilter").value=resourceRoleFilter;$("resourceProjectFilter").value=resourceProjectFilter;$("resourceLoadFilter").value=resourceLoadFilter;
+ const teams=[...new Set(db.team.map(teamRefLabel).filter(Boolean))].sort(),roles=[...new Set(db.team.map(m=>String(m.role??m.Role??"").trim()).filter(Boolean))].sort();
+ $("resourceTeamFilter").innerHTML='<option value="all">Toutes les équipes</option>'+teams.map(v=>`<option>${esc(v)}</option>`).join("");
+ $("resourceRoleFilter").innerHTML='<option value="all">Tous les rôles</option>'+roles.map(v=>`<option>${esc(v)}</option>`).join("");
+ $("resourceProjectFilter").innerHTML='<option value="all">Tous les projets / produits</option>'+db.projects.map(p=>`<option value="${p.id}">${esc(p.nom||p.code||"#"+p.id)}</option>`).join("");
+ $("resourceTeamFilter").value=resourceTeamFilter;$("resourceRoleFilter").value=resourceRoleFilter;$("resourceProjectFilter").value=resourceProjectFilter;$("resourceSearch").value=resourceSearch;
 }
 function filteredResources(){
-  const qs=resourceQuarters(),current=qs[0];
-  return db.team.filter(m=>{
-    if(m.actif===false||m.Actif===false)return false;
-    const teamKey=String(id(m.equipe??m.Equipe??m.Equipe_Code??m.Team_ref)||teamRefLabel(m));
-    if(resourceTeamFilter!=="all"&&teamKey!==String(resourceTeamFilter))return false;
-    if(resourceRoleFilter!=="all"&&String(m.role??m.Role??"")!==resourceRoleFilter)return false;
-    const load=resourceLoadForQuarter(m.id,current,resourceProjectFilter),cap=teamCapacity(m),ratio=cap?load/cap:0;
-    const hasAlloc=db.allocations.some(a=>id(a.Ressource_Code)===m.id&&(resourceProjectFilter==="all"||id(a.Projet_Code)===Number(resourceProjectFilter)));
-    if(resourceLoadFilter==="over"&&ratio<=1)return false;
-    if(resourceLoadFilter==="available"&&ratio>=1)return false;
-    if(resourceLoadFilter==="unallocated"&&hasAlloc)return false;
-    return true;
-  });
+ const q=resourceQuarters(1)[0],needle=resourceSearch.trim().toLowerCase();
+ return db.team.filter(m=>{
+   if(m.actif===false||m.Actif===false)return false;
+   if(resourceTeamFilter!=="all"&&teamRefLabel(m)!==resourceTeamFilter)return false;
+   if(resourceRoleFilter!=="all"&&String(m.role??m.Role??"")!==resourceRoleFilter)return false;
+   if(needle&&!`${m.nom||m.Nom||""} ${m.role||m.Role||""} ${teamRefLabel(m)}`.toLowerCase().includes(needle))return false;
+   const has=resourceHasAllocation(m.id),status=resourceStatus(resourceRatio(m,q),has);
+   return resourceQuickFilter==="all"||status===resourceQuickFilter;
+ });
+}
+function renderResourceKpis(){
+ const active=db.team.filter(m=>m.actif!==false&&m.Actif!==false),q=resourceQuarters(1)[0],cap=active.reduce((n,m)=>n+teamCapacity(m),0),load=active.reduce((n,m)=>n+resourceLoadForQuarter(m.id,q,"all"),0);
+ const over=active.filter(m=>resourceLoadForQuarter(m.id,q,"all")>teamCapacity(m)).length,available=active.filter(m=>resourceHasAllocation(m.id)&&resourceLoadForQuarter(m.id,q,"all")/teamCapacity(m)<.8).length;
+ $("resourceKpis").innerHTML=kpi("Ressources",active.length,"actives")+kpi("Charge totale",`${Math.round(load*100)/100} ETP`,`${cap?Math.round(load/cap*100):0}% de ${Math.round(cap*100)/100} ETP`)+kpi("Surchargées",over,over?"Arbitrage nécessaire":"Aucune tension")+kpi("Disponibles",available,"< 80% de charge");
+}
+function renderResourceAlerts(){
+ const qs=resourceQuarters(4),alerts=[];
+ db.team.filter(m=>m.actif!==false&&m.Actif!==false).forEach(m=>qs.forEach(q=>{const ratio=resourceLoadForQuarter(m.id,q,"all")/teamCapacity(m);if(ratio>1)alerts.push({m,q,ratio})}));
+ alerts.sort((a,b)=>b.ratio-a.ratio);
+ $("resourceAlerts").innerHTML=alerts.length?`<button class="resource-alert-summary" data-alert-filter="over"><strong>⚠ ${alerts.length} point${alerts.length>1?"s":""} de tension</strong><span>${alerts.slice(0,3).map(a=>`${esc(a.m.nom||a.m.Nom)} ${Math.round(a.ratio*100)}% en ${a.q.label}`).join(" · ")}</span></button>`:`<div class="resource-alert-ok">✓ Aucun dépassement de capacité détecté sur les 4 prochains trimestres.</div>`;
+ const b=document.querySelector("[data-alert-filter]");if(b)b.onclick=()=>{resourceQuickFilter="over";resourceViewMode="people";renderResources()}
+}
+function renderQuickFilters(){
+ const q=resourceQuarters(1)[0],active=db.team.filter(m=>m.actif!==false&&m.Actif!==false),counts={all:active.length,over:0,normal:0,available:0,unallocated:0};
+ active.forEach(m=>counts[resourceStatus(resourceLoadForQuarter(m.id,q,"all")/teamCapacity(m),resourceHasAllocation(m.id))]++);
+ $("resourceQuickFilters").innerHTML=[["all","Toutes"],["over","🔴 Surchargées"],["available","🟢 Disponibles"],["normal","🟡 Charge normale"],["unallocated","⚪ Non allouées"]].map(([k,l])=>`<button class="resource-chip ${resourceQuickFilter===k?"active":""}" data-rq="${k}">${l} <b>${counts[k]}</b></button>`).join("");
+ document.querySelectorAll("[data-rq]").forEach(b=>b.onclick=()=>{resourceQuickFilter=b.dataset.rq;renderResources()});
+}
+function miniQuarter(m,q){const cap=teamCapacity(m),load=resourceLoadForQuarter(m.id,q,resourceProjectFilter),r=cap?load/cap:0,s=resourceStatus(r,resourceHasAllocation(m.id));return`<div class="mini-quarter ${s}"><span>${q.label.replace(" ","-")}</span><strong>${Math.round(r*100)}%</strong></div>`}
+function renderPeople(){
+ const ms=filteredResources(),q=resourceQuarters(1)[0],future=resourceQuarters(4);
+ $("resourcePeopleView").innerHTML=ms.length?`<div class="resource-list">${ms.map(m=>{const cap=teamCapacity(m),load=resourceLoadForQuarter(m.id,q,resourceProjectFilter),ratio=cap?load/cap:0,has=resourceHasAllocation(m.id),status=resourceStatus(ratio,has),n=db.allocations.filter(a=>id(a.Ressource_Code)===m.id).length;return`<button class="resource-person-card" data-resource="${m.id}"><div class="resource-avatar">${esc((m.nom||m.Nom||"?").trim().slice(0,1).toUpperCase())}</div><div class="resource-person-main"><div class="resource-person-title"><strong>${esc(m.nom||m.Nom||"#"+m.id)}</strong><span>${esc(m.role??m.Role??"")}</span></div><div class="muted">${esc(teamRefLabel(m))} · ${cap} ETP · ${n?n+" allocation(s)":"Aucune allocation"}</div></div><div class="resource-current"><div class="load-bar"><i style="width:${Math.min(100,Math.round(ratio*100))}%"></i></div><strong>${Math.round(ratio*100)}%</strong><span class="status-pill ${status}">${resourceStatusIcon(status)} ${resourceStatusLabel(status)}</span></div><div class="resource-future">${future.map(x=>miniQuarter(m,x)).join("")}</div><span class="resource-chevron">›</span></button>`}).join("")}</div>`:'<div class="empty">Aucune ressource ne correspond aux filtres.</div>';
+ bindResourceOpen();
+}
+function renderLoadPlan(){
+ const ms=filteredResources(),qs=resourceQuarters(8);
+ $("resourceLoadView").innerHTML=ms.length?`<div class="resource-load-head"><div><h2>Plan de charge</h2><p>8 prochains trimestres · charge / capacité ETP</p></div></div><div class="resource-matrix-wrap"><table class="resource-matrix"><thead><tr><th class="sticky-col">Ressource</th><th>Capacité</th>${qs.map(q=>`<th>${q.label}</th>`).join("")}</tr></thead><tbody>${ms.map(m=>`<tr><td class="sticky-col"><button class="resource-link" data-resource="${m.id}">${esc(m.nom||m.Nom||"#"+m.id)}</button><small>${esc(teamRefLabel(m))}</small></td><td>${teamCapacity(m)} ETP</td>${qs.map(q=>{const cap=teamCapacity(m),l=resourceLoadForQuarter(m.id,q,resourceProjectFilter),r=cap?l/cap:0,s=resourceStatus(r,resourceHasAllocation(m.id));return`<td><div class="capacity-cell ${s}"><div class="capacity-fill" style="width:${Math.min(100,r*100)}%"></div><strong>${Math.round(r*100)}%</strong><span>${Math.round(l*100)/100} ETP</span></div></td>`}).join("")}</tr>`).join("")}</tbody></table></div>`:'<div class="empty">Aucune ressource.</div>';
+ bindResourceOpen();
+}
+function renderTeams(){
+ const ms=filteredResources(),qs=resourceQuarters(4),groups={};ms.forEach(m=>(groups[teamRefLabel(m)]??=[]).push(m));
+ $("resourceTeamsView").innerHTML=Object.entries(groups).map(([name,members])=>{const cap=members.reduce((n,m)=>n+teamCapacity(m),0),loads=qs.map(q=>members.reduce((n,m)=>n+resourceLoadForQuarter(m.id,q,resourceProjectFilter),0)),over=members.filter(m=>resourceRatio(m)>1).length,unalloc=members.filter(m=>!resourceHasAllocation(m.id)).length;return`<article class="team-capacity-card"><div class="team-card-head"><div><h3>${esc(name)}</h3><span>${members.length} ressources · ${Math.round(cap*100)/100} ETP</span></div><div><b>${over}</b> surcharge(s) · <b>${unalloc}</b> non allouée(s)</div></div><div class="team-quarter-grid">${qs.map((q,i)=>{const r=cap?loads[i]/cap:0;return`<div><span>${q.label}</span><div class="team-load-bar"><i style="width:${Math.min(100,r*100)}%"></i></div><strong class="${r>1?"danger-text":""}">${Math.round(r*100)}%</strong><small>${Math.round(loads[i]*100)/100} / ${Math.round(cap*100)/100} ETP</small></div>`}).join("")}</div><div class="team-members">${members.slice(0,8).map(m=>`<button data-resource="${m.id}">${esc(m.nom||m.Nom||"#"+m.id)}</button>`).join("")}</div></article>`}).join("")||'<div class="empty">Aucune équipe.</div>';
+ bindResourceOpen();
+}
+function bindResourceOpen(){document.querySelectorAll("[data-resource]").forEach(b=>b.onclick=()=>openResourceDrawer(Number(b.dataset.resource)))}
+function openResourceDrawer(mid){selectedResourceId=mid;renderResourceDetail(mid);$("resourceDrawerBackdrop").classList.remove("hidden");$("resourceDrawer").classList.add("open");$("resourceDrawer").setAttribute("aria-hidden","false")}
+function closeResourceDrawer(){$("resourceDrawerBackdrop").classList.add("hidden");$("resourceDrawer").classList.remove("open");$("resourceDrawer").setAttribute("aria-hidden","true")}
+function renderResourceDetail(mid){
+ const m=get("team",mid);if(!m)return;const as=db.allocations.filter(a=>id(a.Ressource_Code)===mid).sort((a,b)=>(allocationStart(a)||0)-(allocationStart(b)||0)),qs=resourceQuarters(4),cap=teamCapacity(m),loads=qs.map(q=>resourceLoadForQuarter(mid,q,"all")),peak=Math.max(0,...loads.map(l=>l/cap));
+ $("resourceDrawerContent").innerHTML=`<div class="drawer-profile"><div class="drawer-avatar">${esc((m.nom||m.Nom||"?").slice(0,1).toUpperCase())}</div><h2>${esc(m.nom||m.Nom||"#"+mid)}</h2><p>${esc(m.role??m.Role??"")} · ${esc(teamRefLabel(m))}</p></div><div class="drawer-kpis"><div><b>${cap}</b><span>ETP capacité</span></div><div><b class="${peak>1?"danger-text":""}">${Math.round(peak*100)}%</b><span>pic 4 trim.</span></div><div><b>${as.length}</b><span>allocation(s)</span></div></div><h3>Prochains trimestres</h3><div class="drawer-quarter-grid">${qs.map((q,i)=>`<div><span>${q.label}</span><strong>${Math.round(loads[i]/cap*100)}%</strong><small>${Math.round(loads[i]*100)/100} ETP</small></div>`).join("")}</div><h3>Allocations</h3>${as.length?`<div class="allocation-list">${as.map(a=>{const p=get("projects",id(a.Projet_Code));return`<div class="allocation-card"><div><strong>${esc(p?.nom||p?.code||"Projet #"+id(a.Projet_Code))}</strong><div class="muted">${esc(a.Role||a.role||"")}<br>${dt(allocationStart(a))} → ${dt(allocationEnd(a))}</div></div><span>${Math.round(allocFraction(a.Allocation)*100)}%</span></div>`}).join("")}</div>`:'<div class="resource-no-allocation"><b>Disponible</b><span>Aucune allocation enregistrée.</span></div>'}`;
 }
 function renderResources(){
-  if(!$("resourcesView"))return;
-  populateResourceFilters();
-  const qs=resourceQuarters(),members=filteredResources();
-  const allActive=db.team.filter(m=>m.actif!==false&&m.Actif!==false);
-  const cap=allActive.reduce((n,m)=>n+teamCapacity(m),0);
-  const q=qs[0],load=allActive.reduce((n,m)=>n+resourceLoadForQuarter(m.id,q,"all"),0);
-  const over=allActive.filter(m=>resourceLoadForQuarter(m.id,q,"all")>teamCapacity(m)).length;
-  const unallocated=allActive.filter(m=>!db.allocations.some(a=>id(a.Ressource_Code)===m.id)).length;
-  $("resourceKpis").innerHTML=kpi("Capacité totale",`${Math.round(cap*100)/100} ETP`,q.label)+kpi("Charge planifiée",`${Math.round(load*100)/100} ETP`,`${cap?Math.round(load/cap*100):0}% de la capacité`)+kpi("Ressources en surcharge",over,over?"À arbitrer":"Aucune tension")+kpi("Non allouées",unallocated,"Aucune allocation enregistrée");
-  if(!members.length){$("resourceMatrix").innerHTML='<div class="empty">Aucune ressource ne correspond aux filtres.</div>';return}
-  $("resourceMatrix").innerHTML=`<table class="resource-matrix"><thead><tr><th class="sticky-col">Ressource</th><th>Équipe</th><th>Rôle</th><th>Capacité</th>${qs.map(q=>`<th>${q.label}</th>`).join("")}</tr></thead><tbody>${members.map(m=>{
-    const cap=teamCapacity(m);
-    return `<tr data-resource-row="${m.id}" class="${selectedResourceId===m.id?"selected":""}"><td class="sticky-col"><button class="resource-link" data-resource="${m.id}">${esc(m.nom||m.Nom||"#"+m.id)}</button></td><td>${esc(teamRefLabel(m))}</td><td>${esc(m.role??m.Role??"—")}</td><td>${cap} ETP</td>${qs.map(q=>{const l=resourceLoadForQuarter(m.id,q,resourceProjectFilter),ratio=cap?l/cap:0,cls=ratio>1?"over":ratio>=.8?"busy":ratio>0?"normal":"free";return`<td><div class="quarter-load ${cls}" title="${Math.round(l*100)/100} ETP / ${cap} ETP"><strong>${Math.round(ratio*100)}%</strong><span>${Math.round(l*100)/100} ETP</span></div></td>`}).join("")}</tr>`
-  }).join("")}</tbody></table>`;
-  document.querySelectorAll("[data-resource]").forEach(b=>b.onclick=()=>{selectedResourceId=Number(b.dataset.resource);renderResources();renderResourceDetail(selectedResourceId)});
-  if(selectedResourceId&&members.some(m=>m.id===selectedResourceId))renderResourceDetail(selectedResourceId);
-  else if(!selectedResourceId&&members.length){selectedResourceId=members[0].id;renderResourceDetail(selectedResourceId)}
-}
-function renderResourceDetail(mid){
-  const m=get("team",mid);if(!m){$("resourceDetail").innerHTML='<div class="empty">Ressource introuvable.</div>';return}
-  const as=db.allocations.filter(a=>id(a.Ressource_Code)===mid).sort((a,b)=>(allocationStart(a)||0)-(allocationStart(b)||0));
-  const qs=resourceQuarters(4),cap=teamCapacity(m),peak=Math.max(0,...qs.map(q=>resourceLoadForQuarter(mid,q,"all")/cap));
-  $("resourceDetail").innerHTML=`<div class="resource-profile"><h3>${esc(m.nom||m.Nom||"#"+mid)}</h3><div class="muted">${esc(m.role??m.Role??"")} · ${esc(teamRefLabel(m))}</div>
-    <div class="resource-profile-kpis"><div><b>${cap}</b><span>ETP capacité</span></div><div><b>${Math.round(peak*100)}%</b><span>pic 4 trim.</span></div><div><b>${as.length}</b><span>allocation(s)</span></div></div>
-    <h4>Allocations</h4>${as.length?`<div class="allocation-list">${as.map(a=>{const p=get("projects",id(a.Projet_Code));return`<div class="allocation-card"><div><strong>${esc(p?.nom||p?.code||"Projet #"+id(a.Projet_Code))}</strong><div class="muted">${esc(a.Role||a.role||"")} · ${dt(allocationStart(a))} → ${dt(allocationEnd(a))}</div></div><span>${Math.round(allocFraction(a.Allocation)*100)}%</span></div>`}).join("")}</div>`:'<div class="empty">Aucune allocation.</div>'}
-  </div>`;
+ if(!$("resourcesView"))return;populateResourceFilters();renderResourceKpis();renderResourceAlerts();renderQuickFilters();
+ document.querySelectorAll("[data-resource-view]").forEach(b=>b.classList.toggle("active",b.dataset.resourceView===resourceViewMode));
+ $("resourcePeopleView").classList.toggle("hidden",resourceViewMode!=="people");$("resourceLoadView").classList.toggle("hidden",resourceViewMode!=="load");$("resourceTeamsView").classList.toggle("hidden",resourceViewMode!=="teams");
+ if(resourceViewMode==="people")renderPeople();if(resourceViewMode==="load")renderLoadPlan();if(resourceViewMode==="teams")renderTeams();
 }
 
 function switchMainTab(tab){
@@ -1079,15 +1073,12 @@ $("serviceFilter").addEventListener("change",e=>{serviceFilter=e.target.value;po
 document.querySelectorAll("[data-detail-tab]").forEach(b=>b.onclick=()=>switchDetailTab(b.dataset.detailTab));
 
 
-["resourceTeamFilter","resourceRoleFilter","resourceProjectFilter","resourceLoadFilter"].forEach(fid=>{
-  $(fid).addEventListener("change",e=>{
-    if(fid==="resourceTeamFilter")resourceTeamFilter=e.target.value;
-    if(fid==="resourceRoleFilter")resourceRoleFilter=e.target.value;
-    if(fid==="resourceProjectFilter")resourceProjectFilter=e.target.value;
-    if(fid==="resourceLoadFilter")resourceLoadFilter=e.target.value;
-    renderResources();
-  });
+["resourceTeamFilter","resourceRoleFilter","resourceProjectFilter"].forEach(fid=>{
+  $(fid).addEventListener("change",e=>{if(fid==="resourceTeamFilter")resourceTeamFilter=e.target.value;if(fid==="resourceRoleFilter")resourceRoleFilter=e.target.value;if(fid==="resourceProjectFilter")resourceProjectFilter=e.target.value;renderResources()});
 });
+$("resourceSearch").addEventListener("input",e=>{resourceSearch=e.target.value;renderResources()});
+document.querySelectorAll("[data-resource-view]").forEach(b=>b.onclick=()=>{resourceViewMode=b.dataset.resourceView;renderResources()});
+$("resourceDrawerClose").onclick=closeResourceDrawer;$("resourceDrawerBackdrop").onclick=closeResourceDrawer;
 
 grist.ready({requiredAccess:"full"});grist.onOptions(()=>load());load();
 
