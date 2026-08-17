@@ -529,8 +529,13 @@ Nouvelle ergonomie :
 - les ressources sans allocation restent visibles et identifiées comme « Non allouées ».
 
 
-## Correctif — création de fonctionnalité depuis une fiche Projet
-- Le bouton `+ Nouvelle fonctionnalité` fonctionne pour les parents de type Projet comme Produit.
-- Le branchement du bouton est indépendant des autres contrôles de la page et résiste aux rerendus.
-- Le formulaire expose `Categ_module` avec le libellé **Module** pour un Projet et **Catégorie** pour un Produit.
-- La création conserve le parent courant dans `Fonctionnalites` via le champ de référence détecté.
+## v5.2.1 — Correctif réel Nouvelle fonctionnalité
+Cause racine corrigée : `openFeature()` utilisait `featureForm.Releases`, mais le formulaire Fonctionnalité ne contenait aucun champ `Releases`. L'appel à `fillMulti()` levait donc une erreur JavaScript avant `showModal()`.
+
+Corrections :
+- ajout du sélecteur `Release(s)` au formulaire Fonctionnalité ;
+- garde défensive si le champ Releases n'est pas présent ;
+- lecture sûre de `selectedOptions` ;
+- bouton `+ Nouvelle fonctionnalité` actif sur Projet et Produit ;
+- ajout de `Fonctionnalites.Categ_module` ;
+- libellé dynamique `Module` pour Projet / `Catégorie` pour Produit.
