@@ -680,7 +680,8 @@ function openFeature(fid=null){
   const p=get("projects",currentProjectId);if(!p){banner("Sélectionne un Projet ou un Produit.");return}
   const f=$("featureForm"),row=fid?get("features",fid):null;f.reset();f.id.value=fid||"";
   $("featureDialogTitle").textContent=row?"Modifier la fonctionnalité":"Nouvelle fonctionnalité";
-  if(row){["Code","Nom","Description","Priorite"].forEach(k=>f[k].value=row[k]??"");f.Progression.value=pct(row.Progression);f.Date_Debut.value=din(row.Date_Debut||row.dateDebut);f.Date_Fin.value=din(row.Date_Fin||row.dateFin);f.Date_Cible.value=din(row.Date_Cible);f.Actif.value=String(row.Actif!==false)}
+  $("featureCategModuleLabel").childNodes[0].nodeValue=typeOf(p)==="produit"?"Catégorie ":"Module ";
+  if(row){["Code","Nom","Categ_module","Description","Priorite"].forEach(k=>f[k].value=row[k]??"");f.Progression.value=pct(row.Progression);f.Date_Debut.value=din(row.Date_Debut||row.dateDebut);f.Date_Fin.value=din(row.Date_Fin||row.dateFin);f.Date_Cible.value=din(row.Date_Cible);f.Actif.value=String(row.Actif!==false)}
   else{f.Progression.value=0;f.Actif.value="true"}
   opt(f.stade,db.featureStages,r=>r.Nom,row?id(row.stade):null,"— stade —");
   opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");
@@ -690,7 +691,7 @@ function openFeature(fid=null){
 $("featureForm").onsubmit=async e=>{
   e.preventDefault();
   const f=e.currentTarget,fid=Number(f.id.value)||null;
-  const fields={Code:f.Code.value,Nom:f.Nom.value,Description:f.Description.value,stade:f.stade.value?Number(f.stade.value):null,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(f.Date_Debut.value),Date_Fin:gd(f.Date_Fin.value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
+  const fields={Code:f.Code.value,Nom:f.Nom.value,Categ_module:f.Categ_module.value,Description:f.Description.value,stade:f.stade.value?Number(f.stade.value):null,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(f.Date_Debut.value),Date_Fin:gd(f.Date_Fin.value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
   fields[featureParentField()]=currentProjectId;
   const selected=[...f.Releases.selectedOptions].map(o=>Number(o.value));
   $("featureDialog").close();
@@ -1063,7 +1064,15 @@ $("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer(
 $("editProjectBtn").onclick=()=>openProject(false);$("newProjectBtn").onclick=()=>openProject(true);
 $("deleteProjectBtn").onclick=deleteProject;
 $("newTaskBtn").onclick=()=>openTask();$("newStageTaskBtn").onclick=()=>openTask();
-$("addContributionBtn").onclick=openContribution;$("newFeatureBtn").onclick=()=>openFeature();$("newReleaseBtn").onclick=()=>openRelease();$("summaryFeatureBtn").onclick=()=>switchDetailTab("features");
+if($("addContributionBtn")) $("addContributionBtn").onclick=openContribution;
+if($("newReleaseBtn")) $("newReleaseBtn").onclick=()=>openRelease();
+if($("summaryFeatureBtn")) $("summaryFeatureBtn").onclick=()=>switchDetailTab("features");
+document.addEventListener("click",e=>{
+  const b=e.target.closest?.("#newFeatureBtn");
+  if(!b)return;
+  e.preventDefault();
+  openFeature();
+});
 document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{taskFilter=b.dataset.taskFilter;document.querySelectorAll("[data-task-filter]").forEach(x=>x.classList.toggle("active",x===b));tasks(taskRows(currentProjectId))});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const d=$(b.dataset.close);if(d?.open)d.close()});
 
