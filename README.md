@@ -567,3 +567,17 @@ Ajout d'une console de diagnostic intégrée au Cockpit :
 - `Copier` pour transmettre les logs lors d'un diagnostic ;
 - `Vider les logs` pour supprimer immédiatement les logs de la session.
 Les logs restent en mémoire dans le navigateur et ne sont pas enregistrés dans Grist.
+
+
+## v5.4.4 — Correctif boutons allocations
+Deux causes racines corrigées :
+- `allocationStart(null)` / `allocationEnd(null)` faisaient échouer `+ Nouvelle allocation` avant l'ouverture du dialog ;
+- le champ `name="id"` du formulaire entrait en conflit avec la propriété native `HTMLFormElement.id`. Il devient `allocation_id` et est lu via `form.elements`.
+La console de logs indique désormais le branchement et le clic des boutons Ajouter / Modifier / Supprimer.
+
+
+## v5.4.5 — Correctifs issus de la console de logs
+Corrections appliquées à partir des erreurs réelles remontées :
+- `banner is not a function` : remplacement par `notifyBanner()`, helper sûr qui utilise le DOM si la bannière existe et retombe sur la console de logs sinon ;
+- `#docsView` absent : les accès à cette vue deviennent optionnels et ne bloquent plus le Cockpit ;
+- conservation du correctif `allocationStart(null)` / `allocationEnd(null)` et du champ `allocation_id`.

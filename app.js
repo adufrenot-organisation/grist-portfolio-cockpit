@@ -1,5 +1,5 @@
 
-const VERSION="5.4.3";
+const VERSION="5.4.5";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -30,6 +30,24 @@ function renderPmoLogs(){
 }
 function clearPmoLogs(){pmoLogs.length=0;renderPmoLogs()}
 function pmoLogsText(){return pmoLogs.map(x=>`${x.ts} [${x.level}] ${x.message}${x.details!=null?" | "+(typeof x.details==="string"?x.details:JSON.stringify(x.details)):""}`).join("\n")}
+
+function notifyBanner(message,type="info"){
+  try{
+    const el=document.getElementById("banner");
+    if(el){
+      el.textContent=String(message??"");
+      el.className="banner "+(type||"info");
+      el.classList.remove("hidden");
+      clearTimeout(notifyBanner._t);
+      notifyBanner._t=setTimeout(()=>el.classList.add("hidden"),2600);
+      return;
+    }
+  }catch(e){pmoWarn("Impossible d'afficher la bannière",e)}
+  if(type==="error")pmoError(String(message));
+  else if(type==="warn")pmoWarn(String(message));
+  else pmoInfo(String(message));
+}
+
 window.addEventListener("error",e=>pmoError("Erreur JavaScript",{message:e.message,source:e.filename,line:e.lineno,column:e.colno}));
 window.addEventListener("unhandledrejection",e=>pmoError("Promesse rejetée",e.reason));
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
@@ -39,6 +57,7 @@ const $=id=>{
   if(!el) throw new Error(`Élément UI introuvable: #${id}`);
   return el;
 };
+function optionalEl(id){return document.getElementById(id)}
 function rows(d){if(!d||!Array.isArray(d.id))return[];const ks=Object.keys(d);return d.id.map((_,i)=>Object.fromEntries(ks.map(k=>[k,Array.isArray(d[k])?d[k][i]:d[k]])))}
 async function fetchTable(k,t){
   try{
@@ -109,10 +128,11 @@ function filteredProjects(filter=typeFilter){return db.projects.filter(p=>{
   return true;
 })}
 
+pmoWarn("Double appel load détecté mais garde non injectée automatiquement");
 async function load(){pmoInfo("Chargement des données Grist démarré");
   try{
   const es=await Promise.all(Object.entries(T).map(async([k,t])=>[k,await fetchTable(k,t)]));db=Object.fromEntries(es);
-  if(!db.projects.length){banner("Projects est vide ou inaccessible.");return}
+  if(!db.projects.length){notifyBanner("Projects est vide ou inaccessible.");return}
   if(!currentProjectId||!get("projects",currentProjectId))currentProjectId=db.projects[0].id;
   populatePortfolioFilters();
   populateProjectSelect();
@@ -122,7 +142,7 @@ async function load(){pmoInfo("Chargement des données Grist démarré");
   switchMainTab(currentTab);
   }catch(e){
     console.error("Erreur de chargement cockpit",e);
-    banner(`Erreur de chargement : ${e?.message||e}`);
+    notifyBanner(`Erreur de chargement : ${e?.message||e}`);
   }
 }
 function visibleProjects(){
@@ -152,7 +172,7 @@ async function openDocAttachment(attId){
     if(!base||!docId)throw new Error("Accès pièce jointe indisponible.");
     const url=`${base}/api/docs/${encodeURIComponent(docId)}/attachments/${encodeURIComponent(attId)}/download?auth=${encodeURIComponent(tokenInfo.token)}`;
     window.open(url,"_blank","noopener,noreferrer");
-  }catch(e){console.error(e);banner(`Impossible d'ouvrir la pièce jointe : ${e?.message||e}`);}
+  }catch(e){console.error(e);notifyBanner(`Impossible d'ouvrir la pièce jointe : ${e?.message||e}`);}
 }
 function renderDocumentation(){
   const error=tableLoadErrors.documentation;
@@ -647,7 +667,7 @@ async function syncReleaseFeatures(rid,selectedFeatureIds){
 
 /* ---------- Releases (Projet / Produit) ---------- */
 function openRelease(rid=null){
-  const p=get("projects",currentProjectId);if(!p){banner("Sélectionne un Projet ou un Produit.");return}
+  const p=get("projects",currentProjectId);if(!p){notifyBanner("Sélectionne un Projet ou un Produit.");return}
   const f=$("releaseForm"),row=rid?get("releases",rid):null;f.reset();f.id.value=rid||"";
   $("releaseDialogTitle").textContent=row?"Modifier la release":"Nouvelle release";
   if(row){
@@ -697,7 +717,7 @@ $("releaseFeaturesForm").onsubmit=async e=>{
   existing.filter(x=>!selectedIds.has(id(x.fonctionnalite))).forEach(x=>actions.push(["RemoveRecord","Release_Fonctionnalites",x.id]));
   selected.filter(fid=>!existingIds.has(fid)).forEach((fid,i)=>actions.push(["AddRecord","Release_Fonctionnalites",null,{release:rid,fonctionnalite:fid,Ordre:i+1}]));
   $("releaseFeaturesDialog").close();
-  if(actions.length)await apply(actions,"Fonctionnalités de la release mises à jour.");else banner("Aucun changement.");
+  if(actions.length)await apply(actions,"Fonctionnalités de la release mises à jour.");else notifyBanner("Aucun changement.");
 }
 async function deleteRelease(rid){
   const links=releaseFeatureRows(rid);
@@ -709,7 +729,7 @@ async function deleteRelease(rid){
 
 /* ---------- Fonctionnalités (Projet / Produit) ---------- */
 function openFeature(fid=null){
-  const p=get("projects",currentProjectId);if(!p){banner("Sélectionne un Projet ou un Produit.");return}
+  const p=get("projects",currentProjectId);if(!p){notifyBanner("Sélectionne un Projet ou un Produit.");return}
   const f=$("featureForm"),row=fid?get("features",fid):null;f.reset();f.id.value=fid||"";
   $("featureDialogTitle").textContent=row?"Modifier la fonctionnalité":"Nouvelle fonctionnalité";
   if($("featureCategModuleLabel")) $("featureCategModuleLabel").childNodes[0].nodeValue=typeOf(p)==="produit"?"Catégorie ":"Module ";
@@ -793,12 +813,12 @@ async function apply(actions,msg){
       }else throw e;
     }
     await load();
-    banner(msg);
+    notifyBanner(msg);
     setTimeout(()=>{if(!busy)hideBanner()},1700);
     return true;
   }catch(e){
     console.error(e);
-    banner(`Erreur Grist: ${e?.message||e}`);
+    notifyBanner(`Erreur Grist: ${e?.message||e}`);
     return false;
   }finally{
     busy=false;document.body.classList.remove("busy");
@@ -892,7 +912,7 @@ $("projectForm").onsubmit=async e=>{
     const fields=projectWritableFields(rawFields,before);
     if(!Object.keys(fields).length){
       $("projectDialog").close();
-      banner("Aucune modification à enregistrer.");
+      notifyBanner("Aucune modification à enregistrer.");
       return;
     }
     const ok=await apply([["UpdateRecord","Projects",rid,fields]],"Projet / Produit mis à jour.");
@@ -930,9 +950,9 @@ $("projectForm").onsubmit=async e=>{
       document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x.dataset.typeFilter==="all"));
       populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject();
     }
-    banner("Projet / Produit créé.");
+    notifyBanner("Projet / Produit créé.");
   }catch(e){
-    console.error(e);banner(`Erreur Grist: ${e?.message||e}`);
+    console.error(e);notifyBanner(`Erreur Grist: ${e?.message||e}`);
   }finally{
     busy=false;document.body.classList.remove("busy");
   }
@@ -993,8 +1013,8 @@ let resourceViewMode="people",resourceQuickFilter="all",resourceSearch="";
 function allocFraction(v){let n=Number(v||0);return Number.isFinite(n)?(n>2?n/100:n):0}
 function teamCapacity(m){let n=Number(m?.capacite_ETP??m?.Capacite_ETP??m?.capacite??1);return Number.isFinite(n)&&n>0?n:1}
 function teamRefLabel(m){const rid=id(m?.equipe??m?.Equipe??m?.Equipe_Code??m?.Team_ref),r=rid?get("teamRef",rid):null;return r?.Libelle||r?.Nom||r?.Code||m?.equipe_libelle||"Sans équipe"}
-function allocationStart(a){return dms(a.Date_Debut??a.dateDebut??a.DateDebut)}
-function allocationEnd(a){return dms(a.Date_Fin??a.dateFin??a.DateFin)}
+function allocationStart(a){return a?dms(a.Date_Debut??a.dateDebut??a.DateDebut):null}
+function allocationEnd(a){return a?dms(a.Date_Fin??a.dateFin??a.DateFin):null}
 function quarterStart(y,q){return Date.UTC(y,(q-1)*3,1)}
 function quarterEnd(y,q){return Date.UTC(y,q*3,1)-1}
 function resourceQuarters(count=8,offset=0){const now=new Date(),y=now.getUTCFullYear(),q=Math.floor(now.getUTCMonth()/3)+1,out=[];for(let i=offset;i<count+offset;i++){const qi=q+i,yy=y+Math.floor((qi-1)/4),qq=((qi-1)%4)+1;out.push({y:yy,q:qq,start:quarterStart(yy,qq),end:quarterEnd(yy,qq),label:`T${qq} ${yy}`})}return out}
@@ -1066,12 +1086,13 @@ function allocationColumnSet(){
   return new Set(cols);
 }
 function openAllocationDialog(a=null,defaults={}){
+  pmoInfo("Ouverture formulaire allocation",{mode:a?"edit":"create",allocationId:a?.id||null,defaults});
   const f=$("allocationForm");
   if(!f){msg("Formulaire d'allocation indisponible.",true);return}
   const resourceId=a?id(a.Ressource_Code):(defaults.resourceId||selectedResourceId||null);
   const projectId=a?id(a.Projet_Code):(defaults.projectId||currentProjectId||null);
 
-  f.id.value=a?.id||"";
+  f.elements.allocation_id.value=a?.id||"";
   f.Ressource_Code.innerHTML='<option value="">Choisir…</option>'+db.team.map(x=>`<option value="${x.id}">${esc(x.nom||x.Nom||"#"+x.id)}</option>`).join("");
   f.Projet_Code.innerHTML='<option value="">Choisir…</option>'+db.projects.map(x=>`<option value="${x.id}">${esc(x.nom||x.code||"#"+x.id)} · ${typeOf(x)==="produit"?"Produit":"Projet"}</option>`).join("");
   f.Ressource_Code.value=resourceId||"";
@@ -1084,10 +1105,12 @@ function openAllocationDialog(a=null,defaults={}){
   $("allocationDialog").showModal();
 }
 function bindAllocationActions(){
-  document.querySelectorAll("[data-new-allocation]").forEach(b=>b.onclick=()=>openAllocationDialog(null,{resourceId:Number(b.dataset.newAllocation)}));
-  document.querySelectorAll("[data-edit-allocation]").forEach(b=>b.onclick=()=>openAllocationDialog(get("allocations",Number(b.dataset.editAllocation))));
-  document.querySelectorAll("[data-delete-allocation]").forEach(b=>b.onclick=async()=>{
-    const aid=Number(b.dataset.deleteAllocation),a=get("allocations",aid);
+  const adds=document.querySelectorAll("[data-new-allocation]"),edits=document.querySelectorAll("[data-edit-allocation]"),deletes=document.querySelectorAll("[data-delete-allocation]");
+  pmoInfo("Boutons allocations branchés",{add:adds.length,edit:edits.length,delete:deletes.length});
+  adds.forEach(b=>b.onclick=()=>{const rid=Number(b.dataset.newAllocation);pmoInfo("Nouvelle allocation cliquée",{resourceId:rid});openAllocationDialog(null,{resourceId:rid})});
+  edits.forEach(b=>b.onclick=()=>{const aid=Number(b.dataset.editAllocation);pmoInfo("Modifier allocation cliqué",{allocationId:aid});openAllocationDialog(get("allocations",aid))});
+  deletes.forEach(b=>b.onclick=async()=>{
+    const aid=Number(b.dataset.deleteAllocation),a=get("allocations",aid);pmoInfo("Supprimer allocation cliqué",{allocationId:aid,found:Boolean(a)});
     if(!a||!confirm("Supprimer cette allocation ?"))return;
     await apply([["RemoveRecord","Allocations",aid]],"Allocation supprimée.");
     if(selectedResourceId)renderResourceDetail(selectedResourceId);
@@ -1111,13 +1134,13 @@ function switchMainTab(tab){
   $("projectView").classList.toggle("hidden",tab!=="project");
   $("offerView").classList.toggle("hidden",tab!=="offer");
   $("resourcesView").classList.toggle("hidden",tab!=="resources");
-  $("docsView").classList.toggle("hidden",tab!=="docs");
+  optionalEl("docsView")?.classList.toggle("hidden",tab!=="docs");
   if(tab==="resources"){renderResources()}
   if(tab==="docs"){
     try{renderDocumentation()}
     catch(e){
       console.error("Erreur onglet Documentation",e);
-      $("docsView").classList.remove("hidden");
+      optionalEl("docsView")?.classList.remove("hidden");
       const s=$("docsStatus");s.classList.remove("hidden");
       s.innerHTML=`<strong>Erreur d'affichage Documentation</strong><div class="muted">${esc(e?.message||e)}</div>`;
     }
@@ -1147,8 +1170,9 @@ $("resourceSearch").addEventListener("input",e=>{resourceSearch=e.target.value;r
 document.querySelectorAll("[data-resource-view]").forEach(b=>b.onclick=()=>{resourceViewMode=b.dataset.resourceView;renderResources()});
 
 $("allocationForm").onsubmit=async e=>{
+  pmoInfo("Soumission formulaire allocation");
   e.preventDefault();
-  const f=e.currentTarget,aid=Number(f.id.value)||null;
+  const f=e.currentTarget,aid=Number(f.elements.allocation_id.value)||null;
   const fields={
     Ressource_Code:Number(f.Ressource_Code.value),
     Projet_Code:Number(f.Projet_Code.value),
