@@ -600,3 +600,8 @@ Correction ciblée :
 - le champ caché du seul formulaire `allocationDialog` est renommé `allocation_id` ;
 - le reste des formulaires du Cockpit n'est pas modifié ;
 - log supplémentaire des champs réellement détectés à l'ouverture du formulaire.
+
+
+## v5.4.8 — Correctif suppression Allocation
+La croix rouge envoie désormais directement l'action Grist `RemoveRecord` sur la table `Allocations`, journalise l'envoi et la réponse, recharge les données puis rafraîchit le détail ressource.
+En cas d'échec, l'erreur est visible dans la console de logs et dans la bannière.

@@ -1,5 +1,5 @@
 
-const VERSION="5.4.7";
+const VERSION="5.4.8";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -1120,10 +1120,24 @@ function bindAllocationActions(){
   adds.forEach(b=>b.onclick=()=>{const rid=Number(b.dataset.newAllocation);pmoInfo("Nouvelle allocation cliquée",{resourceId:rid});openAllocationDialog(null,{resourceId:rid})});
   edits.forEach(b=>b.onclick=()=>{const aid=Number(b.dataset.editAllocation);pmoInfo("Modifier allocation cliqué",{allocationId:aid});openAllocationDialog(get("allocations",aid))});
   deletes.forEach(b=>b.onclick=async()=>{
-    const aid=Number(b.dataset.deleteAllocation),a=get("allocations",aid);pmoInfo("Supprimer allocation cliqué",{allocationId:aid,found:Boolean(a)});
-    if(!a||!confirm("Supprimer cette allocation ?"))return;
-    await apply([["RemoveRecord","Allocations",aid]],"Allocation supprimée.");
-    if(selectedResourceId)renderResourceDetail(selectedResourceId);
+    const aid=Number(b.dataset.deleteAllocation),a=get("allocations",aid);
+    pmoInfo("Supprimer allocation cliqué",{allocationId:aid,found:Boolean(a)});
+    if(!a){pmoError("Allocation à supprimer introuvable",{allocationId:aid});return}
+    if(!confirm("Supprimer cette allocation ?")){
+      pmoInfo("Suppression allocation annulée",{allocationId:aid});
+      return;
+    }
+    try{
+      pmoInfo("Suppression Grist envoyée",{table:"Allocations",allocationId:aid});
+      await grist.docApi.applyUserActions([["RemoveRecord","Allocations",aid]]);
+      pmoInfo("Suppression Grist confirmée",{allocationId:aid});
+      notifyBanner("Allocation supprimée.");
+      await load();
+      if(selectedResourceId)renderResourceDetail(selectedResourceId);
+    }catch(e){
+      pmoError("Échec suppression allocation",{allocationId:aid,error:e});
+      notifyBanner(`Erreur suppression allocation : ${e?.message||e}`,"error");
+    }
   });
 }
 
