@@ -1,5 +1,5 @@
 
-const VERSION="5.4.0";
+const VERSION="5.4.1";
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
 let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all",resourceTeamFilter="all",resourceRoleFilter="all",resourceProjectFilter="all",resourceLoadFilter="all",selectedResourceId=null;
 const $=id=>{
@@ -1025,12 +1025,43 @@ function renderTeams(){
  $("resourceTeamsView").innerHTML=Object.entries(groups).map(([name,members])=>{const cap=members.reduce((n,m)=>n+teamCapacity(m),0),loads=qs.map(q=>members.reduce((n,m)=>n+resourceLoadForQuarter(m.id,q,resourceProjectFilter),0)),over=members.filter(m=>resourceRatio(m)>1).length,unalloc=members.filter(m=>!resourceHasAllocation(m.id)).length;return`<article class="team-capacity-card"><div class="team-card-head"><div><h3>${esc(name)}</h3><span>${members.length} ressources · ${Math.round(cap*100)/100} ETP</span></div><div><b>${over}</b> surcharge(s) · <b>${unalloc}</b> non allouée(s)</div></div><div class="team-quarter-grid">${qs.map((q,i)=>{const r=cap?loads[i]/cap:0;return`<div><span>${q.label}</span><div class="team-load-bar"><i style="width:${Math.min(100,r*100)}%"></i></div><strong class="${r>1?"danger-text":""}">${Math.round(r*100)}%</strong><small>${Math.round(loads[i]*100)/100} / ${Math.round(cap*100)/100} ETP</small></div>`}).join("")}</div><div class="team-members">${members.slice(0,8).map(m=>`<button data-resource="${m.id}">${esc(m.nom||m.Nom||"#"+m.id)}</button>`).join("")}</div></article>`}).join("")||'<div class="empty">Aucune équipe.</div>';
  bindResourceOpen();
 }
-function allocationColumns(){return new Set(tableLoadMeta.allocations?.columns||[])}
-function openAllocationDialog(a=null,defaults={}){const f=$("allocationForm"),rid=a?id(a.Ressource_Code):(defaults.resourceId||selectedResourceId||null),pid=a?id(a.Projet_Code):(defaults.projectId||currentProjectId||null);f.id.value=a?.id||"";f.Ressource_Code.innerHTML='<option value="">Choisir…</option>'+db.team.map(x=>`<option value="${x.id}">${esc(x.nom||x.Nom||"#"+x.id)}</option>`).join("");f.Projet_Code.innerHTML='<option value="">Choisir…</option>'+db.projects.map(x=>`<option value="${x.id}">${esc(x.nom||x.code||"#"+x.id)} · ${typeOf(x)==="produit"?"Produit":"Projet"}</option>`).join("");f.Ressource_Code.value=rid||"";f.Projet_Code.value=pid||"";f.Allocation.value=a?Math.round(allocFraction(a.Allocation)*100):100;f.Role.value=a?.Role??a?.role??"";f.Date_Debut.value=din(allocationStart(a));f.Date_Fin.value=din(allocationEnd(a));$("allocationDialogTitle").textContent=a?"Modifier l’allocation":"Nouvelle allocation";$("allocationDialog").showModal()}
-function bindAllocationActions(){document.querySelectorAll("[data-new-allocation]").forEach(b=>b.onclick=()=>openAllocationDialog(null,{resourceId:Number(b.dataset.newAllocation)}));document.querySelectorAll("[data-edit-allocation]").forEach(b=>b.onclick=()=>openAllocationDialog(get("allocations",Number(b.dataset.editAllocation))));document.querySelectorAll("[data-delete-allocation]").forEach(b=>b.onclick=async()=>{const aid=Number(b.dataset.deleteAllocation),a=get("allocations",aid);if(!a||!confirm("Supprimer cette allocation ?"))return;await apply([["RemoveRecord","Allocations",aid]],"Allocation supprimée.");if(selectedResourceId)renderResourceDetail(selectedResourceId)})}
 function bindResourceOpen(){document.querySelectorAll("[data-resource]").forEach(b=>b.onclick=()=>openResourceDrawer(Number(b.dataset.resource)))}
 function openResourceDrawer(mid){selectedResourceId=mid;renderResourceDetail(mid);$("resourceDrawerBackdrop").classList.remove("hidden");$("resourceDrawer").classList.add("open");$("resourceDrawer").setAttribute("aria-hidden","false")}
 function closeResourceDrawer(){$("resourceDrawerBackdrop").classList.add("hidden");$("resourceDrawer").classList.remove("open");$("resourceDrawer").setAttribute("aria-hidden","true")}
+
+function allocationColumnSet(){
+  const cols=(tableLoadMeta?.allocations?.columns)||[];
+  return new Set(cols);
+}
+function openAllocationDialog(a=null,defaults={}){
+  const f=$("allocationForm");
+  if(!f){msg("Formulaire d'allocation indisponible.",true);return}
+  const resourceId=a?id(a.Ressource_Code):(defaults.resourceId||selectedResourceId||null);
+  const projectId=a?id(a.Projet_Code):(defaults.projectId||currentProjectId||null);
+
+  f.id.value=a?.id||"";
+  f.Ressource_Code.innerHTML='<option value="">Choisir…</option>'+db.team.map(x=>`<option value="${x.id}">${esc(x.nom||x.Nom||"#"+x.id)}</option>`).join("");
+  f.Projet_Code.innerHTML='<option value="">Choisir…</option>'+db.projects.map(x=>`<option value="${x.id}">${esc(x.nom||x.code||"#"+x.id)} · ${typeOf(x)==="produit"?"Produit":"Projet"}</option>`).join("");
+  f.Ressource_Code.value=resourceId||"";
+  f.Projet_Code.value=projectId||"";
+  f.Allocation.value=a?Math.round(allocFraction(a.Allocation)*100):100;
+  f.Role.value=a?.Role??a?.role??"";
+  f.Date_Debut.value=din(allocationStart(a));
+  f.Date_Fin.value=din(allocationEnd(a));
+  $("allocationDialogTitle").textContent=a?"Modifier l’allocation":"Nouvelle allocation";
+  $("allocationDialog").showModal();
+}
+function bindAllocationActions(){
+  document.querySelectorAll("[data-new-allocation]").forEach(b=>b.onclick=()=>openAllocationDialog(null,{resourceId:Number(b.dataset.newAllocation)}));
+  document.querySelectorAll("[data-edit-allocation]").forEach(b=>b.onclick=()=>openAllocationDialog(get("allocations",Number(b.dataset.editAllocation))));
+  document.querySelectorAll("[data-delete-allocation]").forEach(b=>b.onclick=async()=>{
+    const aid=Number(b.dataset.deleteAllocation),a=get("allocations",aid);
+    if(!a||!confirm("Supprimer cette allocation ?"))return;
+    await apply([["RemoveRecord","Allocations",aid]],"Allocation supprimée.");
+    if(selectedResourceId)renderResourceDetail(selectedResourceId);
+  });
+}
+
 function renderResourceDetail(mid){
  const m=get("team",mid);if(!m)return;const as=db.allocations.filter(a=>id(a.Ressource_Code)===mid).sort((a,b)=>(allocationStart(a)||0)-(allocationStart(b)||0)),qs=resourceQuarters(4),cap=teamCapacity(m),loads=qs.map(q=>resourceLoadForQuarter(mid,q,"all")),peak=Math.max(0,...loads.map(l=>l/cap));
  $("resourceDrawerContent").innerHTML=`<div class="drawer-profile"><div class="drawer-avatar">${esc((m.nom||m.Nom||"?").slice(0,1).toUpperCase())}</div><h2>${esc(m.nom||m.Nom||"#"+mid)}</h2><p>${esc(m.role??m.Role??"")} · ${esc(teamRefLabel(m))}</p></div><div class="drawer-kpis"><div><b>${cap}</b><span>ETP capacité</span></div><div><b class="${peak>1?"danger-text":""}">${Math.round(peak*100)}%</b><span>pic 4 trim.</span></div><div><b>${as.length}</b><span>allocation(s)</span></div></div><h3>Prochains trimestres</h3><div class="drawer-quarter-grid">${qs.map((q,i)=>`<div><span>${q.label}</span><strong>${Math.round(loads[i]/cap*100)}%</strong><small>${Math.round(loads[i]*100)/100} ETP</small></div>`).join("")}</div><div class="allocation-section-head"><h3>Allocations</h3><button class="primary small" type="button" data-new-allocation="${mid}">+ Nouvelle allocation</button></div>${as.length?`<div class="allocation-list">${as.map(a=>{const p=get("projects",id(a.Projet_Code));return`<div class="allocation-card"><div><strong>${esc(p?.nom||p?.code||"Projet #"+id(a.Projet_Code))}</strong><div class="muted">${esc(a.Role||a.role||"")}<br>${dt(allocationStart(a))} → ${dt(allocationEnd(a))}</div></div><div class="allocation-actions"><span>${Math.round(allocFraction(a.Allocation)*100)}%</span><button type="button" class="icon" data-edit-allocation="${a.id}" title="Modifier">✎</button><button type="button" class="icon danger" data-delete-allocation="${a.id}" title="Supprimer">×</button></div></div>`}).join("")}</div>`:'<div class="resource-no-allocation"><b>Disponible</b><span>Aucune allocation enregistrée.</span><button class="primary small" type="button" data-new-allocation="${mid}">+ Affecter cette ressource</button></div>'}`;bindAllocationActions();
@@ -1082,8 +1113,38 @@ document.querySelectorAll("[data-detail-tab]").forEach(b=>b.onclick=()=>switchDe
 });
 $("resourceSearch").addEventListener("input",e=>{resourceSearch=e.target.value;renderResources()});
 document.querySelectorAll("[data-resource-view]").forEach(b=>b.onclick=()=>{resourceViewMode=b.dataset.resourceView;renderResources()});
-$("allocationForm").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,aid=Number(f.id.value)||null,fields={Ressource_Code:Number(f.Ressource_Code.value),Projet_Code:Number(f.Projet_Code.value),Allocation:fromPct(f.Allocation.value),Role:f.Role.value,Date_Debut:gd(f.Date_Debut.value),Date_Fin:gd(f.Date_Fin.value)},cols=allocationColumns(),safe=Object.fromEntries(Object.entries(fields).filter(([k])=>cols.has(k)));if(!safe.Ressource_Code||!safe.Projet_Code){msg("Les colonnes Ressource_Code et Projet_Code sont nécessaires dans Allocations.",true);return}$("allocationDialog").close();await apply([[aid?"UpdateRecord":"AddRecord","Allocations",aid||null,safe]],aid?"Allocation mise à jour.":"Allocation créée.");if(selectedResourceId)renderResourceDetail(selectedResourceId)};
+
+$("allocationForm").onsubmit=async e=>{
+  e.preventDefault();
+  const f=e.currentTarget,aid=Number(f.id.value)||null;
+  const fields={
+    Ressource_Code:Number(f.Ressource_Code.value),
+    Projet_Code:Number(f.Projet_Code.value),
+    Allocation:fromPct(f.Allocation.value),
+    Role:f.Role.value,
+    Date_Debut:gd(f.Date_Debut.value),
+    Date_Fin:gd(f.Date_Fin.value)
+  };
+  const cols=allocationColumnSet();
+  const safe=Object.fromEntries(Object.entries(fields).filter(([k])=>cols.has(k)));
+  if(!safe.Ressource_Code||!safe.Projet_Code){
+    msg("Les colonnes Ressource_Code et Projet_Code sont nécessaires dans Allocations.",true);
+    return;
+  }
+  $("allocationDialog").close();
+  await apply([[aid?"UpdateRecord":"AddRecord","Allocations",aid||null,safe]],aid?"Allocation mise à jour.":"Allocation créée.");
+  if(selectedResourceId)renderResourceDetail(selectedResourceId);
+};
+
 $("resourceDrawerClose").onclick=closeResourceDrawer;$("resourceDrawerBackdrop").onclick=closeResourceDrawer;
+
+
+document.addEventListener("click",e=>{
+  const b=e.target.closest?.("#projectAddAllocationBtn");
+  if(!b)return;
+  e.preventDefault();
+  openAllocationDialog(null,{projectId:currentProjectId});
+});
 
 grist.ready({requiredAccess:"full"});grist.onOptions(()=>load());load();
 

@@ -539,5 +539,13 @@ Corrections :
 - bouton `+ Nouvelle fonctionnalité` actif sur Projet et Produit ;
 - ajout de `Fonctionnalites.Categ_module` ;
 - libellé dynamique `Module` pour Projet / `Catégorie` pour Produit.
-\n## v5.4.0 — Gestion des allocations
-Création, modification et suppression depuis Pilotage des ressources, plus raccourci depuis une fiche Projet/Produit. Écriture dans `Allocations` en respectant les colonnes réellement présentes dans Grist. La liste Projets/Produits et l'ouverture de fiche au clic restent inchangées.
+
+
+## v5.4.1 — Correctif sûr gestion des allocations
+Cette version repart strictement de la v5.3.0 fonctionnelle fournie.
+Le chargement Grist et le bootstrap applicatif ne sont pas modifiés.
+Ajouts uniquement :
+- création / modification / suppression d'allocations depuis la fiche ressource ;
+- formulaire d'allocation ;
+- raccourci d'affectation depuis la fiche Projet / Produit.
+La liste Projets / Produits et l'ouverture de fiche au clic restent inchangées.

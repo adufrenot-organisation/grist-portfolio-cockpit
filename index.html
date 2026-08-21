@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.4.0-allocations" />
+  <link rel="stylesheet" href="styles.css?v=5.4.1-alloc-safe" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="brand pmo-brand-lockup">
       <div class="pmo-brand-badge">PMO</div>
       <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
-      <span class="version pmo-version">v5.4.0</span>
+      <span class="version pmo-version">v5.4.1</span>
     </div>
 
     <nav class="top-nav">
@@ -389,7 +389,29 @@
 <dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label id="featureCategModuleLabel">Catégorie / Module<input name="Categ_module" /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date début<input name="Date_Debut" type="date" /></label><label>Date fin<input name="Date_Fin" type="date" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label><label class="wide">Release(s)<select name="Releases" multiple size="5"></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
 
 
-<script src="app.js?v=5.4.0-allocations"></script>
-<dialog id="allocationDialog"><form method="dialog" id="allocationForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="allocationDialogTitle">Allocation</h3><button type="button" class="icon" data-close="allocationDialog">×</button></div><div class="form-grid"><label>Ressource<select name="Ressource_Code" required></select></label><label>Projet / Produit<select name="Projet_Code" required></select></label><label>Allocation (%)<input name="Allocation" type="number" min="0" max="100" step="1" required /></label><label>Rôle<input name="Role" /></label><label>Date début<input name="Date_Debut" type="date" /></label><label>Date fin<input name="Date_Fin" type="date" /></label></div><div class="dialog-actions"><button type="button" data-close="allocationDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
+<script src="app.js?v=5.4.1-alloc-safe"></script>
+
+<dialog id="allocationDialog" class="allocation-dialog">
+  <form method="dialog" id="allocationForm">
+    <input type="hidden" name="id" />
+    <div class="dialog-head">
+      <h3 id="allocationDialogTitle">Allocation</h3>
+      <button type="button" class="icon" data-close="allocationDialog">×</button>
+    </div>
+    <div class="form-grid">
+      <label>Ressource<select name="Ressource_Code" required></select></label>
+      <label>Projet / Produit<select name="Projet_Code" required></select></label>
+      <label>Allocation (%)<input name="Allocation" type="number" min="0" max="100" step="1" required></label>
+      <label>Rôle<input name="Role"></label>
+      <label>Date début<input name="Date_Debut" type="date"></label>
+      <label>Date fin<input name="Date_Fin" type="date"></label>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" data-close="allocationDialog">Annuler</button>
+      <button class="primary" type="submit">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
 </body>
 </html>
