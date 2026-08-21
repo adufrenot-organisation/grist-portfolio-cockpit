@@ -4,16 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.1.0-resource-ux" />
+  <link rel="stylesheet" href="styles.css?v=5.3.0-pmo-ui" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
 <div id="app">
   <header class="app-header">
-    <div class="brand">
-      <div class="brand-mark">▦</div>
-      <div class="brand-title">GRIST. COCKPIT Pilotage PMO</div>
-      <span class="version">v5.1.0</span>
+    <div class="brand pmo-brand-lockup">
+      <div class="pmo-brand-badge">PMO</div>
+      <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
+      <span class="version pmo-version">v5.3.0</span>
     </div>
 
     <nav class="top-nav">
@@ -389,6 +389,6 @@
 <dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label id="featureCategModuleLabel">Catégorie / Module<input name="Categ_module" /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date début<input name="Date_Debut" type="date" /></label><label>Date fin<input name="Date_Fin" type="date" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label><label class="wide">Release(s)<select name="Releases" multiple size="5"></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
 
 
-<script src="app.js?v=5.1.0-resource-ux"></script>
+<script src="app.js?v=5.3.0-pmo-ui"></script>
 </body>
 </html>
