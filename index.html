@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.4.6-formfix" />
+  <link rel="stylesheet" href="styles.css?v=5.4.7-hiddenid" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="brand pmo-brand-lockup">
       <div class="pmo-brand-badge">PMO</div>
       <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
-      <span class="version pmo-version">v5.4.6</span>
+      <span class="version pmo-version">v5.4.7</span>
     </div>
 
     <nav class="top-nav">
@@ -403,7 +403,7 @@
 
 <dialog id="allocationDialog" class="allocation-dialog">
   <form method="dialog" id="allocationForm">
-    <input type="hidden" name="id" />
+    <input type="hidden" name="allocation_id" />
     <div class="dialog-head">
       <h3 id="allocationDialogTitle">Allocation</h3>
       <button type="button" class="icon" data-close="allocationDialog">×</button>
@@ -423,6 +423,6 @@
   </form>
 </dialog>
 
-  <script src="app.js?v=5.4.6-formfix"></script>
+  <script src="app.js?v=5.4.7-hiddenid"></script>
 </body>
 </html>

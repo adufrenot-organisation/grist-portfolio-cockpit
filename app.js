@@ -1,5 +1,5 @@
 
-const VERSION="5.4.6";
+const VERSION="5.4.7";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -1096,6 +1096,7 @@ function allocationFormField(form,name){
 
 function openAllocationDialog(a=null,defaults={}){
   pmoInfo("Ouverture formulaire allocation",{mode:a?"edit":"create",allocationId:a?.id||null,defaults});
+  pmoInfo("Champs formulaire allocation détectés",{fields:[...$("allocationForm").elements].map(x=>x.name||x.id||x.tagName)});
   const f=$("allocationForm");
   if(!f){msg("Formulaire d'allocation indisponible.",true);return}
   const resourceId=a?id(a.Ressource_Code):(defaults.resourceId||selectedResourceId||null);

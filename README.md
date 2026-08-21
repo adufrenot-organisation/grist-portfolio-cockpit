@@ -592,3 +592,11 @@ Correction :
 - helper défensif `allocationFormField()` avec log ERROR si un champ attendu manque ;
 - création, modification et soumission utilisent la même méthode fiable ;
 - log INFO ajouté quand le dialog est réellement ouvert.
+
+
+## v5.4.7 — Correctif champ caché Allocation
+Les logs v5.4.6 ont montré que le formulaire exposait encore le champ caché `id` alors que le JavaScript attendait `allocation_id`.
+Correction ciblée :
+- le champ caché du seul formulaire `allocationDialog` est renommé `allocation_id` ;
+- le reste des formulaires du Cockpit n'est pas modifié ;
+- log supplémentaire des champs réellement détectés à l'ouverture du formulaire.
