@@ -1,5 +1,5 @@
 
-const VERSION="5.4.8";
+const VERSION="5.4.9";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -1141,9 +1141,27 @@ function bindAllocationActions(){
   });
 }
 
+function taskAssignedToResource(t,rid){return refs(t?.assignees).includes(Number(rid))}
+function resourceAssignedTasks(rid){return db.tasks.filter(t=>taskAssignedToResource(t,rid))}
+function resourceTaskDue(t){return dms(t?.dateEcheance??t?.Date_Echeance??t?.DateEcheance)}
+function resourceTaskLate(t){const d=resourceTaskDue(t);return !!d&&d<Date.now()&&!done(t?.statut??t?.Statut)}
+function resourceTaskProject(t){const p=get("projects",id(t?.projet));return p?.nom||p?.code||(id(t?.projet)?`Projet #${id(t.projet)}`:"Sans projet")}
+function resourceTaskFeature(t){const f=get("features",id(t?.fonctionnalite));return f?.Nom||f?.nom||""}
+function resourceTaskStage(t){const st=get("projectStages",id(t?.etape_projet));return st?.Nom||st?.nom||""}
+
 function renderResourceDetail(mid){
- const m=get("team",mid);if(!m)return;const as=db.allocations.filter(a=>id(a.Ressource_Code)===mid).sort((a,b)=>(allocationStart(a)||0)-(allocationStart(b)||0)),qs=resourceQuarters(4),cap=teamCapacity(m),loads=qs.map(q=>resourceLoadForQuarter(mid,q,"all")),peak=Math.max(0,...loads.map(l=>l/cap));
- $("resourceDrawerContent").innerHTML=`<div class="drawer-profile"><div class="drawer-avatar">${esc((m.nom||m.Nom||"?").slice(0,1).toUpperCase())}</div><h2>${esc(m.nom||m.Nom||"#"+mid)}</h2><p>${esc(m.role??m.Role??"")} · ${esc(teamRefLabel(m))}</p></div><div class="drawer-kpis"><div><b>${cap}</b><span>ETP capacité</span></div><div><b class="${peak>1?"danger-text":""}">${Math.round(peak*100)}%</b><span>pic 4 trim.</span></div><div><b>${as.length}</b><span>allocation(s)</span></div></div><h3>Prochains trimestres</h3><div class="drawer-quarter-grid">${qs.map((q,i)=>`<div><span>${q.label}</span><strong>${Math.round(loads[i]/cap*100)}%</strong><small>${Math.round(loads[i]*100)/100} ETP</small></div>`).join("")}</div><div class="allocation-section-head"><h3>Allocations</h3><button class="primary small" type="button" data-new-allocation="${mid}">+ Nouvelle allocation</button></div>${as.length?`<div class="allocation-list">${as.map(a=>{const p=get("projects",id(a.Projet_Code));return`<div class="allocation-card"><div><strong>${esc(p?.nom||p?.code||"Projet #"+id(a.Projet_Code))}</strong><div class="muted">${esc(a.Role||a.role||"")}<br>${dt(allocationStart(a))} → ${dt(allocationEnd(a))}</div></div><div class="allocation-actions"><span>${Math.round(allocFraction(a.Allocation)*100)}%</span><button type="button" class="icon" data-edit-allocation="${a.id}" title="Modifier">✎</button><button type="button" class="icon danger" data-delete-allocation="${a.id}" title="Supprimer">×</button></div></div>`}).join("")}</div>`:'<div class="resource-no-allocation"><b>Disponible</b><span>Aucune allocation enregistrée.</span><button class="primary small" type="button" data-new-allocation="${mid}">+ Affecter cette ressource</button></div>'}`;bindAllocationActions();
+ const m=get("team",mid);if(!m)return;
+ const as=db.allocations.filter(a=>id(a.Ressource_Code)===mid).sort((a,b)=>(allocationStart(a)||0)-(allocationStart(b)||0));
+ const tasks=resourceAssignedTasks(mid).sort((a,b)=>(resourceTaskLate(b)?1:0)-(resourceTaskLate(a)?1:0)||(resourceTaskDue(a)||Infinity)-(resourceTaskDue(b)||Infinity));
+ const qs=resourceQuarters(4),cap=teamCapacity(m),loads=qs.map(q=>resourceLoadForQuarter(mid,q,"all")),peak=Math.max(0,...loads.map(l=>l/cap)),late=tasks.filter(resourceTaskLate).length;
+ $("resourceDrawerContent").innerHTML=`<div class="drawer-profile"><div class="drawer-avatar">${esc((m.nom||m.Nom||"?").slice(0,1).toUpperCase())}</div><h2>${esc(m.nom||m.Nom||"#"+mid)}</h2><p>${esc(m.role??m.Role??"")} · ${esc(teamRefLabel(m))}</p></div>
+ <div class="drawer-kpis resource-kpis-4"><div><b>${cap}</b><span>ETP capacité</span></div><div><b class="${peak>1?"danger-text":""}">${Math.round(peak*100)}%</b><span>pic 4 trim.</span></div><div><b>${as.length}</b><span>allocation(s)</span></div><div><b class="${late?"danger-text":""}">${tasks.length}</b><span>tâche(s) · ${late} en retard</span></div></div>
+ <h3>Prochains trimestres</h3><div class="drawer-quarter-grid">${qs.map((q,i)=>`<div><span>${q.label}</span><strong>${Math.round(loads[i]/cap*100)}%</strong><small>${Math.round(loads[i]*100)/100} ETP</small></div>`).join("")}</div>
+ <div class="resource-detail-tabs"><button type="button" class="resource-detail-tab active" data-resource-detail-tab="allocations">Allocations <span>${as.length}</span></button><button type="button" class="resource-detail-tab" data-resource-detail-tab="tasks">Tâches assignées <span>${tasks.length}</span></button></div>
+ <section data-resource-detail-panel="allocations"><div class="allocation-section-head"><h3>Allocations projets / produits</h3><button class="primary small" type="button" data-new-allocation="${mid}">+ Nouvelle allocation</button></div>${as.length?`<div class="allocation-list">${as.map(a=>{const p=get("projects",id(a.Projet_Code));return`<div class="allocation-card"><div><strong>${esc(p?.nom||p?.code||"Projet #"+id(a.Projet_Code))}</strong><div class="muted">${esc(a.Role||a.role||"")}<br>${dt(allocationStart(a))} → ${dt(allocationEnd(a))}</div></div><div class="allocation-actions"><span>${Math.round(allocFraction(a.Allocation)*100)}%</span><button type="button" class="icon" data-edit-allocation="${a.id}">✎</button><button type="button" class="icon danger" data-delete-allocation="${a.id}">×</button></div></div>`}).join("")}</div>`:'<div class="resource-no-allocation"><b>Disponible</b><span>Aucune allocation enregistrée.</span><button class="primary small" type="button" data-new-allocation="${mid}">+ Affecter cette ressource</button></div>'}</section>
+ <section data-resource-detail-panel="tasks" class="hidden"><div class="resource-task-section-head"><h3>Tâches assignées</h3><span>${late?`⚠ ${late} en retard`:"Aucune tâche en retard"}</span></div>${tasks.length?`<div class="resource-task-list">${tasks.map(t=>{const f=resourceTaskFeature(t),st=resourceTaskStage(t),due=resourceTaskDue(t),isLate=resourceTaskLate(t);return`<article class="resource-task-card ${isLate?"late":""}"><div class="resource-task-main"><strong>${esc(t.nom||t.Nom||t.titre||t.Titre||`Tâche #${t.id}`)}</strong><span>${esc(resourceTaskProject(t))}</span>${(f||st)?`<small>${f?`Fonctionnalité : ${esc(f)}`:""}${f&&st?" · ":""}${st?`Étape : ${esc(st)}`:""}</small>`:""}</div><div class="resource-task-meta"><span class="task-status">${esc(t.statut??t.Statut??"—")}</span><span class="${isLate?"danger-text":""}">${due?dt(due):"Sans échéance"}</span></div></article>`}).join("")}</div>`:'<div class="empty">Aucune tâche assignée à cette ressource.</div>'}</section>`;
+ bindAllocationActions();
+ document.querySelectorAll("[data-resource-detail-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-resource-detail-tab]").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll("[data-resource-detail-panel]").forEach(p=>p.classList.toggle("hidden",p.dataset.resourceDetailPanel!==b.dataset.resourceDetailTab))});
 }
 function renderResources(){
  if(!$("resourcesView"))return;populateResourceFilters();renderResourceKpis();renderResourceAlerts();renderQuickFilters();

@@ -605,3 +605,6 @@ Correction ciblée :
 ## v5.4.8 — Correctif suppression Allocation
 La croix rouge envoie désormais directement l'action Grist `RemoveRecord` sur la table `Allocations`, journalise l'envoi et la réponse, recharge les données puis rafraîchit le détail ressource.
 En cas d'échec, l'erreur est visible dans la console de logs et dans la bannière.
+
+## v5.4.9 — Tâches assignées sur la fiche Ressource
+La fiche Ressource affiche deux vues : Allocations et Tâches assignées. Les tâches sont filtrées via `Tasks.assignees` (RefList vers Team). Sont affichés : projet/produit, nom, statut, échéance, fonctionnalité et étape projet si disponibles, avec compteur de tâches en retard.
