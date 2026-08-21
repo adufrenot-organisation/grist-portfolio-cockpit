@@ -549,3 +549,21 @@ Ajouts uniquement :
 - formulaire d'allocation ;
 - raccourci d'affectation depuis la fiche Projet / Produit.
 La liste Projets / Produits et l'ouverture de fiche au clic restent inchangées.
+
+
+## v5.4.2 — Correctif démarrage
+Cause racine de la régression v5.4.1 : `app.js` était exécuté avant le markup du nouveau `allocationDialog`. Le handler `$("allocationForm").onsubmit` levait donc une erreur avant `grist.ready()` / `load()`.
+Correction : le script applicatif est désormais chargé tout à la fin du `<body>`, après tous les dialogs.
+
+
+## v5.4.3 — Console de logs
+Ajout d'une console de diagnostic intégrée au Cockpit :
+- bouton `Logs` dans le menu supérieur ;
+- niveaux INFO / WARN / ERROR ;
+- capture des erreurs JavaScript et des promesses rejetées ;
+- journalisation du démarrage, du chargement Grist et des écritures ;
+- compteur d'erreurs dans le menu ;
+- filtre par niveau ;
+- `Copier` pour transmettre les logs lors d'un diagnostic ;
+- `Vider les logs` pour supprimer immédiatement les logs de la session.
+Les logs restent en mémoire dans le navigateur et ne sont pas enregistrés dans Grist.

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.4.1-alloc-safe" />
+  <link rel="stylesheet" href="styles.css?v=5.4.3-logs" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,13 +13,14 @@
     <div class="brand pmo-brand-lockup">
       <div class="pmo-brand-badge">PMO</div>
       <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
-      <span class="version pmo-version">v5.4.1</span>
+      <span class="version pmo-version">v5.4.3</span>
     </div>
 
     <nav class="top-nav">
       <button class="top-tab active" data-main-tab="project">📁 Pilotage par projets / produits</button>
       <button class="top-tab" data-main-tab="offer">🏢 Pilotage par offre de services</button><button class="top-tab" data-main-tab="resources">👥 Pilotage par les ressources</button><button class="top-tab" data-main-tab="docs">📚 Documentation</button>
-    </nav>
+    
+      <button class="top-tab pmo-log-button" id="openLogsBtn" type="button">Logs <span id="logErrorBadge" class="log-error-badge hidden">0</span></button></nav>
   </header>
 
   <div id="banner" class="banner hidden"></div>
@@ -387,9 +388,18 @@
 </dialog>
 
 <dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label id="featureCategModuleLabel">Catégorie / Module<input name="Categ_module" /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date début<input name="Date_Debut" type="date" /></label><label>Date fin<input name="Date_Fin" type="date" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label><label class="wide">Release(s)<select name="Releases" multiple size="5"></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
-
-
-<script src="app.js?v=5.4.1-alloc-safe"></script>
+<aside id="logDrawer" class="log-drawer hidden" aria-label="Console de logs">
+  <div class="log-drawer-head">
+    <div><strong>Console de logs</strong><small id="logSummary">0 événement</small></div>
+    <button type="button" class="icon" id="closeLogsBtn">×</button>
+  </div>
+  <div class="log-toolbar">
+    <select id="logLevelFilter"><option value="ALL">Tous</option><option value="INFO">INFO</option><option value="WARN">WARN</option><option value="ERROR">ERROR</option></select>
+    <button type="button" id="copyLogsBtn">Copier</button>
+    <button type="button" id="clearLogsBtn" class="danger-outline">Vider les logs</button>
+  </div>
+  <div id="logList" class="log-list"></div>
+</aside>
 
 <dialog id="allocationDialog" class="allocation-dialog">
   <form method="dialog" id="allocationForm">
@@ -413,5 +423,6 @@
   </form>
 </dialog>
 
+  <script src="app.js?v=5.4.3-logs"></script>
 </body>
 </html>

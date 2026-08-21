@@ -1,5 +1,37 @@
 
-const VERSION="5.4.1";
+const VERSION="5.4.3";
+
+// ===== v5.4.3 : console de logs intégrée =====
+const pmoLogs=[];
+const nativeConsole={info:console.info.bind(console),warn:console.warn.bind(console),error:console.error.bind(console)};
+function logSafeValue(v){
+  if(v instanceof Error)return {name:v.name,message:v.message,stack:v.stack};
+  if(typeof v==="string"||typeof v==="number"||typeof v==="boolean"||v==null)return v;
+  try{return JSON.parse(JSON.stringify(v))}catch{return String(v)}
+}
+function pmoLog(level,message,details=null){
+  const entry={ts:new Date().toISOString(),level,message:String(message),details:details==null?null:logSafeValue(details)};
+  pmoLogs.push(entry);
+  if(pmoLogs.length>500)pmoLogs.splice(0,pmoLogs.length-500);
+  renderPmoLogs();
+  return entry;
+}
+function pmoInfo(message,details=null){nativeConsole.info("[PMO]",message,details??"");return pmoLog("INFO",message,details)}
+function pmoWarn(message,details=null){nativeConsole.warn("[PMO]",message,details??"");return pmoLog("WARN",message,details)}
+function pmoError(message,details=null){nativeConsole.error("[PMO]",message,details??"");return pmoLog("ERROR",message,details)}
+function renderPmoLogs(){
+  const list=document.getElementById("logList");if(!list)return;
+  const filter=document.getElementById("logLevelFilter")?.value||"ALL";
+  const rows=pmoLogs.filter(x=>filter==="ALL"||x.level===filter);
+  list.innerHTML=rows.length?rows.slice().reverse().map(x=>`<div class="log-row log-${x.level.toLowerCase()}"><div class="log-meta"><span>${x.level}</span><time>${new Date(x.ts).toLocaleTimeString()}</time></div><div class="log-message">${esc(x.message)}</div>${x.details!=null?`<pre>${esc(typeof x.details==="string"?x.details:JSON.stringify(x.details,null,2))}</pre>`:""}</div>`).join(""):'<div class="log-empty">Aucun log.</div>';
+  const errors=pmoLogs.filter(x=>x.level==="ERROR").length;
+  const badge=document.getElementById("logErrorBadge");if(badge){badge.textContent=errors;badge.classList.toggle("hidden",errors===0)}
+  const summary=document.getElementById("logSummary");if(summary)summary.textContent=`${pmoLogs.length} événement${pmoLogs.length>1?"s":""} · ${errors} erreur${errors>1?"s":""}`;
+}
+function clearPmoLogs(){pmoLogs.length=0;renderPmoLogs()}
+function pmoLogsText(){return pmoLogs.map(x=>`${x.ts} [${x.level}] ${x.message}${x.details!=null?" | "+(typeof x.details==="string"?x.details:JSON.stringify(x.details)):""}`).join("\n")}
+window.addEventListener("error",e=>pmoError("Erreur JavaScript",{message:e.message,source:e.filename,line:e.lineno,column:e.colno}));
+window.addEventListener("unhandledrejection",e=>pmoError("Promesse rejetée",e.reason));
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
 let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all",resourceTeamFilter="all",resourceRoleFilter="all",resourceProjectFilter="all",resourceLoadFilter="all",selectedResourceId=null;
 const $=id=>{
@@ -77,7 +109,7 @@ function filteredProjects(filter=typeFilter){return db.projects.filter(p=>{
   return true;
 })}
 
-async function load(){
+async function load(){pmoInfo("Chargement des données Grist démarré");
   try{
   const es=await Promise.all(Object.entries(T).map(async([k,t])=>[k,await fetchTable(k,t)]));db=Object.fromEntries(es);
   if(!db.projects.length){banner("Projects est vide ou inaccessible.");return}
@@ -1145,6 +1177,21 @@ document.addEventListener("click",e=>{
   e.preventDefault();
   openAllocationDialog(null,{projectId:currentProjectId});
 });
+
+
+// v5.4.2 boot diagnostic: all DOM nodes are parsed before this script runs.
+pmoInfo("Démarrage Cockpit",{version:VERSION,allocationForm:Boolean(document.getElementById("allocationForm")),projectList:Boolean(document.getElementById("projectList"))});
+
+$("openLogsBtn").onclick=()=>{$("logDrawer").classList.remove("hidden");renderPmoLogs()};
+$("closeLogsBtn").onclick=()=>$("logDrawer").classList.add("hidden");
+$("logLevelFilter").onchange=renderPmoLogs;
+$("clearLogsBtn").onclick=()=>{if(confirm("Vider tous les logs de cette session ?")){clearPmoLogs();pmoInfo("Logs vidés par l’utilisateur")}};
+$("copyLogsBtn").onclick=async()=>{
+  const text=pmoLogsText();
+  try{await navigator.clipboard.writeText(text);msg("Logs copiés.");pmoInfo("Logs copiés dans le presse-papiers")}
+  catch(e){pmoError("Impossible de copier les logs",e);msg("Copie impossible.",true)}
+};
+pmoInfo("Interface de logs prête");
 
 grist.ready({requiredAccess:"full"});grist.onOptions(()=>load());load();
 
