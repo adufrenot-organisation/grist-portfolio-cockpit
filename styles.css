@@ -805,3 +805,6 @@ dialog,.modal,.drawer,.resource-drawer{
 .detail-tabs button.active,.detail-tab.active{color:var(--pmo-accent)!important;border-bottom-color:var(--pmo-accent)!important}
 .resource-subtab.active{color:var(--pmo-accent)!important;border-bottom-color:var(--pmo-accent)!important}
 .resource-chip.active{background:color-mix(in srgb,var(--pmo-accent) 9%,#fff)!important;border-color:color-mix(in srgb,var(--pmo-accent) 38%,#fff)!important;color:var(--pmo-accent)!important}
+
+/* v5.4 — gestion allocations */
+.allocation-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px}.allocation-section-head h3{margin:0}button.small{padding:7px 10px;font-size:12px}.allocation-actions{display:flex;align-items:center;gap:8px}.allocation-actions>span{font-weight:800;min-width:46px;text-align:right}button.icon.danger{color:#b42318;border-color:#fecdca;background:#fff}.resource-no-allocation .primary{margin-top:10px}.project-allocation-shortcut{grid-column:1/-1;margin-top:8px}#allocationDialog{min-width:min(680px,94vw)}
