@@ -1,5 +1,5 @@
 
-const VERSION="5.4.5";
+const VERSION="5.4.6";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -128,7 +128,6 @@ function filteredProjects(filter=typeFilter){return db.projects.filter(p=>{
   return true;
 })}
 
-pmoWarn("Double appel load détecté mais garde non injectée automatiquement");
 async function load(){pmoInfo("Chargement des données Grist démarré");
   try{
   const es=await Promise.all(Object.entries(T).map(async([k,t])=>[k,await fetchTable(k,t)]));db=Object.fromEntries(es);
@@ -671,7 +670,7 @@ function openRelease(rid=null){
   const f=$("releaseForm"),row=rid?get("releases",rid):null;f.reset();f.id.value=rid||"";
   $("releaseDialogTitle").textContent=row?"Modifier la release":"Nouvelle release";
   if(row){
-    f.Code.value=row.Code||"";f.Nom.value=row.Nom||"";f.Date_Debut.value=din(row.Date_Debut);f.Date_Fin.value=din(row.Date_Fin);
+    f.Code.value=row.Code||"";f.Nom.value=row.Nom||"";allocationFormField(f,"Date_Debut").value=din(row.Date_Debut);allocationFormField(f,"Date_Fin").value=din(row.Date_Fin);
     f.Statut.value=row.Statut||"À venir";f.Objectif.value=row.Objectif||"";f.Actif.value=String(row.Actif!==false);
   }else{f.Statut.value="À venir";f.Actif.value="true"}
   opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");
@@ -681,7 +680,7 @@ function openRelease(rid=null){
 $("releaseForm").onsubmit=async e=>{
   e.preventDefault();
   const f=e.currentTarget,rid=Number(f.id.value)||null,p=get("projects",currentProjectId);
-  const fields={Code:f.Code.value,Nom:f.Nom.value,Date_Debut:gd(f.Date_Debut.value),Date_Fin:gd(f.Date_Fin.value),Statut:f.Statut.value,Objectif:f.Objectif.value,Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
+  const fields={Code:f.Code.value,Nom:f.Nom.value,Date_Debut:gd(allocationFormField(f,"Date_Debut").value),Date_Fin:gd(allocationFormField(f,"Date_Fin").value),Statut:f.Statut.value,Objectif:f.Objectif.value,Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
   fields[releaseParentField()]=currentProjectId;
   if("Type" in (db.releases[0]||{}))fields.Type=p?.Type||null;
   const selected=[...f.Fonctionnalites.selectedOptions].map(o=>Number(o.value));
@@ -733,7 +732,7 @@ function openFeature(fid=null){
   const f=$("featureForm"),row=fid?get("features",fid):null;f.reset();f.id.value=fid||"";
   $("featureDialogTitle").textContent=row?"Modifier la fonctionnalité":"Nouvelle fonctionnalité";
   if($("featureCategModuleLabel")) $("featureCategModuleLabel").childNodes[0].nodeValue=typeOf(p)==="produit"?"Catégorie ":"Module ";
-  if(row){["Code","Nom","Categ_module","Description","Priorite"].forEach(k=>{if(f[k])f[k].value=row[k]??""});f.Progression.value=pct(row.Progression);f.Date_Debut.value=din(row.Date_Debut||row.dateDebut);f.Date_Fin.value=din(row.Date_Fin||row.dateFin);f.Date_Cible.value=din(row.Date_Cible);f.Actif.value=String(row.Actif!==false)}
+  if(row){["Code","Nom","Categ_module","Description","Priorite"].forEach(k=>{if(f[k])f[k].value=row[k]??""});f.Progression.value=pct(row.Progression);allocationFormField(f,"Date_Debut").value=din(row.Date_Debut||row.dateDebut);allocationFormField(f,"Date_Fin").value=din(row.Date_Fin||row.dateFin);f.Date_Cible.value=din(row.Date_Cible);f.Actif.value=String(row.Actif!==false)}
   else{f.Progression.value=0;f.Actif.value="true"}
   opt(f.stade,db.featureStages,r=>r.Nom,row?id(row.stade):null,"— stade —");
   opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");
@@ -743,7 +742,7 @@ function openFeature(fid=null){
 $("featureForm").onsubmit=async e=>{
   e.preventDefault();
   const f=e.currentTarget,fid=Number(f.id.value)||null;
-  const fields={Code:f.Code.value,Nom:f.Nom.value,Categ_module:f.Categ_module?.value||"",Description:f.Description.value,stade:f.stade.value?Number(f.stade.value):null,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(f.Date_Debut.value),Date_Fin:gd(f.Date_Fin.value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
+  const fields={Code:f.Code.value,Nom:f.Nom.value,Categ_module:f.Categ_module?.value||"",Description:f.Description.value,stade:f.stade.value?Number(f.stade.value):null,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(allocationFormField(f,"Date_Debut").value),Date_Fin:gd(allocationFormField(f,"Date_Fin").value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
   fields[featureParentField()]=currentProjectId;
   const selected=f.Releases?[...f.Releases.selectedOptions].map(o=>Number(o.value)):[];
   $("featureDialog").close();
@@ -1085,6 +1084,16 @@ function allocationColumnSet(){
   const cols=(tableLoadMeta?.allocations?.columns)||[];
   return new Set(cols);
 }
+
+function allocationFormField(form,name){
+  const el=form?.elements?.namedItem(name);
+  if(!el){
+    pmoError("Champ allocation introuvable",{name,available:[...(form?.elements||[])].map(x=>x.name||x.id||x.tagName)});
+    throw new Error(`Champ allocation introuvable: ${name}`);
+  }
+  return el;
+}
+
 function openAllocationDialog(a=null,defaults={}){
   pmoInfo("Ouverture formulaire allocation",{mode:a?"edit":"create",allocationId:a?.id||null,defaults});
   const f=$("allocationForm");
@@ -1092,17 +1101,17 @@ function openAllocationDialog(a=null,defaults={}){
   const resourceId=a?id(a.Ressource_Code):(defaults.resourceId||selectedResourceId||null);
   const projectId=a?id(a.Projet_Code):(defaults.projectId||currentProjectId||null);
 
-  f.elements.allocation_id.value=a?.id||"";
-  f.Ressource_Code.innerHTML='<option value="">Choisir…</option>'+db.team.map(x=>`<option value="${x.id}">${esc(x.nom||x.Nom||"#"+x.id)}</option>`).join("");
-  f.Projet_Code.innerHTML='<option value="">Choisir…</option>'+db.projects.map(x=>`<option value="${x.id}">${esc(x.nom||x.code||"#"+x.id)} · ${typeOf(x)==="produit"?"Produit":"Projet"}</option>`).join("");
-  f.Ressource_Code.value=resourceId||"";
-  f.Projet_Code.value=projectId||"";
-  f.Allocation.value=a?Math.round(allocFraction(a.Allocation)*100):100;
-  f.Role.value=a?.Role??a?.role??"";
-  f.Date_Debut.value=din(allocationStart(a));
-  f.Date_Fin.value=din(allocationEnd(a));
+  allocationFormField(f,"allocation_id").value=a?.id||"";
+  allocationFormField(f,"Ressource_Code").innerHTML='<option value="">Choisir…</option>'+db.team.map(x=>`<option value="${x.id}">${esc(x.nom||x.Nom||"#"+x.id)}</option>`).join("");
+  allocationFormField(f,"Projet_Code").innerHTML='<option value="">Choisir…</option>'+db.projects.map(x=>`<option value="${x.id}">${esc(x.nom||x.code||"#"+x.id)} · ${typeOf(x)==="produit"?"Produit":"Projet"}</option>`).join("");
+  allocationFormField(f,"Ressource_Code").value=resourceId||"";
+  allocationFormField(f,"Projet_Code").value=projectId||"";
+  allocationFormField(f,"Allocation").value=a?Math.round(allocFraction(a.Allocation)*100):100;
+  allocationFormField(f,"Role").value=a?.Role??a?.role??"";
+  allocationFormField(f,"Date_Debut").value=din(allocationStart(a));
+  allocationFormField(f,"Date_Fin").value=din(allocationEnd(a));
   $("allocationDialogTitle").textContent=a?"Modifier l’allocation":"Nouvelle allocation";
-  $("allocationDialog").showModal();
+  $("allocationDialog").showModal();pmoInfo("Formulaire allocation ouvert",{mode:a?"edit":"create"});
 }
 function bindAllocationActions(){
   const adds=document.querySelectorAll("[data-new-allocation]"),edits=document.querySelectorAll("[data-edit-allocation]"),deletes=document.querySelectorAll("[data-delete-allocation]");
@@ -1172,14 +1181,14 @@ document.querySelectorAll("[data-resource-view]").forEach(b=>b.onclick=()=>{reso
 $("allocationForm").onsubmit=async e=>{
   pmoInfo("Soumission formulaire allocation");
   e.preventDefault();
-  const f=e.currentTarget,aid=Number(f.elements.allocation_id.value)||null;
+  const f=e.currentTarget,aid=Number(allocationFormField(f,"allocation_id").value)||null;
   const fields={
-    Ressource_Code:Number(f.Ressource_Code.value),
-    Projet_Code:Number(f.Projet_Code.value),
-    Allocation:fromPct(f.Allocation.value),
-    Role:f.Role.value,
-    Date_Debut:gd(f.Date_Debut.value),
-    Date_Fin:gd(f.Date_Fin.value)
+    Ressource_Code:Number(allocationFormField(f,"Ressource_Code").value),
+    Projet_Code:Number(allocationFormField(f,"Projet_Code").value),
+    Allocation:fromPct(allocationFormField(f,"Allocation").value),
+    Role:allocationFormField(f,"Role").value,
+    Date_Debut:gd(allocationFormField(f,"Date_Debut").value),
+    Date_Fin:gd(allocationFormField(f,"Date_Fin").value)
   };
   const cols=allocationColumnSet();
   const safe=Object.fromEntries(Object.entries(fields).filter(([k])=>cols.has(k)));

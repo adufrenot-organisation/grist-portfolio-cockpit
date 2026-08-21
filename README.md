@@ -581,3 +581,14 @@ Corrections appliquées à partir des erreurs réelles remontées :
 - `banner is not a function` : remplacement par `notifyBanner()`, helper sûr qui utilise le DOM si la bannière existe et retombe sur la console de logs sinon ;
 - `#docsView` absent : les accès à cette vue deviennent optionnels et ne bloquent plus le Cockpit ;
 - conservation du correctif `allocationStart(null)` / `allocationEnd(null)` et du champ `allocation_id`.
+
+
+## v5.4.6 — Correctif formulaire Allocation
+Les logs v5.4.5 ont montré que les boutons étaient correctement branchés, mais que l'ouverture du formulaire échouait avec `Cannot set properties of undefined (setting 'value')`.
+
+Cause : utilisation de propriétés directes du formulaire (`f.Ressource_Code`, `f.Projet_Code`, etc.).
+Correction :
+- tous les champs sont résolus via `form.elements.namedItem(...)` ;
+- helper défensif `allocationFormField()` avec log ERROR si un champ attendu manque ;
+- création, modification et soumission utilisent la même méthode fiable ;
+- log INFO ajouté quand le dialog est réellement ouvert.
