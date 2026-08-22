@@ -92,5 +92,41 @@
     touch(){if(this.started)return this.beat()}
   };
 
-  window.PmoPresence=presence;
+  
+  presence.activeWithinMinutes=10;
+
+  presence.listActive=async function(opts={}){
+    const raw=await grist.docApi.fetchTable(TABLE);
+    const cutoff=Date.now()/1000-(opts.minutes||this.activeWithinMinutes)*60;
+    const allWidgets=opts.allWidgets!==false;
+    const currentWidget=opts.widget||this.widget;
+    const active=tableRows(raw).filter(r=>{
+      const ts=Number(r.Derniere_Activite||0);
+      return ts>=cutoff && (allWidgets || String(r.Widget_Code||"")===currentWidget);
+    });
+
+    // One user line, even with several browser tabs/sessions.
+    const grouped=new Map();
+    for(const r of active){
+      const identity=String(r.Utilisateur_Email||r.Utilisateur_Nom||r.Session_ID||`#${r.id}`);
+      const key=identity.toLowerCase();
+      const previous=grouped.get(key);
+      if(!previous){
+        grouped.set(key,{...r,sessions:1,pages:new Set([r.Page||""]),widgets:new Set([r.Widget_Code||""])});
+      }else{
+        previous.sessions++;
+        previous.pages.add(r.Page||"");
+        previous.widgets.add(r.Widget_Code||"");
+        if(Number(r.Derniere_Activite||0)>Number(previous.Derniere_Activite||0)){
+          previous.Derniere_Activite=r.Derniere_Activite;
+          previous.Page=r.Page;
+          previous.Widget_Code=r.Widget_Code;
+          previous.Widget_Version=r.Widget_Version;
+        }
+      }
+    }
+    return [...grouped.values()].sort((a,b)=>Number(b.Derniere_Activite||0)-Number(a.Derniere_Activite||0));
+  };
+
+window.PmoPresence=presence;
 })();

@@ -351,3 +351,6 @@ Correction structurelle : la vue Documentation appartient désormais au même sh
 Module `presence.js` indépendant du cœur du Cockpit.
 Table partagée cible : `SESSIONS_UTILISATEURS`.
 Aucun changement fonctionnel du pilotage v5.4.9 en dehors de la télémétrie de présence.
+
+## v5.4.11 — Active users UI
+`presence.js` expose `listActive()`. Le Cockpit restitue les sessions actives dans un popover de header, avec déduplication utilisateur.

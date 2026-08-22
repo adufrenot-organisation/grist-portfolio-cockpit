@@ -1,5 +1,5 @@
 
-const VERSION="5.4.10";
+const VERSION="5.4.11";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -1273,6 +1273,55 @@ $("copyLogsBtn").onclick=async()=>{
   catch(e){pmoError("Impossible de copier les logs",e);msg("Copie impossible.",true)}
 };
 pmoInfo("Interface de logs prête");
+
+
+function presenceAgo(ts){
+  const sec=Math.max(0,Math.floor(Date.now()/1000-Number(ts||0)));
+  if(sec<60)return "à l’instant";
+  const min=Math.floor(sec/60);if(min<60)return `il y a ${min} min`;
+  return `il y a ${Math.floor(min/60)} h`;
+}
+function renderPresenceUsers(users){
+  const box=optionalEl("presenceUsers");if(!box)return;
+  if(!users.length){box.innerHTML='<div class="presence-empty">Aucun utilisateur actif.</div>';return}
+  box.innerHTML=users.map(u=>{
+    const name=esc(u.Utilisateur_Nom||u.Utilisateur_Email||"Utilisateur");
+    const email=u.Utilisateur_Email&&u.Utilisateur_Email!==u.Utilisateur_Nom?`<div class="muted">${esc(u.Utilisateur_Email)}</div>`:"";
+    const sessions=Number(u.sessions||1)>1?` · ${u.sessions} sessions`:"";
+    return `<div class="presence-user">
+      <div class="presence-avatar">👤</div>
+      <div class="presence-user-main"><strong>${name}</strong>${email}<div class="muted">${esc(u.Widget_Code||"Widget")} ${esc(u.Widget_Version||"")} · ${esc(u.Page||"")}${sessions}</div></div>
+      <div class="presence-ago">${presenceAgo(u.Derniere_Activite)}</div>
+    </div>`;
+  }).join("");
+}
+async function refreshPresenceUsers(){
+  const box=optionalEl("presenceUsers"),badge=optionalEl("presenceBadge");if(!box)return;
+  box.innerHTML='<div class="muted">Chargement…</div>';
+  try{
+    const users=await window.PmoPresence.listActive({
+      minutes:10,
+      allWidgets:optionalEl("presenceAllWidgets")?.checked!==false,
+      widget:"COCKPIT"
+    });
+    renderPresenceUsers(users);
+    if(badge&&badge.classList.contains("presence-ok"))badge.textContent=`● Présence · 👥 ${users.length} actif${users.length>1?"s":""}`;
+  }catch(e){
+    box.innerHTML=`<div class="presence-error-box">Impossible de lire les utilisateurs actifs.<br><span class="muted">${esc(e?.message||e)}</span></div>`;
+  }
+}
+function togglePresencePopover(force){
+  const p=optionalEl("presencePopover");if(!p)return;
+  const show=force===undefined?p.classList.contains("hidden"):!!force;
+  p.classList.toggle("hidden",!show);
+  if(show)refreshPresenceUsers();
+}
+optionalEl("presenceBadge")?.addEventListener("click",e=>{e.stopPropagation();togglePresencePopover()});
+optionalEl("presenceCloseBtn")?.addEventListener("click",()=>togglePresencePopover(false));
+optionalEl("presenceRefreshBtn")?.addEventListener("click",refreshPresenceUsers);
+optionalEl("presenceAllWidgets")?.addEventListener("change",refreshPresenceUsers);
+optionalEl("presencePopover")?.addEventListener("click",e=>e.stopPropagation());
+document.addEventListener("click",()=>togglePresencePopover(false));
 
 grist.ready({requiredAccess:"full"});
 grist.onOptions(()=>load());

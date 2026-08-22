@@ -619,3 +619,13 @@ Portefeuille, fiche Projet/Produit, Offre, Ressources ou Documentation.
 
 Le mécanisme est non bloquant : si la table n'existe pas ou n'est pas accessible,
 le Cockpit continue à fonctionner et le badge indique `Présence indisponible`.
+
+## v5.4.11 — Utilisateurs actifs dans le Cockpit
+
+Le badge de présence devient interactif. Il affiche le nombre d'utilisateurs actifs et ouvre un panneau détaillé.
+
+- seuil actif : heartbeat dans les 10 dernières minutes ;
+- regroupement par utilisateur : plusieurs onglets = une seule ligne avec compteur de sessions ;
+- affichage du nom, email, widget, version, page et dernière activité ;
+- option `Tous les widgets` déjà prévue pour l'intégration future d'Admin/Audit et Migration ;
+- actualisation manuelle depuis le panneau.
