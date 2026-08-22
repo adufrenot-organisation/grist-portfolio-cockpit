@@ -347,6 +347,7 @@ Instrumentation de la lecture de la table Documentation afin de distinguer table
 ## V4.9.7
 Correction structurelle : la vue Documentation appartient désormais au même shell applicatif que les vues Projet et Offre.
 
-## V4.9.8 — Presence
-`presence.js` constitue le module de heartbeat réutilisable. Le Cockpit est le premier consommateur.
-La table `SESSIONS_UTILISATEURS` est partagée avec les futurs widgets Admin et Migration.
+## v5.4.10 — Presence
+Module `presence.js` indépendant du cœur du Cockpit.
+Table partagée cible : `SESSIONS_UTILISATEURS`.
+Aucun changement fonctionnel du pilotage v5.4.9 en dehors de la télémétrie de présence.

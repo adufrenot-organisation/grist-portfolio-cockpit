@@ -504,30 +504,118 @@ Les lignes avec `Actif = false` restent volontairement masquées.
 - l'onglet Documentation reste affiché même si son rendu rencontre une erreur ;
 - après chaque rechargement des données, l'onglet actif est réappliqué.
 
-## V4.9.8 — Présence applicative Cockpit
 
-Le Cockpit intègre désormais `presence.js`.
+## v5.0.0 — Pilotage par les ressources
+Nouvel onglet transverse basé sur `Team`, `Team_ref` et `Allocations` :
+- capacité ETP totale et charge planifiée ;
+- détection des surcharges et ressources non allouées ;
+- matrice de charge sur 8 trimestres ;
+- filtres équipe, rôle, projet/produit et état de charge ;
+- détail d'une ressource et de ses allocations ;
+- proratisation d'une allocation sur un trimestre selon ses dates de début/fin.
+Aucune nouvelle table Grist n'est requise.
 
-Table attendue : `SESSIONS_UTILISATEURS`.
+## v5.1.0 — Refonte UX Pilotage des ressources
+La base fonctionnelle reste la v5.0.0 et les tables Grist restent inchangées.
 
-Le module :
-- crée une session unique par onglet navigateur (`sessionStorage`) ;
-- écrit `Widget_Code = COCKPIT` et la version du Cockpit ;
-- mémorise la page courante ;
-- met à jour `Derniere_Activite` toutes les 2 minutes ;
-- relance un heartbeat lorsque l'utilisateur revient sur l'onglet ;
-- reste non bloquant si la table de présence n'existe pas.
+Nouvelle ergonomie :
+- vue Ressources par défaut sous forme de liste de pilotage ;
+- recherche et filtres équipe / rôle / projet ;
+- filtres rapides Toutes / Surchargées / Disponibles / Charge normale / Non allouées ;
+- alertes de tensions sur les quatre prochains trimestres ;
+- vue Plan de charge sur huit trimestres avec jauges ;
+- vue Équipes avec capacité agrégée ;
+- détail d'une ressource dans un drawer latéral ;
+- les ressources sans allocation restent visibles et identifiées comme « Non allouées ».
 
-Le badge du header indique `Présence active` ou `Présence indisponible`.
 
-### Colonnes attendues
+## v5.2.1 — Correctif réel Nouvelle fonctionnalité
+Cause racine corrigée : `openFeature()` utilisait `featureForm.Releases`, mais le formulaire Fonctionnalité ne contenait aucun champ `Releases`. L'appel à `fillMulti()` levait donc une erreur JavaScript avant `showModal()`.
 
-- `Session_ID` : Text
-- `Widget_Code` : Text
-- `Widget_Version` : Text
-- `Page` : Text
-- `Derniere_Activite` : DateTime
-- `Utilisateur_Email` : Text avec trigger formula `user.Email`
-- `Utilisateur_Nom` : Text avec trigger formula `user.Name`
+Corrections :
+- ajout du sélecteur `Release(s)` au formulaire Fonctionnalité ;
+- garde défensive si le champ Releases n'est pas présent ;
+- lecture sûre de `selectedOptions` ;
+- bouton `+ Nouvelle fonctionnalité` actif sur Projet et Produit ;
+- ajout de `Fonctionnalites.Categ_module` ;
+- libellé dynamique `Module` pour Projet / `Catégorie` pour Produit.
 
-La notion "Actif" doit être calculée au moment de la restitution : une session est active si son dernier heartbeat date de moins de 10 minutes.
+
+## v5.4.1 — Correctif sûr gestion des allocations
+Cette version repart strictement de la v5.3.0 fonctionnelle fournie.
+Le chargement Grist et le bootstrap applicatif ne sont pas modifiés.
+Ajouts uniquement :
+- création / modification / suppression d'allocations depuis la fiche ressource ;
+- formulaire d'allocation ;
+- raccourci d'affectation depuis la fiche Projet / Produit.
+La liste Projets / Produits et l'ouverture de fiche au clic restent inchangées.
+
+
+## v5.4.2 — Correctif démarrage
+Cause racine de la régression v5.4.1 : `app.js` était exécuté avant le markup du nouveau `allocationDialog`. Le handler `$("allocationForm").onsubmit` levait donc une erreur avant `grist.ready()` / `load()`.
+Correction : le script applicatif est désormais chargé tout à la fin du `<body>`, après tous les dialogs.
+
+
+## v5.4.3 — Console de logs
+Ajout d'une console de diagnostic intégrée au Cockpit :
+- bouton `Logs` dans le menu supérieur ;
+- niveaux INFO / WARN / ERROR ;
+- capture des erreurs JavaScript et des promesses rejetées ;
+- journalisation du démarrage, du chargement Grist et des écritures ;
+- compteur d'erreurs dans le menu ;
+- filtre par niveau ;
+- `Copier` pour transmettre les logs lors d'un diagnostic ;
+- `Vider les logs` pour supprimer immédiatement les logs de la session.
+Les logs restent en mémoire dans le navigateur et ne sont pas enregistrés dans Grist.
+
+
+## v5.4.4 — Correctif boutons allocations
+Deux causes racines corrigées :
+- `allocationStart(null)` / `allocationEnd(null)` faisaient échouer `+ Nouvelle allocation` avant l'ouverture du dialog ;
+- le champ `name="id"` du formulaire entrait en conflit avec la propriété native `HTMLFormElement.id`. Il devient `allocation_id` et est lu via `form.elements`.
+La console de logs indique désormais le branchement et le clic des boutons Ajouter / Modifier / Supprimer.
+
+
+## v5.4.5 — Correctifs issus de la console de logs
+Corrections appliquées à partir des erreurs réelles remontées :
+- `banner is not a function` : remplacement par `notifyBanner()`, helper sûr qui utilise le DOM si la bannière existe et retombe sur la console de logs sinon ;
+- `#docsView` absent : les accès à cette vue deviennent optionnels et ne bloquent plus le Cockpit ;
+- conservation du correctif `allocationStart(null)` / `allocationEnd(null)` et du champ `allocation_id`.
+
+
+## v5.4.6 — Correctif formulaire Allocation
+Les logs v5.4.5 ont montré que les boutons étaient correctement branchés, mais que l'ouverture du formulaire échouait avec `Cannot set properties of undefined (setting 'value')`.
+
+Cause : utilisation de propriétés directes du formulaire (`f.Ressource_Code`, `f.Projet_Code`, etc.).
+Correction :
+- tous les champs sont résolus via `form.elements.namedItem(...)` ;
+- helper défensif `allocationFormField()` avec log ERROR si un champ attendu manque ;
+- création, modification et soumission utilisent la même méthode fiable ;
+- log INFO ajouté quand le dialog est réellement ouvert.
+
+
+## v5.4.7 — Correctif champ caché Allocation
+Les logs v5.4.6 ont montré que le formulaire exposait encore le champ caché `id` alors que le JavaScript attendait `allocation_id`.
+Correction ciblée :
+- le champ caché du seul formulaire `allocationDialog` est renommé `allocation_id` ;
+- le reste des formulaires du Cockpit n'est pas modifié ;
+- log supplémentaire des champs réellement détectés à l'ouverture du formulaire.
+
+
+## v5.4.8 — Correctif suppression Allocation
+La croix rouge envoie désormais directement l'action Grist `RemoveRecord` sur la table `Allocations`, journalise l'envoi et la réponse, recharge les données puis rafraîchit le détail ressource.
+En cas d'échec, l'erreur est visible dans la console de logs et dans la bannière.
+
+## v5.4.9 — Tâches assignées sur la fiche Ressource
+La fiche Ressource affiche deux vues : Allocations et Tâches assignées. Les tâches sont filtrées via `Tasks.assignees` (RefList vers Team). Sont affichés : projet/produit, nom, statut, échéance, fonctionnalité et étape projet si disponibles, avec compteur de tâches en retard.
+
+## v5.4.10 — Présence applicative
+
+Ajout du module `presence.js` sur la base exacte de la v5.4.9 Resource Assigned Tasks.
+
+Le Cockpit écrit un heartbeat toutes les 2 minutes dans la table `SESSIONS_UTILISATEURS`.
+La session est propre à chaque onglet navigateur et suit la zone courante :
+Portefeuille, fiche Projet/Produit, Offre, Ressources ou Documentation.
+
+Le mécanisme est non bloquant : si la table n'existe pas ou n'est pas accessible,
+le Cockpit continue à fonctionner et le badge indique `Présence indisponible`.
