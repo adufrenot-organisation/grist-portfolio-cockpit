@@ -1,63 +1,19 @@
 
-const VERSION="5.4.9";
+const VERSION="4.9.8";
 
-// ===== v5.4.3 : console de logs intégrée =====
-const pmoLogs=[];
-const nativeConsole={info:console.info.bind(console),warn:console.warn.bind(console),error:console.error.bind(console)};
-function logSafeValue(v){
-  if(v instanceof Error)return {name:v.name,message:v.message,stack:v.stack};
-  if(typeof v==="string"||typeof v==="number"||typeof v==="boolean"||v==null)return v;
-  try{return JSON.parse(JSON.stringify(v))}catch{return String(v)}
-}
-function pmoLog(level,message,details=null){
-  const entry={ts:new Date().toISOString(),level,message:String(message),details:details==null?null:logSafeValue(details)};
-  pmoLogs.push(entry);
-  if(pmoLogs.length>500)pmoLogs.splice(0,pmoLogs.length-500);
-  renderPmoLogs();
-  return entry;
-}
-function pmoInfo(message,details=null){nativeConsole.info("[PMO]",message,details??"");return pmoLog("INFO",message,details)}
-function pmoWarn(message,details=null){nativeConsole.warn("[PMO]",message,details??"");return pmoLog("WARN",message,details)}
-function pmoError(message,details=null){nativeConsole.error("[PMO]",message,details??"");return pmoLog("ERROR",message,details)}
-function renderPmoLogs(){
-  const list=document.getElementById("logList");if(!list)return;
-  const filter=document.getElementById("logLevelFilter")?.value||"ALL";
-  const rows=pmoLogs.filter(x=>filter==="ALL"||x.level===filter);
-  list.innerHTML=rows.length?rows.slice().reverse().map(x=>`<div class="log-row log-${x.level.toLowerCase()}"><div class="log-meta"><span>${x.level}</span><time>${new Date(x.ts).toLocaleTimeString()}</time></div><div class="log-message">${esc(x.message)}</div>${x.details!=null?`<pre>${esc(typeof x.details==="string"?x.details:JSON.stringify(x.details,null,2))}</pre>`:""}</div>`).join(""):'<div class="log-empty">Aucun log.</div>';
-  const errors=pmoLogs.filter(x=>x.level==="ERROR").length;
-  const badge=document.getElementById("logErrorBadge");if(badge){badge.textContent=errors;badge.classList.toggle("hidden",errors===0)}
-  const summary=document.getElementById("logSummary");if(summary)summary.textContent=`${pmoLogs.length} événement${pmoLogs.length>1?"s":""} · ${errors} erreur${errors>1?"s":""}`;
-}
-function clearPmoLogs(){pmoLogs.length=0;renderPmoLogs()}
-function pmoLogsText(){return pmoLogs.map(x=>`${x.ts} [${x.level}] ${x.message}${x.details!=null?" | "+(typeof x.details==="string"?x.details:JSON.stringify(x.details)):""}`).join("\n")}
-
-function notifyBanner(message,type="info"){
-  try{
-    const el=document.getElementById("banner");
-    if(el){
-      el.textContent=String(message??"");
-      el.className="banner "+(type||"info");
-      el.classList.remove("hidden");
-      clearTimeout(notifyBanner._t);
-      notifyBanner._t=setTimeout(()=>el.classList.add("hidden"),2600);
-      return;
-    }
-  }catch(e){pmoWarn("Impossible d'afficher la bannière",e)}
-  if(type==="error")pmoError(String(message));
-  else if(type==="warn")pmoWarn(String(message));
-  else pmoInfo(String(message));
+function syncPresenceContext(){
+  window.currentTab=currentTab;
+  window.currentProjectId=currentProjectId;
+  if(window.PmoPresence?.started)window.PmoPresence.touch();
 }
 
-window.addEventListener("error",e=>pmoError("Erreur JavaScript",{message:e.message,source:e.filename,line:e.lineno,column:e.colno}));
-window.addEventListener("unhandledrejection",e=>pmoError("Promesse rejetée",e.reason));
-const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
-let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all",resourceTeamFilter="all",resourceRoleFilter="all",resourceProjectFilter="all",resourceLoadFilter="all",selectedResourceId=null;
+const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
+let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all";
 const $=id=>{
   const el=document.getElementById(id);
   if(!el) throw new Error(`Élément UI introuvable: #${id}`);
   return el;
 };
-function optionalEl(id){return document.getElementById(id)}
 function rows(d){if(!d||!Array.isArray(d.id))return[];const ks=Object.keys(d);return d.id.map((_,i)=>Object.fromEntries(ks.map(k=>[k,Array.isArray(d[k])?d[k][i]:d[k]])))}
 async function fetchTable(k,t){
   try{
@@ -128,10 +84,10 @@ function filteredProjects(filter=typeFilter){return db.projects.filter(p=>{
   return true;
 })}
 
-async function load(){pmoInfo("Chargement des données Grist démarré");
+async function load(){
   try{
   const es=await Promise.all(Object.entries(T).map(async([k,t])=>[k,await fetchTable(k,t)]));db=Object.fromEntries(es);
-  if(!db.projects.length){notifyBanner("Projects est vide ou inaccessible.");return}
+  if(!db.projects.length){banner("Projects est vide ou inaccessible.");return}
   if(!currentProjectId||!get("projects",currentProjectId))currentProjectId=db.projects[0].id;
   populatePortfolioFilters();
   populateProjectSelect();
@@ -141,7 +97,7 @@ async function load(){pmoInfo("Chargement des données Grist démarré");
   switchMainTab(currentTab);
   }catch(e){
     console.error("Erreur de chargement cockpit",e);
-    notifyBanner(`Erreur de chargement : ${e?.message||e}`);
+    banner(`Erreur de chargement : ${e?.message||e}`);
   }
 }
 function visibleProjects(){
@@ -171,7 +127,7 @@ async function openDocAttachment(attId){
     if(!base||!docId)throw new Error("Accès pièce jointe indisponible.");
     const url=`${base}/api/docs/${encodeURIComponent(docId)}/attachments/${encodeURIComponent(attId)}/download?auth=${encodeURIComponent(tokenInfo.token)}`;
     window.open(url,"_blank","noopener,noreferrer");
-  }catch(e){console.error(e);notifyBanner(`Impossible d'ouvrir la pièce jointe : ${e?.message||e}`);}
+  }catch(e){console.error(e);banner(`Impossible d'ouvrir la pièce jointe : ${e?.message||e}`);}
 }
 function renderDocumentation(){
   const error=tableLoadErrors.documentation;
@@ -221,7 +177,7 @@ function renderDocumentation(){
   document.querySelectorAll("[data-doc-att]").forEach(b=>b.onclick=()=>openDocAttachment(Number(b.dataset.docAtt)));
 }
 
-function renderAll(){renderPortfolioKpis();renderProject();renderOffer();renderResources();renderDocumentation();}
+function renderAll(){renderPortfolioKpis();renderProject();renderOffer();renderDocumentation();}
 function renderPortfolioKpis(){
   const ps=visibleProjects(), all=filteredProjects();
   const active=ps.filter(p=>!/termin|clos|done/i.test(String(p.statut||""))).length;
@@ -240,6 +196,7 @@ function renderPortfolioKpis(){
 }
 
 function showPortfolioPage(){
+  syncPresenceContext();
   $("portfolioPage").classList.remove("hidden");
   $("projectPage").classList.add("hidden");
   try{history.replaceState(null,"",location.pathname+location.search)}catch(_){}
@@ -247,6 +204,7 @@ function showPortfolioPage(){
 }
 function showProjectPage(pid){
   currentProjectId=Number(pid);detailTab="infos";
+  syncPresenceContext();
   $("portfolioPage").classList.add("hidden");
   $("projectPage").classList.remove("hidden");
   renderProject();
@@ -470,7 +428,7 @@ function renderSynthesis(p,ts,cs,as){
     :`<strong>${featureCount} fonctionnalité(s)</strong><div class="muted" style="margin-top:6px">Elles peuvent être reliées aux tâches du planning projet.</div>`);
 
   $("summaryResources").innerHTML=`<div class="kv">
-    <div class="key">Allocations</div><div class="value">${as.length}</div><div class="project-allocation-shortcut"><button type="button" class="primary small" id="projectAddAllocationBtn">+ Affecter une ressource</button></div>
+    <div class="key">Allocations</div><div class="value">${as.length}</div>
     <div class="key">Allocation cumulée</div><div class="value">${Math.round(allocTotal*100)}%</div>
     <div class="key">Ressources actives</div><div class="value">${new Set(as.map(a=>id(a.Ressource_Code)).filter(Boolean)).size}</div>
   </div>`;
@@ -666,11 +624,11 @@ async function syncReleaseFeatures(rid,selectedFeatureIds){
 
 /* ---------- Releases (Projet / Produit) ---------- */
 function openRelease(rid=null){
-  const p=get("projects",currentProjectId);if(!p){notifyBanner("Sélectionne un Projet ou un Produit.");return}
+  const p=get("projects",currentProjectId);if(!p){banner("Sélectionne un Projet ou un Produit.");return}
   const f=$("releaseForm"),row=rid?get("releases",rid):null;f.reset();f.id.value=rid||"";
   $("releaseDialogTitle").textContent=row?"Modifier la release":"Nouvelle release";
   if(row){
-    f.Code.value=row.Code||"";f.Nom.value=row.Nom||"";allocationFormField(f,"Date_Debut").value=din(row.Date_Debut);allocationFormField(f,"Date_Fin").value=din(row.Date_Fin);
+    f.Code.value=row.Code||"";f.Nom.value=row.Nom||"";f.Date_Debut.value=din(row.Date_Debut);f.Date_Fin.value=din(row.Date_Fin);
     f.Statut.value=row.Statut||"À venir";f.Objectif.value=row.Objectif||"";f.Actif.value=String(row.Actif!==false);
   }else{f.Statut.value="À venir";f.Actif.value="true"}
   opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");
@@ -680,7 +638,7 @@ function openRelease(rid=null){
 $("releaseForm").onsubmit=async e=>{
   e.preventDefault();
   const f=e.currentTarget,rid=Number(f.id.value)||null,p=get("projects",currentProjectId);
-  const fields={Code:f.Code.value,Nom:f.Nom.value,Date_Debut:gd(allocationFormField(f,"Date_Debut").value),Date_Fin:gd(allocationFormField(f,"Date_Fin").value),Statut:f.Statut.value,Objectif:f.Objectif.value,Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
+  const fields={Code:f.Code.value,Nom:f.Nom.value,Date_Debut:gd(f.Date_Debut.value),Date_Fin:gd(f.Date_Fin.value),Statut:f.Statut.value,Objectif:f.Objectif.value,Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
   fields[releaseParentField()]=currentProjectId;
   if("Type" in (db.releases[0]||{}))fields.Type=p?.Type||null;
   const selected=[...f.Fonctionnalites.selectedOptions].map(o=>Number(o.value));
@@ -716,7 +674,7 @@ $("releaseFeaturesForm").onsubmit=async e=>{
   existing.filter(x=>!selectedIds.has(id(x.fonctionnalite))).forEach(x=>actions.push(["RemoveRecord","Release_Fonctionnalites",x.id]));
   selected.filter(fid=>!existingIds.has(fid)).forEach((fid,i)=>actions.push(["AddRecord","Release_Fonctionnalites",null,{release:rid,fonctionnalite:fid,Ordre:i+1}]));
   $("releaseFeaturesDialog").close();
-  if(actions.length)await apply(actions,"Fonctionnalités de la release mises à jour.");else notifyBanner("Aucun changement.");
+  if(actions.length)await apply(actions,"Fonctionnalités de la release mises à jour.");else banner("Aucun changement.");
 }
 async function deleteRelease(rid){
   const links=releaseFeatureRows(rid);
@@ -728,23 +686,22 @@ async function deleteRelease(rid){
 
 /* ---------- Fonctionnalités (Projet / Produit) ---------- */
 function openFeature(fid=null){
-  const p=get("projects",currentProjectId);if(!p){notifyBanner("Sélectionne un Projet ou un Produit.");return}
+  const p=get("projects",currentProjectId);if(!p){banner("Sélectionne un Projet ou un Produit.");return}
   const f=$("featureForm"),row=fid?get("features",fid):null;f.reset();f.id.value=fid||"";
   $("featureDialogTitle").textContent=row?"Modifier la fonctionnalité":"Nouvelle fonctionnalité";
-  if($("featureCategModuleLabel")) $("featureCategModuleLabel").childNodes[0].nodeValue=typeOf(p)==="produit"?"Catégorie ":"Module ";
-  if(row){["Code","Nom","Categ_module","Description","Priorite"].forEach(k=>{if(f[k])f[k].value=row[k]??""});f.Progression.value=pct(row.Progression);allocationFormField(f,"Date_Debut").value=din(row.Date_Debut||row.dateDebut);allocationFormField(f,"Date_Fin").value=din(row.Date_Fin||row.dateFin);f.Date_Cible.value=din(row.Date_Cible);f.Actif.value=String(row.Actif!==false)}
+  if(row){["Code","Nom","Description","Priorite"].forEach(k=>f[k].value=row[k]??"");f.Progression.value=pct(row.Progression);f.Date_Debut.value=din(row.Date_Debut||row.dateDebut);f.Date_Fin.value=din(row.Date_Fin||row.dateFin);f.Date_Cible.value=din(row.Date_Cible);f.Actif.value=String(row.Actif!==false)}
   else{f.Progression.value=0;f.Actif.value="true"}
   opt(f.stade,db.featureStages,r=>r.Nom,row?id(row.stade):null,"— stade —");
   opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");
-  if(f.Releases) fillMulti(f.Releases,releaseRowsForProject(currentProjectId),x=>`${x.Nom||x.Code||"Release"} — ${dt(x.Date_Debut)} → ${dt(x.Date_Fin)}`,row?releaseIdsForFeature(row.id):[]);
+  fillMulti(f.Releases,releaseRowsForProject(currentProjectId),x=>`${x.Nom||x.Code||"Release"} — ${dt(x.Date_Debut)} → ${dt(x.Date_Fin)}`,row?releaseIdsForFeature(row.id):[]);
   $("featureDialog").showModal()
 }
 $("featureForm").onsubmit=async e=>{
   e.preventDefault();
   const f=e.currentTarget,fid=Number(f.id.value)||null;
-  const fields={Code:f.Code.value,Nom:f.Nom.value,Categ_module:f.Categ_module?.value||"",Description:f.Description.value,stade:f.stade.value?Number(f.stade.value):null,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(allocationFormField(f,"Date_Debut").value),Date_Fin:gd(allocationFormField(f,"Date_Fin").value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
+  const fields={Code:f.Code.value,Nom:f.Nom.value,Description:f.Description.value,stade:f.stade.value?Number(f.stade.value):null,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(f.Date_Debut.value),Date_Fin:gd(f.Date_Fin.value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
   fields[featureParentField()]=currentProjectId;
-  const selected=f.Releases?[...f.Releases.selectedOptions].map(o=>Number(o.value)):[];
+  const selected=[...f.Releases.selectedOptions].map(o=>Number(o.value));
   $("featureDialog").close();
 
   if(fid){
@@ -812,12 +769,12 @@ async function apply(actions,msg){
       }else throw e;
     }
     await load();
-    notifyBanner(msg);
+    banner(msg);
     setTimeout(()=>{if(!busy)hideBanner()},1700);
     return true;
   }catch(e){
     console.error(e);
-    notifyBanner(`Erreur Grist: ${e?.message||e}`);
+    banner(`Erreur Grist: ${e?.message||e}`);
     return false;
   }finally{
     busy=false;document.body.classList.remove("busy");
@@ -911,7 +868,7 @@ $("projectForm").onsubmit=async e=>{
     const fields=projectWritableFields(rawFields,before);
     if(!Object.keys(fields).length){
       $("projectDialog").close();
-      notifyBanner("Aucune modification à enregistrer.");
+      banner("Aucune modification à enregistrer.");
       return;
     }
     const ok=await apply([["UpdateRecord","Projects",rid,fields]],"Projet / Produit mis à jour.");
@@ -949,9 +906,9 @@ $("projectForm").onsubmit=async e=>{
       document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x.dataset.typeFilter==="all"));
       populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject();
     }
-    notifyBanner("Projet / Produit créé.");
+    banner("Projet / Produit créé.");
   }catch(e){
-    console.error(e);notifyBanner(`Erreur Grist: ${e?.message||e}`);
+    console.error(e);banner(`Erreur Grist: ${e?.message||e}`);
   }finally{
     busy=false;document.body.classList.remove("busy");
   }
@@ -1006,183 +963,18 @@ function renderOffer(){
   $("offerResources").innerHTML=byRes.size?`<div class="resource-row header"><div>Ressource</div><div>Allocation cumulée</div><div></div><div></div></div>${[...byRes.entries()].map(([rid,v])=>`<div class="resource-row"><div><strong>${esc(get("team",rid)?.nom||`#${rid}`)}</strong></div><div><div class="load-track"><div class="load-fill ${v>1?"over":""}" style="width:${Math.min(100,v*100)}%"></div></div><div class="muted">${Math.round(v*100)}%</div></div><div></div><div></div></div>`).join("")}`:'<div class="empty">Aucune allocation.</div>';
 }
 
-
-/* ---------- Pilotage par les ressources — UX v5.1 ---------- */
-let resourceViewMode="people",resourceQuickFilter="all",resourceSearch="";
-function allocFraction(v){let n=Number(v||0);return Number.isFinite(n)?(n>2?n/100:n):0}
-function teamCapacity(m){let n=Number(m?.capacite_ETP??m?.Capacite_ETP??m?.capacite??1);return Number.isFinite(n)&&n>0?n:1}
-function teamRefLabel(m){const rid=id(m?.equipe??m?.Equipe??m?.Equipe_Code??m?.Team_ref),r=rid?get("teamRef",rid):null;return r?.Libelle||r?.Nom||r?.Code||m?.equipe_libelle||"Sans équipe"}
-function allocationStart(a){return a?dms(a.Date_Debut??a.dateDebut??a.DateDebut):null}
-function allocationEnd(a){return a?dms(a.Date_Fin??a.dateFin??a.DateFin):null}
-function quarterStart(y,q){return Date.UTC(y,(q-1)*3,1)}
-function quarterEnd(y,q){return Date.UTC(y,q*3,1)-1}
-function resourceQuarters(count=8,offset=0){const now=new Date(),y=now.getUTCFullYear(),q=Math.floor(now.getUTCMonth()/3)+1,out=[];for(let i=offset;i<count+offset;i++){const qi=q+i,yy=y+Math.floor((qi-1)/4),qq=((qi-1)%4)+1;out.push({y:yy,q:qq,start:quarterStart(yy,qq),end:quarterEnd(yy,qq),label:`T${qq} ${yy}`})}return out}
-function allocationQuarterLoad(a,q){const raw=allocFraction(a.Allocation);if(!raw)return 0;let s=allocationStart(a),e=allocationEnd(a);if(!s&&!e)return raw;if(!s)s=e;if(!e)e=s;const overlap=Math.max(0,Math.min(e,q.end)-Math.max(s,q.start)+1);return overlap?raw*(overlap/(q.end-q.start+1)):0}
-function resourceLoadForQuarter(mid,q,projectFilter="all"){return db.allocations.filter(a=>id(a.Ressource_Code)===mid&&(projectFilter==="all"||id(a.Projet_Code)===Number(projectFilter))).reduce((n,a)=>n+allocationQuarterLoad(a,q),0)}
-function resourceHasAllocation(mid){return db.allocations.some(a=>id(a.Ressource_Code)===mid)}
-function resourceRatio(m,q=resourceQuarters(1)[0]){return resourceLoadForQuarter(m.id,q,resourceProjectFilter)/teamCapacity(m)}
-function resourceStatus(ratio,has){if(!has)return"unallocated";if(ratio>1)return"over";if(ratio<.8)return"available";return"normal"}
-function resourceStatusLabel(s){return s==="over"?"Surcharge":s==="available"?"Disponible":s==="unallocated"?"Non allouée":"Charge normale"}
-function resourceStatusIcon(s){return s==="over"?"🔴":s==="available"?"🟢":s==="unallocated"?"⚪":"🟡"}
-function populateResourceFilters(){
- const teams=[...new Set(db.team.map(teamRefLabel).filter(Boolean))].sort(),roles=[...new Set(db.team.map(m=>String(m.role??m.Role??"").trim()).filter(Boolean))].sort();
- $("resourceTeamFilter").innerHTML='<option value="all">Toutes les équipes</option>'+teams.map(v=>`<option>${esc(v)}</option>`).join("");
- $("resourceRoleFilter").innerHTML='<option value="all">Tous les rôles</option>'+roles.map(v=>`<option>${esc(v)}</option>`).join("");
- $("resourceProjectFilter").innerHTML='<option value="all">Tous les projets / produits</option>'+db.projects.map(p=>`<option value="${p.id}">${esc(p.nom||p.code||"#"+p.id)}</option>`).join("");
- $("resourceTeamFilter").value=resourceTeamFilter;$("resourceRoleFilter").value=resourceRoleFilter;$("resourceProjectFilter").value=resourceProjectFilter;$("resourceSearch").value=resourceSearch;
-}
-function filteredResources(){
- const q=resourceQuarters(1)[0],needle=resourceSearch.trim().toLowerCase();
- return db.team.filter(m=>{
-   if(m.actif===false||m.Actif===false)return false;
-   if(resourceTeamFilter!=="all"&&teamRefLabel(m)!==resourceTeamFilter)return false;
-   if(resourceRoleFilter!=="all"&&String(m.role??m.Role??"")!==resourceRoleFilter)return false;
-   if(needle&&!`${m.nom||m.Nom||""} ${m.role||m.Role||""} ${teamRefLabel(m)}`.toLowerCase().includes(needle))return false;
-   const has=resourceHasAllocation(m.id),status=resourceStatus(resourceRatio(m,q),has);
-   return resourceQuickFilter==="all"||status===resourceQuickFilter;
- });
-}
-function renderResourceKpis(){
- const active=db.team.filter(m=>m.actif!==false&&m.Actif!==false),q=resourceQuarters(1)[0],cap=active.reduce((n,m)=>n+teamCapacity(m),0),load=active.reduce((n,m)=>n+resourceLoadForQuarter(m.id,q,"all"),0);
- const over=active.filter(m=>resourceLoadForQuarter(m.id,q,"all")>teamCapacity(m)).length,available=active.filter(m=>resourceHasAllocation(m.id)&&resourceLoadForQuarter(m.id,q,"all")/teamCapacity(m)<.8).length;
- $("resourceKpis").innerHTML=kpi("Ressources",active.length,"actives")+kpi("Charge totale",`${Math.round(load*100)/100} ETP`,`${cap?Math.round(load/cap*100):0}% de ${Math.round(cap*100)/100} ETP`)+kpi("Surchargées",over,over?"Arbitrage nécessaire":"Aucune tension")+kpi("Disponibles",available,"< 80% de charge");
-}
-function renderResourceAlerts(){
- const qs=resourceQuarters(4),alerts=[];
- db.team.filter(m=>m.actif!==false&&m.Actif!==false).forEach(m=>qs.forEach(q=>{const ratio=resourceLoadForQuarter(m.id,q,"all")/teamCapacity(m);if(ratio>1)alerts.push({m,q,ratio})}));
- alerts.sort((a,b)=>b.ratio-a.ratio);
- $("resourceAlerts").innerHTML=alerts.length?`<button class="resource-alert-summary" data-alert-filter="over"><strong>⚠ ${alerts.length} point${alerts.length>1?"s":""} de tension</strong><span>${alerts.slice(0,3).map(a=>`${esc(a.m.nom||a.m.Nom)} ${Math.round(a.ratio*100)}% en ${a.q.label}`).join(" · ")}</span></button>`:`<div class="resource-alert-ok">✓ Aucun dépassement de capacité détecté sur les 4 prochains trimestres.</div>`;
- const b=document.querySelector("[data-alert-filter]");if(b)b.onclick=()=>{resourceQuickFilter="over";resourceViewMode="people";renderResources()}
-}
-function renderQuickFilters(){
- const q=resourceQuarters(1)[0],active=db.team.filter(m=>m.actif!==false&&m.Actif!==false),counts={all:active.length,over:0,normal:0,available:0,unallocated:0};
- active.forEach(m=>counts[resourceStatus(resourceLoadForQuarter(m.id,q,"all")/teamCapacity(m),resourceHasAllocation(m.id))]++);
- $("resourceQuickFilters").innerHTML=[["all","Toutes"],["over","🔴 Surchargées"],["available","🟢 Disponibles"],["normal","🟡 Charge normale"],["unallocated","⚪ Non allouées"]].map(([k,l])=>`<button class="resource-chip ${resourceQuickFilter===k?"active":""}" data-rq="${k}">${l} <b>${counts[k]}</b></button>`).join("");
- document.querySelectorAll("[data-rq]").forEach(b=>b.onclick=()=>{resourceQuickFilter=b.dataset.rq;renderResources()});
-}
-function miniQuarter(m,q){const cap=teamCapacity(m),load=resourceLoadForQuarter(m.id,q,resourceProjectFilter),r=cap?load/cap:0,s=resourceStatus(r,resourceHasAllocation(m.id));return`<div class="mini-quarter ${s}"><span>${q.label.replace(" ","-")}</span><strong>${Math.round(r*100)}%</strong></div>`}
-function renderPeople(){
- const ms=filteredResources(),q=resourceQuarters(1)[0],future=resourceQuarters(4);
- $("resourcePeopleView").innerHTML=ms.length?`<div class="resource-list">${ms.map(m=>{const cap=teamCapacity(m),load=resourceLoadForQuarter(m.id,q,resourceProjectFilter),ratio=cap?load/cap:0,has=resourceHasAllocation(m.id),status=resourceStatus(ratio,has),n=db.allocations.filter(a=>id(a.Ressource_Code)===m.id).length;return`<button class="resource-person-card" data-resource="${m.id}"><div class="resource-avatar">${esc((m.nom||m.Nom||"?").trim().slice(0,1).toUpperCase())}</div><div class="resource-person-main"><div class="resource-person-title"><strong>${esc(m.nom||m.Nom||"#"+m.id)}</strong><span>${esc(m.role??m.Role??"")}</span></div><div class="muted">${esc(teamRefLabel(m))} · ${cap} ETP · ${n?n+" allocation(s)":"Aucune allocation"}</div></div><div class="resource-current"><div class="load-bar"><i style="width:${Math.min(100,Math.round(ratio*100))}%"></i></div><strong>${Math.round(ratio*100)}%</strong><span class="status-pill ${status}">${resourceStatusIcon(status)} ${resourceStatusLabel(status)}</span></div><div class="resource-future">${future.map(x=>miniQuarter(m,x)).join("")}</div><span class="resource-chevron">›</span></button>`}).join("")}</div>`:'<div class="empty">Aucune ressource ne correspond aux filtres.</div>';
- bindResourceOpen();
-}
-function renderLoadPlan(){
- const ms=filteredResources(),qs=resourceQuarters(8);
- $("resourceLoadView").innerHTML=ms.length?`<div class="resource-load-head"><div><h2>Plan de charge</h2><p>8 prochains trimestres · charge / capacité ETP</p></div></div><div class="resource-matrix-wrap"><table class="resource-matrix"><thead><tr><th class="sticky-col">Ressource</th><th>Capacité</th>${qs.map(q=>`<th>${q.label}</th>`).join("")}</tr></thead><tbody>${ms.map(m=>`<tr><td class="sticky-col"><button class="resource-link" data-resource="${m.id}">${esc(m.nom||m.Nom||"#"+m.id)}</button><small>${esc(teamRefLabel(m))}</small></td><td>${teamCapacity(m)} ETP</td>${qs.map(q=>{const cap=teamCapacity(m),l=resourceLoadForQuarter(m.id,q,resourceProjectFilter),r=cap?l/cap:0,s=resourceStatus(r,resourceHasAllocation(m.id));return`<td><div class="capacity-cell ${s}"><div class="capacity-fill" style="width:${Math.min(100,r*100)}%"></div><strong>${Math.round(r*100)}%</strong><span>${Math.round(l*100)/100} ETP</span></div></td>`}).join("")}</tr>`).join("")}</tbody></table></div>`:'<div class="empty">Aucune ressource.</div>';
- bindResourceOpen();
-}
-function renderTeams(){
- const ms=filteredResources(),qs=resourceQuarters(4),groups={};ms.forEach(m=>(groups[teamRefLabel(m)]??=[]).push(m));
- $("resourceTeamsView").innerHTML=Object.entries(groups).map(([name,members])=>{const cap=members.reduce((n,m)=>n+teamCapacity(m),0),loads=qs.map(q=>members.reduce((n,m)=>n+resourceLoadForQuarter(m.id,q,resourceProjectFilter),0)),over=members.filter(m=>resourceRatio(m)>1).length,unalloc=members.filter(m=>!resourceHasAllocation(m.id)).length;return`<article class="team-capacity-card"><div class="team-card-head"><div><h3>${esc(name)}</h3><span>${members.length} ressources · ${Math.round(cap*100)/100} ETP</span></div><div><b>${over}</b> surcharge(s) · <b>${unalloc}</b> non allouée(s)</div></div><div class="team-quarter-grid">${qs.map((q,i)=>{const r=cap?loads[i]/cap:0;return`<div><span>${q.label}</span><div class="team-load-bar"><i style="width:${Math.min(100,r*100)}%"></i></div><strong class="${r>1?"danger-text":""}">${Math.round(r*100)}%</strong><small>${Math.round(loads[i]*100)/100} / ${Math.round(cap*100)/100} ETP</small></div>`}).join("")}</div><div class="team-members">${members.slice(0,8).map(m=>`<button data-resource="${m.id}">${esc(m.nom||m.Nom||"#"+m.id)}</button>`).join("")}</div></article>`}).join("")||'<div class="empty">Aucune équipe.</div>';
- bindResourceOpen();
-}
-function bindResourceOpen(){document.querySelectorAll("[data-resource]").forEach(b=>b.onclick=()=>openResourceDrawer(Number(b.dataset.resource)))}
-function openResourceDrawer(mid){selectedResourceId=mid;renderResourceDetail(mid);$("resourceDrawerBackdrop").classList.remove("hidden");$("resourceDrawer").classList.add("open");$("resourceDrawer").setAttribute("aria-hidden","false")}
-function closeResourceDrawer(){$("resourceDrawerBackdrop").classList.add("hidden");$("resourceDrawer").classList.remove("open");$("resourceDrawer").setAttribute("aria-hidden","true")}
-
-function allocationColumnSet(){
-  const cols=(tableLoadMeta?.allocations?.columns)||[];
-  return new Set(cols);
-}
-
-function allocationFormField(form,name){
-  const el=form?.elements?.namedItem(name);
-  if(!el){
-    pmoError("Champ allocation introuvable",{name,available:[...(form?.elements||[])].map(x=>x.name||x.id||x.tagName)});
-    throw new Error(`Champ allocation introuvable: ${name}`);
-  }
-  return el;
-}
-
-function openAllocationDialog(a=null,defaults={}){
-  pmoInfo("Ouverture formulaire allocation",{mode:a?"edit":"create",allocationId:a?.id||null,defaults});
-  pmoInfo("Champs formulaire allocation détectés",{fields:[...$("allocationForm").elements].map(x=>x.name||x.id||x.tagName)});
-  const f=$("allocationForm");
-  if(!f){msg("Formulaire d'allocation indisponible.",true);return}
-  const resourceId=a?id(a.Ressource_Code):(defaults.resourceId||selectedResourceId||null);
-  const projectId=a?id(a.Projet_Code):(defaults.projectId||currentProjectId||null);
-
-  allocationFormField(f,"allocation_id").value=a?.id||"";
-  allocationFormField(f,"Ressource_Code").innerHTML='<option value="">Choisir…</option>'+db.team.map(x=>`<option value="${x.id}">${esc(x.nom||x.Nom||"#"+x.id)}</option>`).join("");
-  allocationFormField(f,"Projet_Code").innerHTML='<option value="">Choisir…</option>'+db.projects.map(x=>`<option value="${x.id}">${esc(x.nom||x.code||"#"+x.id)} · ${typeOf(x)==="produit"?"Produit":"Projet"}</option>`).join("");
-  allocationFormField(f,"Ressource_Code").value=resourceId||"";
-  allocationFormField(f,"Projet_Code").value=projectId||"";
-  allocationFormField(f,"Allocation").value=a?Math.round(allocFraction(a.Allocation)*100):100;
-  allocationFormField(f,"Role").value=a?.Role??a?.role??"";
-  allocationFormField(f,"Date_Debut").value=din(allocationStart(a));
-  allocationFormField(f,"Date_Fin").value=din(allocationEnd(a));
-  $("allocationDialogTitle").textContent=a?"Modifier l’allocation":"Nouvelle allocation";
-  $("allocationDialog").showModal();pmoInfo("Formulaire allocation ouvert",{mode:a?"edit":"create"});
-}
-function bindAllocationActions(){
-  const adds=document.querySelectorAll("[data-new-allocation]"),edits=document.querySelectorAll("[data-edit-allocation]"),deletes=document.querySelectorAll("[data-delete-allocation]");
-  pmoInfo("Boutons allocations branchés",{add:adds.length,edit:edits.length,delete:deletes.length});
-  adds.forEach(b=>b.onclick=()=>{const rid=Number(b.dataset.newAllocation);pmoInfo("Nouvelle allocation cliquée",{resourceId:rid});openAllocationDialog(null,{resourceId:rid})});
-  edits.forEach(b=>b.onclick=()=>{const aid=Number(b.dataset.editAllocation);pmoInfo("Modifier allocation cliqué",{allocationId:aid});openAllocationDialog(get("allocations",aid))});
-  deletes.forEach(b=>b.onclick=async()=>{
-    const aid=Number(b.dataset.deleteAllocation),a=get("allocations",aid);
-    pmoInfo("Supprimer allocation cliqué",{allocationId:aid,found:Boolean(a)});
-    if(!a){pmoError("Allocation à supprimer introuvable",{allocationId:aid});return}
-    if(!confirm("Supprimer cette allocation ?")){
-      pmoInfo("Suppression allocation annulée",{allocationId:aid});
-      return;
-    }
-    try{
-      pmoInfo("Suppression Grist envoyée",{table:"Allocations",allocationId:aid});
-      await grist.docApi.applyUserActions([["RemoveRecord","Allocations",aid]]);
-      pmoInfo("Suppression Grist confirmée",{allocationId:aid});
-      notifyBanner("Allocation supprimée.");
-      await load();
-      if(selectedResourceId)renderResourceDetail(selectedResourceId);
-    }catch(e){
-      pmoError("Échec suppression allocation",{allocationId:aid,error:e});
-      notifyBanner(`Erreur suppression allocation : ${e?.message||e}`,"error");
-    }
-  });
-}
-
-function taskAssignedToResource(t,rid){return refs(t?.assignees).includes(Number(rid))}
-function resourceAssignedTasks(rid){return db.tasks.filter(t=>taskAssignedToResource(t,rid))}
-function resourceTaskDue(t){return dms(t?.dateEcheance??t?.Date_Echeance??t?.DateEcheance)}
-function resourceTaskLate(t){const d=resourceTaskDue(t);return !!d&&d<Date.now()&&!done(t?.statut??t?.Statut)}
-function resourceTaskProject(t){const p=get("projects",id(t?.projet));return p?.nom||p?.code||(id(t?.projet)?`Projet #${id(t.projet)}`:"Sans projet")}
-function resourceTaskFeature(t){const f=get("features",id(t?.fonctionnalite));return f?.Nom||f?.nom||""}
-function resourceTaskStage(t){const st=get("projectStages",id(t?.etape_projet));return st?.Nom||st?.nom||""}
-
-function renderResourceDetail(mid){
- const m=get("team",mid);if(!m)return;
- const as=db.allocations.filter(a=>id(a.Ressource_Code)===mid).sort((a,b)=>(allocationStart(a)||0)-(allocationStart(b)||0));
- const tasks=resourceAssignedTasks(mid).sort((a,b)=>(resourceTaskLate(b)?1:0)-(resourceTaskLate(a)?1:0)||(resourceTaskDue(a)||Infinity)-(resourceTaskDue(b)||Infinity));
- const qs=resourceQuarters(4),cap=teamCapacity(m),loads=qs.map(q=>resourceLoadForQuarter(mid,q,"all")),peak=Math.max(0,...loads.map(l=>l/cap)),late=tasks.filter(resourceTaskLate).length;
- $("resourceDrawerContent").innerHTML=`<div class="drawer-profile"><div class="drawer-avatar">${esc((m.nom||m.Nom||"?").slice(0,1).toUpperCase())}</div><h2>${esc(m.nom||m.Nom||"#"+mid)}</h2><p>${esc(m.role??m.Role??"")} · ${esc(teamRefLabel(m))}</p></div>
- <div class="drawer-kpis resource-kpis-4"><div><b>${cap}</b><span>ETP capacité</span></div><div><b class="${peak>1?"danger-text":""}">${Math.round(peak*100)}%</b><span>pic 4 trim.</span></div><div><b>${as.length}</b><span>allocation(s)</span></div><div><b class="${late?"danger-text":""}">${tasks.length}</b><span>tâche(s) · ${late} en retard</span></div></div>
- <h3>Prochains trimestres</h3><div class="drawer-quarter-grid">${qs.map((q,i)=>`<div><span>${q.label}</span><strong>${Math.round(loads[i]/cap*100)}%</strong><small>${Math.round(loads[i]*100)/100} ETP</small></div>`).join("")}</div>
- <div class="resource-detail-tabs"><button type="button" class="resource-detail-tab active" data-resource-detail-tab="allocations">Allocations <span>${as.length}</span></button><button type="button" class="resource-detail-tab" data-resource-detail-tab="tasks">Tâches assignées <span>${tasks.length}</span></button></div>
- <section data-resource-detail-panel="allocations"><div class="allocation-section-head"><h3>Allocations projets / produits</h3><button class="primary small" type="button" data-new-allocation="${mid}">+ Nouvelle allocation</button></div>${as.length?`<div class="allocation-list">${as.map(a=>{const p=get("projects",id(a.Projet_Code));return`<div class="allocation-card"><div><strong>${esc(p?.nom||p?.code||"Projet #"+id(a.Projet_Code))}</strong><div class="muted">${esc(a.Role||a.role||"")}<br>${dt(allocationStart(a))} → ${dt(allocationEnd(a))}</div></div><div class="allocation-actions"><span>${Math.round(allocFraction(a.Allocation)*100)}%</span><button type="button" class="icon" data-edit-allocation="${a.id}">✎</button><button type="button" class="icon danger" data-delete-allocation="${a.id}">×</button></div></div>`}).join("")}</div>`:'<div class="resource-no-allocation"><b>Disponible</b><span>Aucune allocation enregistrée.</span><button class="primary small" type="button" data-new-allocation="${mid}">+ Affecter cette ressource</button></div>'}</section>
- <section data-resource-detail-panel="tasks" class="hidden"><div class="resource-task-section-head"><h3>Tâches assignées</h3><span>${late?`⚠ ${late} en retard`:"Aucune tâche en retard"}</span></div>${tasks.length?`<div class="resource-task-list">${tasks.map(t=>{const f=resourceTaskFeature(t),st=resourceTaskStage(t),due=resourceTaskDue(t),isLate=resourceTaskLate(t);return`<article class="resource-task-card ${isLate?"late":""}"><div class="resource-task-main"><strong>${esc(t.nom||t.Nom||t.titre||t.Titre||`Tâche #${t.id}`)}</strong><span>${esc(resourceTaskProject(t))}</span>${(f||st)?`<small>${f?`Fonctionnalité : ${esc(f)}`:""}${f&&st?" · ":""}${st?`Étape : ${esc(st)}`:""}</small>`:""}</div><div class="resource-task-meta"><span class="task-status">${esc(t.statut??t.Statut??"—")}</span><span class="${isLate?"danger-text":""}">${due?dt(due):"Sans échéance"}</span></div></article>`}).join("")}</div>`:'<div class="empty">Aucune tâche assignée à cette ressource.</div>'}</section>`;
- bindAllocationActions();
- document.querySelectorAll("[data-resource-detail-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-resource-detail-tab]").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll("[data-resource-detail-panel]").forEach(p=>p.classList.toggle("hidden",p.dataset.resourceDetailPanel!==b.dataset.resourceDetailTab))});
-}
-function renderResources(){
- if(!$("resourcesView"))return;populateResourceFilters();renderResourceKpis();renderResourceAlerts();renderQuickFilters();
- document.querySelectorAll("[data-resource-view]").forEach(b=>b.classList.toggle("active",b.dataset.resourceView===resourceViewMode));
- $("resourcePeopleView").classList.toggle("hidden",resourceViewMode!=="people");$("resourceLoadView").classList.toggle("hidden",resourceViewMode!=="load");$("resourceTeamsView").classList.toggle("hidden",resourceViewMode!=="teams");
- if(resourceViewMode==="people")renderPeople();if(resourceViewMode==="load")renderLoadPlan();if(resourceViewMode==="teams")renderTeams();
-}
-
 function switchMainTab(tab){
   currentTab=tab;
+  syncPresenceContext();
   document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x.dataset.mainTab===tab));
   $("projectView").classList.toggle("hidden",tab!=="project");
   $("offerView").classList.toggle("hidden",tab!=="offer");
-  $("resourcesView").classList.toggle("hidden",tab!=="resources");
-  optionalEl("docsView")?.classList.toggle("hidden",tab!=="docs");
-  if(tab==="resources"){renderResources()}
+  $("docsView").classList.toggle("hidden",tab!=="docs");
   if(tab==="docs"){
     try{renderDocumentation()}
     catch(e){
       console.error("Erreur onglet Documentation",e);
-      optionalEl("docsView")?.classList.remove("hidden");
+      $("docsView").classList.remove("hidden");
       const s=$("docsStatus");s.classList.remove("hidden");
       s.innerHTML=`<strong>Erreur d'affichage Documentation</strong><div class="muted">${esc(e?.message||e)}</div>`;
     }
@@ -1195,7 +987,7 @@ $("offerSelect").onchange=e=>{currentOfferId=Number(e.target.value);renderOffer(
 $("editProjectBtn").onclick=()=>openProject(false);$("newProjectBtn").onclick=()=>openProject(true);
 $("deleteProjectBtn").onclick=deleteProject;
 $("newTaskBtn").onclick=()=>openTask();$("newStageTaskBtn").onclick=()=>openTask();
-if($("addContributionBtn"))$("addContributionBtn").onclick=openContribution;if($("newFeatureBtn"))$("newFeatureBtn").onclick=()=>openFeature();if($("newReleaseBtn"))$("newReleaseBtn").onclick=()=>openRelease();if($("summaryFeatureBtn"))$("summaryFeatureBtn").onclick=()=>switchDetailTab("features");
+$("addContributionBtn").onclick=openContribution;$("newFeatureBtn").onclick=()=>openFeature();$("newReleaseBtn").onclick=()=>openRelease();$("summaryFeatureBtn").onclick=()=>switchDetailTab("features");
 document.querySelectorAll("[data-task-filter]").forEach(b=>b.onclick=()=>{taskFilter=b.dataset.taskFilter;document.querySelectorAll("[data-task-filter]").forEach(x=>x.classList.toggle("active",x===b));tasks(taskRows(currentProjectId))});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const d=$(b.dataset.close);if(d?.open)d.close()});
 
@@ -1204,62 +996,12 @@ $("domainFilter").addEventListener("change",e=>{domainFilter=e.target.value;popu
 $("serviceFilter").addEventListener("change",e=>{serviceFilter=e.target.value;populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});$("natureFilter").addEventListener("change",e=>{natureFilter=e.target.value;populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
 document.querySelectorAll("[data-detail-tab]").forEach(b=>b.onclick=()=>switchDetailTab(b.dataset.detailTab));
 
-
-["resourceTeamFilter","resourceRoleFilter","resourceProjectFilter"].forEach(fid=>{
-  $(fid).addEventListener("change",e=>{if(fid==="resourceTeamFilter")resourceTeamFilter=e.target.value;if(fid==="resourceRoleFilter")resourceRoleFilter=e.target.value;if(fid==="resourceProjectFilter")resourceProjectFilter=e.target.value;renderResources()});
-});
-$("resourceSearch").addEventListener("input",e=>{resourceSearch=e.target.value;renderResources()});
-document.querySelectorAll("[data-resource-view]").forEach(b=>b.onclick=()=>{resourceViewMode=b.dataset.resourceView;renderResources()});
-
-$("allocationForm").onsubmit=async e=>{
-  pmoInfo("Soumission formulaire allocation");
-  e.preventDefault();
-  const f=e.currentTarget,aid=Number(allocationFormField(f,"allocation_id").value)||null;
-  const fields={
-    Ressource_Code:Number(allocationFormField(f,"Ressource_Code").value),
-    Projet_Code:Number(allocationFormField(f,"Projet_Code").value),
-    Allocation:fromPct(allocationFormField(f,"Allocation").value),
-    Role:allocationFormField(f,"Role").value,
-    Date_Debut:gd(allocationFormField(f,"Date_Debut").value),
-    Date_Fin:gd(allocationFormField(f,"Date_Fin").value)
-  };
-  const cols=allocationColumnSet();
-  const safe=Object.fromEntries(Object.entries(fields).filter(([k])=>cols.has(k)));
-  if(!safe.Ressource_Code||!safe.Projet_Code){
-    msg("Les colonnes Ressource_Code et Projet_Code sont nécessaires dans Allocations.",true);
-    return;
-  }
-  $("allocationDialog").close();
-  await apply([[aid?"UpdateRecord":"AddRecord","Allocations",aid||null,safe]],aid?"Allocation mise à jour.":"Allocation créée.");
-  if(selectedResourceId)renderResourceDetail(selectedResourceId);
-};
-
-$("resourceDrawerClose").onclick=closeResourceDrawer;$("resourceDrawerBackdrop").onclick=closeResourceDrawer;
-
-
-document.addEventListener("click",e=>{
-  const b=e.target.closest?.("#projectAddAllocationBtn");
-  if(!b)return;
-  e.preventDefault();
-  openAllocationDialog(null,{projectId:currentProjectId});
-});
-
-
-// v5.4.2 boot diagnostic: all DOM nodes are parsed before this script runs.
-pmoInfo("Démarrage Cockpit",{version:VERSION,allocationForm:Boolean(document.getElementById("allocationForm")),projectList:Boolean(document.getElementById("projectList"))});
-
-$("openLogsBtn").onclick=()=>{$("logDrawer").classList.remove("hidden");renderPmoLogs()};
-$("closeLogsBtn").onclick=()=>$("logDrawer").classList.add("hidden");
-$("logLevelFilter").onchange=renderPmoLogs;
-$("clearLogsBtn").onclick=()=>{if(confirm("Vider tous les logs de cette session ?")){clearPmoLogs();pmoInfo("Logs vidés par l’utilisateur")}};
-$("copyLogsBtn").onclick=async()=>{
-  const text=pmoLogsText();
-  try{await navigator.clipboard.writeText(text);msg("Logs copiés.");pmoInfo("Logs copiés dans le presse-papiers")}
-  catch(e){pmoError("Impossible de copier les logs",e);msg("Copie impossible.",true)}
-};
-pmoInfo("Interface de logs prête");
-
-grist.ready({requiredAccess:"full"});grist.onOptions(()=>load());load();
+grist.ready({requiredAccess:"full"});
+grist.onOptions(()=>load());
+load();
+window.currentTab=currentTab;
+window.currentProjectId=currentProjectId;
+window.PmoPresence?.start({widget:"COCKPIT",version:VERSION});
 
 $("backToPortfolioBtn").onclick=()=>{renderProjectList();showPortfolioPage();};
 window.addEventListener("hashchange",()=>{
