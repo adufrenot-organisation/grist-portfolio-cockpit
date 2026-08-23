@@ -629,3 +629,14 @@ Le badge de présence devient interactif. Il affiche le nombre d'utilisateurs ac
 - affichage du nom, email, widget, version, page et dernière activité ;
 - option `Tous les widgets` déjà prévue pour l'intégration future d'Admin/Audit et Migration ;
 - actualisation manuelle depuis le panneau.
+
+## v5.4.12 — rattachement des fonctionnalités
+
+Correction du rattachement des fonctionnalités à leur projet/produit.
+
+La table Grist `Fonctionnalites` utilise la colonne technique `Parent` avec un P majuscule.
+Le Cockpit cherchait en priorité `parent`, ce qui donnait zéro fonctionnalité malgré des références
+correctement renseignées dans Grist.
+
+Le Cockpit reconnaît désormais `Parent` et conserve les anciens alias pour compatibilité.
+La même tolérance est appliquée aux Releases.

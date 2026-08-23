@@ -1,5 +1,5 @@
 
-const VERSION="5.4.11";
+const VERSION="5.4.12";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -568,32 +568,36 @@ function projectStagesView(p,ts){
 }
 
 function featureParentId(f){
-  return id(f.parent)||id(f.projet_produit)||id(f.produit)||id(f.Project)||id(f.Projet);
+  // La table Grist Fonctionnalites utilise actuellement l'ID technique "Parent"
+  // avec un P majuscule. Garder aussi les anciens alias pour compatibilité.
+  return id(f.Parent)||id(f.parent)||id(f.projet_produit)||id(f.produit)||id(f.Project)||id(f.Projet);
 }
 function featureRowsForProject(pid){
   return db.features.filter(f=>featureParentId(f)===Number(pid));
 }
 function featureParentField(){
   const s=db.features[0]||{};
+  if("Parent" in s)return "Parent";
   if("parent" in s)return "parent";
   if("projet_produit" in s)return "projet_produit";
   if("produit" in s)return "produit";
-  return "parent";
+  return "Parent";
 }
 
 function releaseParentId(r){
-  return id(r.parent)||id(r.projet_produit)||id(r.produit)||id(r.projet)||id(r.Project)||id(r.Projet);
+  return id(r.Parent)||id(r.parent)||id(r.projet_produit)||id(r.produit)||id(r.projet)||id(r.Project)||id(r.Projet);
 }
 function releaseRowsForProject(pid){
   return db.releases.filter(r=>releaseParentId(r)===Number(pid));
 }
 function releaseParentField(){
   const s=db.releases[0]||{};
+  if("Parent" in s)return "Parent";
   if("parent" in s)return "parent";
   if("projet_produit" in s)return "projet_produit";
   if("produit" in s)return "produit";
   if("projet" in s)return "projet";
-  return "parent";
+  return "Parent";
 }
 function releaseFeatureRows(releaseId){
   return db.releaseFeatures.filter(r=>id(r.release)===Number(releaseId));

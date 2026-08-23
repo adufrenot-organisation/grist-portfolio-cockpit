@@ -354,3 +354,6 @@ Aucun changement fonctionnel du pilotage v5.4.9 en dehors de la télémétrie de
 
 ## v5.4.11 — Active users UI
 `presence.js` expose `listActive()`. Le Cockpit restitue les sessions actives dans un popover de header, avec déduplication utilisateur.
+
+## v5.4.12
+Normalisation des champs de rattachement Projet/Produit : prise en charge explicite de `Fonctionnalites.Parent`.
