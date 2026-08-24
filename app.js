@@ -1,5 +1,5 @@
 
-const VERSION="5.4.14";
+const VERSION="5.4.15";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -579,7 +579,16 @@ function featureParentId(f){
   return id(f.Parent)||id(f.parent)||id(f.projet_produit)||id(f.produit)||id(f.Project)||id(f.Projet);
 }
 function featureRowsForProject(pid){
-  return db.features.filter(f=>featureParentId(f)===Number(pid));
+  const project=db.projects.find(p=>Number(p.id)===Number(pid));
+  const names=new Set([project?.nom,project?.Nom,project?.code,project?.Code].filter(Boolean).map(v=>String(v).trim().toLowerCase()));
+  return db.features.filter(f=>{
+    const parentId=featureParentId(f);
+    if(parentId===Number(pid))return true;
+    // Tolérance pour les documents/migrations où la Ref Parent est exposée sous forme de valeur affichée.
+    const raw=f.Parent??f.parent??f.projet_produit??f.produit??f.Project??f.Projet;
+    if(typeof raw==="string"&&names.has(raw.trim().toLowerCase()))return true;
+    return false;
+  });
 }
 function featureParentField(){
   const s=db.features[0]||{};

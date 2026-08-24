@@ -648,3 +648,9 @@ Une ligne par fonctionnalité, filtres Module/Stade/Release, recherche, tris et 
 ## v5.4.14 — correction tableKeyFromName
 Correction d'une fonction manquante utilisée par le journal d'audit avant les écritures Grist.
 L'erreur `tableKeyFromName is not defined` pouvait bloquer toute modification, notamment le passage Projet → Produit.
+
+
+## v5.4.15 — continuité Projet → Produit
+La Roadmap produit utilise exactement le même rattachement `Fonctionnalites.Parent` que la vue Fonctionnalités projet.
+Le filtre accepte l'ID de référence Grist et, par sécurité, la valeur affichée nom/code si un ancien import l'a exposée ainsi.
+Le changement de `Type` d'un enregistrement Projects ne doit donc jamais faire disparaître ses fonctionnalités.
