@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.4.15-roadmap-parent" />
+  <link rel="stylesheet" href="styles.css?v=5.4.17-project-update" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="brand pmo-brand-lockup">
       <div class="pmo-brand-badge">PMO</div>
       <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
-      <span class="version pmo-version">v5.4.15</span><div class="presence-wrap">
+      <span class="version pmo-version">v5.4.17</span><div class="presence-wrap">
         <button id="presenceBadge" class="presence-badge presence-pending" type="button" title="Présence Cockpit">● Présence…</button>
         <div id="presencePopover" class="presence-popover hidden">
           <div class="presence-popover-head">
@@ -307,7 +307,7 @@
 
 <dialog id="projectDialog">
 <form method="dialog" id="projectForm">
-<input type="hidden" name="allocation_id" />
+<input type="hidden" name="record_id" />
 <div class="dialog-head"><h3 id="projectDialogTitle">Projet / Produit</h3><button type="button" class="icon" data-close="projectDialog">×</button></div>
 <div class="form-grid">
 <label>Nom<input name="nom" required /></label>
@@ -436,7 +436,7 @@
   </form>
 </dialog>
 
-  <script src="presence.js?v=5.4.15"></script>
-<script src="app.js?v=5.4.15"></script>
+  <script src="presence.js?v=5.4.17"></script>
+<script src="app.js?v=5.4.17"></script>
 </body>
 </html>

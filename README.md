@@ -654,3 +654,23 @@ L'erreur `tableKeyFromName is not defined` pouvait bloquer toute modification, n
 La Roadmap produit utilise exactement le même rattachement `Fonctionnalites.Parent` que la vue Fonctionnalités projet.
 Le filtre accepte l'ID de référence Grist et, par sécurité, la valeur affichée nom/code si un ancien import l'a exposée ainsi.
 Le changement de `Type` d'un enregistrement Projects ne doit donc jamais faire disparaître ses fonctionnalités.
+
+## v5.4.16 — résolution robuste du parent des fonctionnalités
+
+Le Cockpit résout désormais le rattachement d'une fonctionnalité indépendamment de la casse du nom de colonne
+(`Parent`, `parent`, etc.) et accepte les différentes représentations d'une Ref Grist (ID, ["R", id], objet).
+En dernier recours, il compare aussi la valeur affichée/helper au nom ou code du projet/produit.
+Un diagnostic s'affiche si la table contient des fonctionnalités mais qu'aucune ne pointe vers l'élément courant.
+
+## v5.4.17 — correction modification Projet / Produit
+
+Le formulaire Projet utilisait par erreur un champ caché `allocation_id` et le code lisait `f.id`,
+qui correspond à l'ID HTML du formulaire, pas à l'ID de la ligne Grist. Résultat : une modification
+pouvait être interprétée comme une création.
+
+Correction :
+- champ caché `record_id` explicite ;
+- lecture via `f.elements.record_id` ;
+- `UpdateRecord` garanti lors de la modification ;
+- garde-fou supplémentaire : si le record_id manque mais qu'un projet de même nom unique existe,
+  le Cockpit met à jour cette ligne au lieu de créer un doublon.

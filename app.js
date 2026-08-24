@@ -1,5 +1,5 @@
 
-const VERSION="5.4.15";
+const VERSION="5.4.17";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -573,20 +573,59 @@ function projectStagesView(p,ts){
   document.querySelectorAll("[data-stage-edit-task]").forEach(b=>b.onclick=()=>openTask(Number(b.dataset.stageEditTask)));
 }
 
+function refIdAny(v){
+  if(v===null||v===undefined||v==="")return null;
+  if(typeof v==="number"&&Number.isFinite(v))return Number(v);
+  if(typeof v==="string"){
+    const n=Number(v);
+    return Number.isFinite(n)?n:null;
+  }
+  if(Array.isArray(v)){
+    // Grist peut exposer une Ref sous la forme ["R", id].
+    for(const x of v){
+      if(typeof x==="number"&&Number.isFinite(x))return Number(x);
+      if(typeof x==="string"&&/^\d+$/.test(x))return Number(x);
+    }
+    return null;
+  }
+  if(typeof v==="object"){
+    const n=Number(v.id??v.rowId??v.value);
+    return Number.isFinite(n)?n:null;
+  }
+  return null;
+}
+function featureParentRaw(f){
+  if(!f)return null;
+  const aliases=["parent","projet_produit","produit","project","projet"];
+  for(const [k,v] of Object.entries(f)){
+    if(aliases.includes(String(k).toLowerCase()))return v;
+  }
+  return null;
+}
 function featureParentId(f){
-  // La table Grist Fonctionnalites utilise actuellement l'ID technique "Parent"
-  // avec un P majuscule. Garder aussi les anciens alias pour compatibilité.
-  return id(f.Parent)||id(f.parent)||id(f.projet_produit)||id(f.produit)||id(f.Project)||id(f.Projet);
+  return refIdAny(featureParentRaw(f));
 }
 function featureRowsForProject(pid){
-  const project=db.projects.find(p=>Number(p.id)===Number(pid));
-  const names=new Set([project?.nom,project?.Nom,project?.code,project?.Code].filter(Boolean).map(v=>String(v).trim().toLowerCase()));
-  return db.features.filter(f=>{
-    const parentId=featureParentId(f);
-    if(parentId===Number(pid))return true;
-    // Tolérance pour les documents/migrations où la Ref Parent est exposée sous forme de valeur affichée.
-    const raw=f.Parent??f.parent??f.projet_produit??f.produit??f.Project??f.Projet;
-    if(typeof raw==="string"&&names.has(raw.trim().toLowerCase()))return true;
+  const wanted=Number(pid);
+  const project=db.projects.find(p=>Number(p.id)===wanted);
+  const labels=new Set(
+    [project?.nom,project?.Nom,project?.code,project?.Code]
+      .filter(Boolean)
+      .map(v=>String(v).trim().toLowerCase())
+  );
+
+  return (db.features||[]).filter(f=>{
+    // 1. Cas normal : référence Grist vers Projects.
+    if(featureParentId(f)===wanted)return true;
+
+    // 2. Ancienne donnée/import : valeur affichée au lieu de l'ID.
+    const raw=featureParentRaw(f);
+    if(typeof raw==="string"&&labels.has(raw.trim().toLowerCase()))return true;
+
+    // 3. Certains exports DocAPI peuvent ne laisser que le helper d'affichage.
+    for(const [k,v] of Object.entries(f)){
+      if(/^gristHelper_Display/i.test(k) && typeof v==="string" && labels.has(v.trim().toLowerCase()))return true;
+    }
     return false;
   });
 }
@@ -659,9 +698,11 @@ function productFeaturesView(p,ts){
   const fs=featureRowsForProject(p.id);
   const host=$("productFeaturesView");
   if(!fs.length){
-    host.innerHTML=typeOf(p)==="produit"
-      ?'<div class="empty">Aucune fonctionnalité pour ce produit. Crée la première pour construire la roadmap.</div>'
-      :'<div class="empty">Aucune fonctionnalité rattachée à ce projet.</div>';
+    const loaded=(db.features||[]).length;
+    host.innerHTML=(typeOf(p)==="produit"
+      ?'<div class="empty">Aucune fonctionnalité rattachée à ce produit.</div>'
+      :'<div class="empty">Aucune fonctionnalité rattachée à ce projet.</div>')
+      +(loaded?`<div class="muted feature-diagnostic">La table Fonctionnalites contient ${loaded} ligne(s), mais aucune ne référence l’ID ${p.id} (${esc(p.nom||p.code||"")}).</div>`:"");
     return;
   }
 
@@ -949,13 +990,13 @@ function projectWritableFields(fields, before=null){
 function openProject(create=false){
   const f=$("projectForm");
   f.reset();
-  f.id.value="";
+  f.elements.record_id.value="";
   let p=null;
 
   if(!create){
     p=get("projects",currentProjectId);
     if(!p)return;
-    f.id.value=String(p.id);
+    f.elements.record_id.value=String(p.id);
     $("projectDialogTitle").textContent="Modifier Projet / Produit";
     ["nom","code","statut","priorite","sponsor","risque"].forEach(k=>f[k].value=p[k]??"");
     f.Type.value=/produit/i.test(p.Type||"")?"Produit":"Projet";f.Nature_Projet.value=p.Nature_Projet||"";
@@ -979,7 +1020,7 @@ function openProject(create=false){
 $("projectForm").onsubmit=async e=>{
   e.preventDefault();
   const f=e.currentTarget;
-  const rid=Number(f.id.value)||null;
+  const rid=Number(f.elements.record_id.value)||null;
   const rawFields={
     nom:f.nom.value,
     code:f.code.value,
@@ -1000,17 +1041,22 @@ $("projectForm").onsubmit=async e=>{
   };
   const lookup={nom:rawFields.nom,code:rawFields.code};
 
-  if(rid){
-    const before=get("projects",rid);
+  // Sécurité : le nom du projet/produit est fonctionnellement unique.
+  // Si le formulaire perdait son record_id, on ne doit jamais recréer un doublon.
+  const existingByName=(db.projects||[]).filter(p=>String(p.nom||"").trim().toLowerCase()===String(rawFields.nom||"").trim().toLowerCase());
+  const effectiveRid=rid || (existingByName.length===1 ? Number(existingByName[0].id) : null);
+
+  if(effectiveRid){
+    const before=get("projects",effectiveRid);
     const fields=projectWritableFields(rawFields,before);
     if(!Object.keys(fields).length){
       $("projectDialog").close();
       notifyBanner("Aucune modification à enregistrer.");
       return;
     }
-    const ok=await apply([["UpdateRecord","Projects",rid,fields]],"Projet / Produit mis à jour.");
+    const ok=await apply([["UpdateRecord","Projects",effectiveRid,fields]],"Projet / Produit mis à jour.");
     if(ok){
-      currentProjectId=rid;
+      currentProjectId=effectiveRid;
       detailTab="infos";
       renderProject();
       $("projectDialog").close();

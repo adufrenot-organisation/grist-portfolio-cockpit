@@ -357,3 +357,6 @@ Aucun changement fonctionnel du pilotage v5.4.9 en dehors de la télémétrie de
 
 ## v5.4.12
 Normalisation des champs de rattachement Projet/Produit : prise en charge explicite de `Fonctionnalites.Parent`.
+
+## v5.4.17
+Correction du cycle CRUD Projects : distinction explicite create/update via `record_id`.
