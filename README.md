@@ -640,3 +640,6 @@ correctement renseignées dans Grist.
 
 Le Cockpit reconnaît désormais `Parent` et conserve les anciens alias pour compatibilité.
 La même tolérance est appliquée aux Releases.
+
+## v5.4.13 — Vue fonctionnalités compacte
+Une ligne par fonctionnalité, filtres Module/Stade/Release, recherche, tris et regroupement par module, dans la charte Cockpit.

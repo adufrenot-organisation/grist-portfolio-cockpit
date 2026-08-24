@@ -1,5 +1,5 @@
 
-const VERSION="5.4.12";
+const VERSION="5.4.13";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -642,24 +642,85 @@ function releasesView(p){
 
 function productFeaturesView(p,ts){
   const fs=featureRowsForProject(p.id);
+  const host=$("productFeaturesView");
   if(!fs.length){
-    $("productFeaturesView").innerHTML=typeOf(p)==="produit"
+    host.innerHTML=typeOf(p)==="produit"
       ?'<div class="empty">Aucune fonctionnalité pour ce produit. Crée la première pour construire la roadmap.</div>'
       :'<div class="empty">Aucune fonctionnalité rattachée à ce projet.</div>';
     return;
   }
-  $("productFeaturesView").innerHTML=`<div class="feature-grid">${fs.map(f=>{
-    const st=get("featureStages",id(f.stade));
-    const linked=ts.filter(t=>id(t.fonctionnalite)===f.id);const rels=releaseIdsForFeature(f.id).map(rid=>get("releases",rid)).filter(Boolean);
-    const start=f.Date_Debut||f.dateDebut||null;
-    const end=f.Date_Fin||f.dateFin||f.Date_Cible||null;
-    return `<div class="feature-card"><div class="feature-card-head"><div><h4>${esc(f.Nom||"")}</h4><div class="feature-meta">${esc(f.Code||"")} • ${esc(st?.Nom||"Sans stade")}</div></div><strong>${pct(f.Progression)}%</strong></div><div class="feature-meta">${esc(f.Description||"")}</div><div class="metric-bar" style="margin-top:10px"><div style="width:${pct(f.Progression)}%"></div></div><div class="feature-meta">${linked.length} tâche(s) • ${dt(start)} → ${dt(end)}</div><div class="feature-meta">Release(s) : ${rels.length?rels.map(r=>esc(r.Nom||r.Code||"")).join(" • "):"—"}</div><div class="feature-actions"><button class="primary-outline" data-feature-task="${f.id}">+ Tâche</button><button data-feature-edit="${f.id}">Modifier</button><button class="danger" data-feature-del="${f.id}">Supprimer</button></div></div>`;
-  }).join("")}</div>`;
-  document.querySelectorAll("[data-feature-task]").forEach(b=>b.onclick=()=>openTask(null,{featureId:Number(b.dataset.featureTask)}));
-  document.querySelectorAll("[data-feature-edit]").forEach(b=>b.onclick=()=>openFeature(Number(b.dataset.featureEdit)));
-  document.querySelectorAll("[data-feature-del]").forEach(b=>b.onclick=()=>deleteFeature(Number(b.dataset.featureDel)));
-}
 
+  const val=(o,...keys)=>{for(const k of keys){const v=o?.[k];if(v!==undefined&&v!==null&&v!=="")return v}return ""};
+  const moduleOf=f=>String(val(f,"Categ_module","Categorie_module","categ_module","categorie_module")||"Sans module");
+  const stageOf=f=>{const st=get("featureStages",id(f.Stade)||id(f.stade));return st?.Nom||st?.Libelle||"Sans stade"};
+  const dateOf=f=>val(f,"Date_Cible","date_cible","Date_Fin","dateFin");
+  const progressOf=f=>pct(val(f,"Progression","progression"));
+  const linkedTasks=f=>ts.filter(t=>id(t.fonctionnalite)===f.id);
+  const relsOf=f=>releaseIdsForFeature(f.id).map(rid=>get("releases",rid)).filter(Boolean);
+  const dateMs=f=>{const v=dateOf(f);if(!v)return Number.MAX_SAFE_INTEGER;const d=new Date(typeof v==="number"?v*1000:v);return Number.isNaN(d.getTime())?Number.MAX_SAFE_INTEGER:d.getTime()};
+  const modules=[...new Set(fs.map(moduleOf))].sort((a,b)=>a.localeCompare(b,"fr"));
+  const stages=[...new Set(fs.map(stageOf))].sort((a,b)=>a.localeCompare(b,"fr"));
+  const releases=[...new Set(fs.flatMap(f=>relsOf(f).map(r=>r.Nom||r.Code).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"fr"));
+
+  host.innerHTML=`<div class="features-toolbar">
+    <label class="features-search">⌕ <input data-f-filter="search" placeholder="Rechercher…"></label>
+    <label>Module<select data-f-filter="module"><option value="">Tous</option>${modules.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label>
+    <label>Stade<select data-f-filter="stage"><option value="">Tous</option>${stages.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label>
+    <label>Release<select data-f-filter="release"><option value="">Toutes</option>${releases.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label>
+    <label>Trier par<select data-f-filter="sort"><option value="dateAsc">Date cible ↑</option><option value="dateDesc">Date cible ↓</option><option value="moduleDate">Module + date</option><option value="name">Nom</option><option value="progress">Avancement ↓</option></select></label>
+    <div class="features-view"><button class="active" data-f-view="list">☷ Liste</button><button data-f-view="module">▦ Par module</button></div>
+  </div><div class="features-list" data-features-list></div>`;
+
+  let view="list";
+  const list=host.querySelector("[data-features-list]");
+  const filter=n=>host.querySelector(`[data-f-filter="${n}"]`);
+
+  function row(f){
+    const tasks=linkedTasks(f),rels=relsOf(f),progress=progressOf(f),module=moduleOf(f),stage=stageOf(f);
+    const due=dateOf(f),dueMs=dateMs(f),days=dueMs===Number.MAX_SAFE_INTEGER?99999:Math.ceil((dueMs-Date.now())/86400000);
+    const cls=days<0?" overdue":days<=30?" due-soon":"";
+    return `<article class="feature-line${cls}">
+      <button class="feature-line-name" data-feature-toggle="${f.id}">${esc(f.Nom||"Sans nom")}</button>
+      <span class="feature-module">${esc(module)}</span>
+      <span class="feature-cell"><small>Stade</small>${esc(stage)}</span>
+      <span class="feature-cell"><small>Date cible</small><strong>${dt(due)}</strong></span>
+      <span class="feature-line-progress"><span><b>${progress}%</b><small>${tasks.length} tâche${tasks.length>1?"s":""}</small></span><i><b style="width:${progress}%"></b></i></span>
+      <span class="feature-cell feature-release-cell"><small>Release</small>${rels.length?rels.map(r=>`<em>${esc(r.Nom||r.Code)}</em>`).join(""):"—"}</span>
+      <span class="feature-line-actions"><button class="primary-outline" data-feature-task="${f.id}">+ Tâche</button><button data-feature-edit="${f.id}">Modifier</button><button class="danger" data-feature-del="${f.id}">Supprimer</button></span>
+      <div class="feature-line-detail" data-feature-detail="${f.id}">${esc(f.Description||"Aucune description.")}</div>
+    </article>`;
+  }
+
+  function rows(){
+    const q=filter("search").value.trim().toLowerCase(),m=filter("module").value,st=filter("stage").value,rel=filter("release").value,sort=filter("sort").value;
+    const out=fs.filter(f=>{
+      const rr=relsOf(f).map(r=>r.Nom||r.Code);
+      return (!q||String(f.Nom||"").toLowerCase().includes(q)||moduleOf(f).toLowerCase().includes(q))
+        &&(!m||moduleOf(f)===m)&&(!st||stageOf(f)===st)&&(!rel||rr.includes(rel));
+    });
+    out.sort((a,b)=>sort==="dateDesc"?dateMs(b)-dateMs(a):sort==="moduleDate"?moduleOf(a).localeCompare(moduleOf(b),"fr")||dateMs(a)-dateMs(b):sort==="name"?String(a.Nom||"").localeCompare(String(b.Nom||""),"fr"):sort==="progress"?progressOf(b)-progressOf(a):dateMs(a)-dateMs(b));
+    return out;
+  }
+  function render(){
+    const rr=rows();
+    if(!rr.length){list.innerHTML='<div class="empty">Aucune fonctionnalité ne correspond aux filtres.</div>';return}
+    if(view==="module"){
+      const groups={};rr.forEach(f=>(groups[moduleOf(f)]??=[]).push(f));
+      list.innerHTML=Object.entries(groups).map(([name,items])=>`<section class="feature-module-group"><button data-feature-group><span>${esc(name)}</span><small>${items.length} fonctionnalité${items.length>1?"s":""}⌄</small></button><div>${items.map(row).join("")}</div></section>`).join("");
+    }else list.innerHTML=rr.map(row).join("");
+    bindRows();
+  }
+  function bindRows(){
+    list.querySelectorAll("[data-feature-task]").forEach(b=>b.onclick=()=>openTask(null,{featureId:Number(b.dataset.featureTask)}));
+    list.querySelectorAll("[data-feature-edit]").forEach(b=>b.onclick=()=>openFeature(Number(b.dataset.featureEdit)));
+    list.querySelectorAll("[data-feature-del]").forEach(b=>b.onclick=()=>deleteFeature(Number(b.dataset.featureDel)));
+    list.querySelectorAll("[data-feature-toggle]").forEach(b=>b.onclick=()=>list.querySelector(`[data-feature-detail="${b.dataset.featureToggle}"]`)?.classList.toggle("open"));
+    list.querySelectorAll("[data-feature-group]").forEach(b=>b.onclick=()=>b.parentElement.classList.toggle("collapsed"));
+  }
+  host.querySelectorAll("[data-f-filter]").forEach(x=>x.addEventListener(x.tagName==="INPUT"?"input":"change",render));
+  host.querySelectorAll("[data-f-view]").forEach(b=>b.onclick=()=>{view=b.dataset.fView;host.querySelectorAll("[data-f-view]").forEach(x=>x.classList.toggle("active",x===b));render()});
+  render();
+}
 
 function releaseIdsForFeature(fid){
   return db.releaseFeatures.filter(x=>id(x.fonctionnalite)===Number(fid)).map(x=>id(x.release)).filter(Boolean);
