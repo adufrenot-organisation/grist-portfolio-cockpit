@@ -681,3 +681,6 @@ Le journal d'audit appelait une fonction `auditValue()` absente du bundle.
 Elle est maintenant définie et normalise les valeurs simples, listes, objets et dates avant sérialisation JSON.
 
 La modification Projet ↔ Produit n'est plus bloquée par l'audit.
+
+## v5.4.19 — libellé Synthèse
+Dans la fiche Projet / Produit, `Synthèse projet` devient `Synthèse`.

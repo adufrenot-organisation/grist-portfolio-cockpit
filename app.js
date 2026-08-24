@@ -1,5 +1,5 @@
 
-const VERSION="5.4.18";
+const VERSION="5.4.19";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
