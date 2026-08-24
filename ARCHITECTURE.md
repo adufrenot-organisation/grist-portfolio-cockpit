@@ -360,3 +360,6 @@ Normalisation des champs de rattachement Projet/Produit : prise en charge explic
 
 ## v5.4.17
 Correction du cycle CRUD Projects : distinction explicite create/update via `record_id`.
+
+## v5.4.18
+Ajout du normaliseur `auditValue()` utilisé par `auditPayload()` pour les valeurs avant/après.

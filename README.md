@@ -674,3 +674,10 @@ Correction :
 - `UpdateRecord` garanti lors de la modification ;
 - garde-fou supplémentaire : si le record_id manque mais qu'un projet de même nom unique existe,
   le Cockpit met à jour cette ligne au lieu de créer un doublon.
+
+## v5.4.18 — correction Audit `auditValue is not defined`
+
+Le journal d'audit appelait une fonction `auditValue()` absente du bundle.
+Elle est maintenant définie et normalise les valeurs simples, listes, objets et dates avant sérialisation JSON.
+
+La modification Projet ↔ Produit n'est plus bloquée par l'audit.

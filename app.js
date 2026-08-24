@@ -1,5 +1,5 @@
 
-const VERSION="5.4.17";
+const VERSION="5.4.18";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -897,6 +897,20 @@ $("featureForm").onsubmit=async e=>{
     }
   }
 }
+function auditValue(v){
+  if(v===undefined)return null;
+  if(v===null)return null;
+  if(v instanceof Date)return v.toISOString();
+  if(Array.isArray(v))return v.map(auditValue);
+  if(typeof v==="object"){
+    const out={};
+    for(const [k,val] of Object.entries(v))out[k]=auditValue(val);
+    return out;
+  }
+  if(typeof v==="number"||typeof v==="boolean"||typeof v==="string")return v;
+  try{return String(v)}catch(_){return null}
+}
+
 function auditPayload(action){
   const [kind,table,recordId,fields]=action;
   const key=tableKeyFromName(table);
