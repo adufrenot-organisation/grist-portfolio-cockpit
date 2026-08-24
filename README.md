@@ -643,3 +643,8 @@ La même tolérance est appliquée aux Releases.
 
 ## v5.4.13 — Vue fonctionnalités compacte
 Une ligne par fonctionnalité, filtres Module/Stade/Release, recherche, tris et regroupement par module, dans la charte Cockpit.
+
+
+## v5.4.14 — correction tableKeyFromName
+Correction d'une fonction manquante utilisée par le journal d'audit avant les écritures Grist.
+L'erreur `tableKeyFromName is not defined` pouvait bloquer toute modification, notamment le passage Projet → Produit.

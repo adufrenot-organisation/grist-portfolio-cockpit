@@ -1,5 +1,5 @@
 
-const VERSION="5.4.13";
+const VERSION="5.4.14";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -51,6 +51,12 @@ function notifyBanner(message,type="info"){
 window.addEventListener("error",e=>pmoError("Erreur JavaScript",{message:e.message,source:e.filename,line:e.lineno,column:e.colno}));
 window.addEventListener("unhandledrejection",e=>pmoError("Promesse rejetée",e.reason));
 const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
+function tableKeyFromName(tableName){
+  const wanted=String(tableName||"").trim().toLowerCase();
+  if(!wanted)return null;
+  const hit=Object.entries(T).find(([,name])=>String(name).trim().toLowerCase()===wanted);
+  return hit?.[0]||null;
+}
 let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all",resourceTeamFilter="all",resourceRoleFilter="all",resourceProjectFilter="all",resourceLoadFilter="all",selectedResourceId=null;
 function presencePage(){
   if(currentTab==="docs")return "Documentation";
