@@ -750,3 +750,13 @@ Il lit directement les colonnes Grist :
 
 Les fonctionnalités sont encore affichées pour contextualiser visuellement les anomalies,
 mais les indicateurs et alertes métier viennent de Grist.
+
+## v5.4.26 — correction régression Fonctionnalités
+
+La modification de la vue Releases avait supprimé par erreur trois fonctions du bundle :
+- `productFeaturesView()`
+- `releaseIdsForFeature()`
+- `syncFeatureReleases()`
+
+Elles sont restaurées depuis la dernière version stable de la vue Fonctionnalités.
+Les évolutions `Projet_Etapes` et Releases pilotées par Grist sont conservées.
