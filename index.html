@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.4.19-synthese-label" />
+  <link rel="stylesheet" href="styles.css?v=5.4.25-release-grist-fields" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
     <div class="brand pmo-brand-lockup">
       <div class="pmo-brand-badge">PMO</div>
       <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
-      <span class="version pmo-version">v5.4.19</span><div class="presence-wrap">
+      <span class="version pmo-version">v5.4.25</span><div class="presence-wrap">
         <button id="presenceBadge" class="presence-badge presence-pending" type="button" title="Présence Cockpit">● Présence…</button>
         <div id="presencePopover" class="presence-popover hidden">
           <div class="presence-popover-head">
@@ -150,7 +150,7 @@
             </div>
           </div>
 
-          <div id="detailStages" class="detail-section hidden"><div class="section-toolbar"><div><h3>Planning projet</h3><div class="muted">Les étapes proviennent du référentiel Etapes_Projet. Crée les tâches dans chaque étape pour construire le planning.</div></div><button class="primary" id="newStageTaskBtn">+ Tâche dans une étape</button></div><div id="projectStagesView"></div></div>
+          <div id="detailStages" class="detail-section hidden"><div class="section-toolbar"><div><h3>Planning projet</h3><div class="muted">Comparaison du planning prévu de chaque étape avec les dates calculées depuis les fonctionnalités.</div></div><button class="primary" id="newStageTaskBtn">+ Tâche dans une étape</button></div><div id="projectStagesView"></div></div>
 
           <div id="detailFeatures" class="detail-section hidden"><div class="section-toolbar"><div><h3 id="featuresSectionTitle">Fonctionnalités</h3><div class="muted" id="featuresSectionHelp">Crée les fonctionnalités puis rattache les tâches à chacune d’elles.</div></div><button class="primary" id="newFeatureBtn">+ Nouvelle fonctionnalité</button></div><div id="productFeaturesView"></div></div>
 
@@ -400,7 +400,29 @@
 </form>
 </dialog>
 
-<dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label id="featureCategModuleLabel">Catégorie / Module<input name="Categ_module" /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date début<input name="Date_Debut" type="date" /></label><label>Date fin<input name="Date_Fin" type="date" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label><label class="wide">Release(s)<select name="Releases" multiple size="5"></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
+<dialog id="featureDialog"><form method="dialog" id="featureForm"><input type="hidden" name="id" /><div class="dialog-head"><h3 id="featureDialogTitle">Fonctionnalité</h3><button type="button" class="icon" data-close="featureDialog">×</button></div><div class="form-grid"><label>Code<input name="Code" /></label><label>Nom<input name="Nom" required /></label><label id="featureCategModuleLabel">Catégorie / Module<input name="Categ_module" /></label><label class="wide">Description<textarea name="Description" rows="3"></textarea></label><label>Stade<select name="stade"></select></label><label>Statut<select name="Statut"><option value="">— statut —</option><option value="A venir">A venir</option><option value="En cours">En cours</option><option value="Terminé">Terminé</option><option value="Abandon">Abandon</option></select></label><label id="featureProjectStageLabel">Étape projet<select name="Etape_Projet"></select></label><label>Priorité<input name="Priorite" /></label><label>Progression (%)<input name="Progression" type="number" min="0" max="100" /></label><label>Date début<input name="Date_Debut" type="date" /></label><label>Date fin<input name="Date_Fin" type="date" /></label><label>Date cible<input name="Date_Cible" type="date" /></label><label>Responsable<select name="Responsable"></select></label><label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label><label class="wide">Release(s)<select name="Releases" multiple size="5"></select></label></div><div class="dialog-actions"><button type="button" data-close="featureDialog">Annuler</button><button class="primary" type="submit">Enregistrer</button></div></form></dialog>
+<dialog id="projectStagePlanDialog">
+<form method="dialog" id="projectStagePlanForm">
+  <input type="hidden" name="record_id" />
+  <input type="hidden" name="project_id" />
+  <input type="hidden" name="stage_id" />
+  <div class="dialog-head">
+    <div><h3 id="projectStagePlanDialogTitle">Planning de l’étape</h3><div class="muted" id="projectStagePlanDialogMeta"></div></div>
+    <button type="button" class="icon" data-close="projectStagePlanDialog">×</button>
+  </div>
+  <div class="form-grid">
+    <label>Date début planifiée<input name="Date_Debut_Planifiee" type="date" /></label>
+    <label>Date fin planifiée<input name="Date_Fin_Planifiee" type="date" /></label>
+    <label>Actif<select name="Actif"><option value="true">Oui</option><option value="false">Non</option></select></label>
+  </div>
+  <div class="planning-preview" id="projectStagePlanPreview"></div>
+  <div class="dialog-actions">
+    <button type="button" data-close="projectStagePlanDialog">Annuler</button>
+    <button class="primary" type="submit">Enregistrer</button>
+  </div>
+</form>
+</dialog>
+
 <aside id="logDrawer" class="log-drawer hidden" aria-label="Console de logs">
   <div class="log-drawer-head">
     <div><strong>Console de logs</strong><small id="logSummary">0 événement</small></div>
@@ -436,7 +458,7 @@
   </form>
 </dialog>
 
-  <script src="presence.js?v=5.4.19"></script>
-<script src="app.js?v=5.4.19"></script>
+  <script src="presence.js?v=5.4.25"></script>
+<script src="app.js?v=5.4.25"></script>
 </body>
 </html>

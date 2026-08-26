@@ -881,3 +881,50 @@ button.presence-badge{cursor:pointer;font-family:inherit}
 .feature-line-detail{display:none;grid-column:1/-1;padding:10px 12px;border-top:1px solid #e6edf5;background:#f8fbff;border-radius:7px;color:#53657d;font-size:11px}.feature-line-detail.open{display:block}
 .feature-module-group{overflow:hidden;border:1px solid #dbe6f5;border-radius:12px;background:#f9fbfe}.feature-module-group>button{display:flex;width:100%;justify-content:space-between;border:0;padding:10px 13px;background:#edf4ff;color:#153e75;font-weight:800;cursor:pointer}.feature-module-group>button small{color:#617d9f}.feature-module-group>div{display:flex;flex-direction:column;gap:6px;padding:7px}.feature-module-group.collapsed>div{display:none}
 @media(max-width:1200px){.feature-line{grid-template-columns:minmax(220px,2fr) 120px 100px minmax(130px,1fr) auto}.feature-release-cell,.feature-cell:nth-of-type(2){display:none}}@media(max-width:850px){.features-toolbar{align-items:stretch}.features-toolbar label,.features-search,.features-toolbar select{width:100%;min-width:0}.features-view{margin-left:0}.feature-line{grid-template-columns:1fr auto}.feature-line>.feature-cell,.feature-line>.feature-module,.feature-line-progress{grid-column:auto}.feature-line-actions{grid-column:1/-1}}
+
+/* v5.4.21 — détails fonctionnalité */
+.feature-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px 16px;width:100%}
+.feature-detail-grid span{padding:7px 9px;border:1px solid #e5edf6;border-radius:8px;background:#fff}
+.feature-detail-grid small{display:block;color:#829ab1;font-size:9px;text-transform:uppercase;font-weight:800;margin-bottom:3px}
+.feature-detail-grid b{color:#243b53;font-size:11px}
+.feature-detail-description{width:100%;margin-top:9px;padding-top:9px;border-top:1px solid #e5edf6;color:#53657d}
+
+/* v5.4.22 — Projet_Etapes */
+.planning-project-summary{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:8px;margin:0 0 12px}
+.planning-project-summary>div{padding:10px 12px;border:1px solid #dfe7f0;border-radius:10px;background:#f8fbff}
+.planning-project-summary small{display:block;color:#829ab1;font-size:9px;text-transform:uppercase;font-weight:800;margin-bottom:4px}
+.planning-project-summary strong{color:#17324d;font-size:13px}.planning-project-summary strong.bad{color:#b42318}.warn-text{color:#b54708!important}
+.project-stage-plan-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.project-stage-plan{border:1px solid #dfe7f0;border-left:4px solid #98a2b3;border-radius:12px;background:#fff;overflow:hidden}
+.project-stage-plan.green{border-left-color:#12b76a}.project-stage-plan.orange{border-left-color:#f79009}.project-stage-plan.red{border-left-color:#f04438}
+.project-stage-plan-head{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 14px;background:#fbfdff}
+.project-stage-title{display:flex;align-items:center;gap:10px}.project-stage-title h4{margin:0 0 3px;color:#17324d}
+.project-stage-order{display:grid;place-items:center;min-width:30px;height:30px;border-radius:50%;background:#edf4ff;color:#175cd3;font-weight:800}
+.project-stage-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.planning-alert{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;background:#f2f4f7;color:#667085}
+.planning-alert.green{background:#ecfdf3;color:#067647}.planning-alert.orange{background:#fffaeb;color:#b54708}.planning-alert.red{background:#fef3f2;color:#b42318}
+.project-stage-dates{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#e7edf4;border-top:1px solid #e7edf4;border-bottom:1px solid #e7edf4}
+.stage-date-block{padding:10px 13px;background:#fff}.stage-date-block small{display:block;color:#829ab1;font-size:9px;text-transform:uppercase;font-weight:800;margin-bottom:4px}.stage-date-block b{font-size:11px;color:#334e68}
+.stage-features{display:flex;flex-wrap:wrap;gap:6px;padding:10px 13px;background:#f8fbff}
+.stage-feature-chip{border:1px solid #d6e4f7;background:#fff;color:#145db8;border-radius:9px;padding:6px 8px;text-align:left;font-weight:700;cursor:pointer}
+.stage-feature-chip small{display:block;margin-top:2px;color:#829ab1;font-weight:500}.stage-no-features{padding:10px 13px;background:#f8fbff}
+.stage-task-details{padding:8px 13px 12px}.stage-task-details summary{cursor:pointer;color:#52667d;font-weight:700;margin-bottom:8px}
+.planning-preview{margin-top:10px}.planning-preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.planning-preview-grid span{padding:8px;border:1px solid #e5edf6;border-radius:8px;background:#f8fbff}.planning-preview-grid small{display:block;color:#829ab1;font-size:9px;text-transform:uppercase;font-weight:800}.planning-preview-grid b{font-size:11px}
+@media(max-width:950px){.planning-project-summary{grid-template-columns:1fr 1fr}.project-stage-plan-head{align-items:flex-start;flex-direction:column}.project-stage-dates{grid-template-columns:1fr}.planning-preview-grid{grid-template-columns:1fr}}
+
+/* v5.4.23 — aide contextuelle des indicateurs */
+.indicator-help{display:inline-grid;place-items:center;width:17px;height:17px;min-width:17px;padding:0;margin-left:4px;border:1px solid #b8c8da;border-radius:50%;background:#fff;color:#52708f;font-size:10px;font-weight:900;line-height:1;vertical-align:middle;cursor:help}
+.indicator-help:hover,.indicator-help:focus{border-color:#175cd3;color:#175cd3;background:#eff6ff;outline:none}
+.key .indicator-help,.stage-date-block small .indicator-help,.planning-project-summary small .indicator-help{transform:translateY(-1px)}
+
+/* v5.4.24 — dates calculées des releases */
+.release-card{border:1px solid #dfe7f0;border-left:4px solid #98a2b3;border-radius:12px;background:#fff;padding:12px;margin-bottom:10px}
+.release-card.release-date-green{border-left-color:#12b76a}.release-card.release-date-red{border-left-color:#f04438}
+.release-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.release-head h4{margin:0 0 3px}
+.release-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.release-date-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;margin-top:10px;background:#e7edf4;border:1px solid #e7edf4;border-radius:9px;overflow:hidden}
+.release-date-grid>div{background:#fff;padding:9px 11px}.release-date-grid small{display:block;color:#829ab1;font-size:9px;text-transform:uppercase;font-weight:800;margin-bottom:4px}.release-date-grid b{font-size:11px;color:#334e68}
+.release-date-issues{margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff4ed;color:#b54708;font-size:11px;font-weight:700}
+.release-feature-dates{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.release-feature-dates>span{padding:5px 7px;border:1px solid #dfe7f0;border-radius:8px;background:#f8fbff;font-size:10px;color:#334e68}.release-feature-dates>span.outside{border-color:#fda29b;background:#fef3f2;color:#b42318}.release-feature-dates small{display:block;color:inherit;opacity:.75;margin-top:2px}
+@media(max-width:900px){.release-date-grid{grid-template-columns:1fr}.release-head{flex-direction:column}}

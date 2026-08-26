@@ -363,3 +363,22 @@ Correction du cycle CRUD Projects : distinction explicite create/update via `rec
 
 ## v5.4.18
 Ajout du normaliseur `auditValue()` utilisé par `auditPayload()` pour les valeurs avant/après.
+
+## v5.4.21
+Distinction explicite dans Fonctionnalites :
+- Statut = position temporelle ;
+- Stade = phase de réalisation ;
+- Etape_Projet = rattachement structurel à une étape du projet.
+
+## v5.4.22 — modèle de planning projet
+Le Cockpit distingue maintenant :
+`Etapes_Projet` (référentiel) et `Projet_Etapes` (instances de planning par projet).
+`Projet_Etapes` constitue la source de vérité du prévu vs calculé au niveau étape.
+
+## v5.4.24 — contrôle temporel des Releases
+Une Release possède un planning planifié (Date_Debut / Date_Fin) et une enveloppe calculée depuis ses fonctionnalités.
+Le Cockpit contrôle la cohérence entre ces deux niveaux.
+
+## v5.4.25
+Le planning des Releases suit le principe `Grist = source de vérité métier`.
+Le Cockpit ne fait qu'afficher les champs calculés de la table Releases.

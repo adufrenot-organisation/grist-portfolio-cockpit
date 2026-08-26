@@ -1,5 +1,5 @@
 
-const VERSION="5.4.19";
+const VERSION="5.4.25";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -50,7 +50,7 @@ function notifyBanner(message,type="info"){
 
 window.addEventListener("error",e=>pmoError("Erreur JavaScript",{message:e.message,source:e.filename,line:e.lineno,column:e.colno}));
 window.addEventListener("unhandledrejection",e=>pmoError("Promesse rejetée",e.reason));
-const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
+const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",projectStagePlans:"Projet_Etapes",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
 function tableKeyFromName(tableName){
   const wanted=String(tableName||"").trim().toLowerCase();
   if(!wanted)return null;
@@ -106,6 +106,9 @@ function dt(v){const ms=dms(v);return ms?new Intl.DateTimeFormat("fr-FR").format
 function din(v){const ms=dms(v);return ms?new Date(ms).toISOString().slice(0,10):""}
 function gd(v){if(!v)return null;const ms=Date.parse(v+"T00:00:00Z");return Number.isFinite(ms)?Math.floor(ms/1000):null}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function indicatorHelp(text){
+  return `<button type="button" class="indicator-help" aria-label="Explication du calcul" title="${esc(text)}" data-indicator-help="${esc(text)}">?</button>`;
+}
 function money(v){const n=Number(v);return Number.isFinite(n)?new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n):"—"}
 function done(s){return/termin|done|clos|fini/i.test(String(s||""))}
 function late(t){return!done(t.statut)&&!!dms(t.dateEcheance)&&dms(t.dateEcheance)<Date.now()}
@@ -378,6 +381,14 @@ function renderProjectList(){
     showProjectPage(Number(el.dataset.projectId));
   });
 }
+function bindIndicatorHelp(root=document){
+  root.querySelectorAll("[data-indicator-help]").forEach(b=>{
+    b.onclick=e=>{
+      e.stopPropagation();
+      notifyBanner(b.dataset.indicatorHelp||b.title||"");
+    };
+  });
+}
 function renderProject(){
   const p=get("projects",currentProjectId);
   if(!p){$("projectEmpty").classList.remove("hidden");$("projectDetail").classList.add("hidden");return}
@@ -439,15 +450,23 @@ function renderSynthesis(p,ts,cs,as){
   const a=get("activities",id(p.activite));
   const ao=a?get("activityOffers",id(a.Service_Code)):null;
   const offer=ao?get("offers",id(ao.OFS_Code)):null;
+  const stagePlans=typeOf(p)==="projet"?projectStagePlanRows(p.id).filter(x=>x.Actif!==false):[];
+  const stagePlanningLate=stagePlans.filter(x=>/retard/i.test(String(x.Alerte_Planning||"")));
+  const stagePlanningAttention=stagePlans.filter(x=>/attention/i.test(String(x.Alerte_Planning||"")));
+  const stageCalcStarts=stagePlans.map(x=>dms(x.Date_Debut_Calculee)).filter(Boolean);
+  const stageCalcEnds=stagePlans.map(x=>dms(x.Date_Fin_Calculee)).filter(Boolean);
+  const releaseDateIssues=releaseRowsForProject(p.id)
+    .map(r=>({release:r,planning:releasePlanningFromGrist(r)}))
+    .filter(x=>/retard|incohérent|non planifié|sans fonctionnalités/i.test(String(x.planning.alert||"")));
 
   $("summaryMain").innerHTML=`<div class="kv">
-    <div class="key">Météo</div><div class="value">${weatherBadge(p,ts)}</div>
+    <div class="key">Météo ${indicatorHelp("Si Meteo_Projet est renseignée, cette valeur est utilisée. Sinon : Rouge si une tâche en retard est de priorité haute/critique ; Orange s’il existe une tâche en retard ou un risque projet haut/élevé/critique ; Vert sinon.")}</div><div class="value">${weatherBadge(p,ts)}</div>
     <div class="key">Type</div><div class="value">${typeOf(p)==="produit"?"Produit":"Projet"}</div><div class="key">Nature</div><div class="value">${esc(p.Nature_Projet||"—")}</div>
     <div class="key">Statut</div><div class="value">${esc(p.statut||"—")}</div>
     <div class="key">Priorité</div><div class="value">${esc(p.priorite||"—")}</div>
-    <div class="key">Avancement</div><div class="value">${pct(p.progression)}%</div>
-    <div class="key">Tâches actives</div><div class="value">${active}</div>
-    <div class="key">Jalons</div><div class="value">${milestones.length}</div>
+    <div class="key">Avancement ${indicatorHelp("Valeur de progression du projet enregistrée dans Grist, normalisée en pourcentage entre 0 et 100.")}</div><div class="value">${pct(p.progression)}%</div>
+    <div class="key">Tâches actives ${indicatorHelp("Nombre de tâches du projet dont le statut n’est pas considéré comme terminé.")}</div><div class="value">${active}</div>
+    <div class="key">Jalons ${indicatorHelp("Nombre de tâches du projet dont le type contient « jalon ».")}</div><div class="value">${milestones.length}</div>
   </div>`;
 
   let alerts=[];
@@ -456,6 +475,9 @@ function renderSynthesis(p,ts,cs,as){
   if(/haut|élev|critique|high/i.test(String(p.risque||""))) alerts.push(`🟠 Risque projet : ${p.risque}`);
   if(as.some(a=>Number(a.Allocation||0)>1)) alerts.push("🟠 Allocation ressource supérieure à 100%");
   if(ts.some(t=>!refs(t.assignees).length)) alerts.push("🟡 Certaines tâches ne sont pas assignées");
+  if(stagePlanningLate.length) alerts.push(`🔴 ${stagePlanningLate.length} étape(s) dépassent leur fin planifiée`);
+  else if(stagePlanningAttention.length) alerts.push(`🟠 ${stagePlanningAttention.length} étape(s) de planning à surveiller`);
+  if(releaseDateIssues.length) alerts.push(`🟠 ${releaseDateIssues.length} release(s) ont des dates incohérentes avec leurs fonctionnalités`);
   $("summaryAlerts").innerHTML=alerts.length
     ? `<div class="alert-list">${alerts.map(x=>`<div class="alert-item warn">${esc(x)}</div>`).join("")}</div>`
     : `<div class="alert-item ok">🟢 Aucune alerte majeure</div>`;
@@ -467,11 +489,14 @@ function renderSynthesis(p,ts,cs,as){
   </div>`;
 
   $("summaryDates").innerHTML=`<div class="kv">
-    <div class="key">Début</div><div class="value">${dt(p.dateDebut)}</div>
-    <div class="key">Fin prévue</div><div class="value">${dt(p.dateFin)}</div>
+    <div class="key">Début planifié projet ${indicatorHelp("Date de début globale du projet saisie dans Projects.dateDebut.")}</div><div class="value">${dt(p.dateDebut)}</div>
+    <div class="key">Fin planifiée projet ${indicatorHelp("Date de fin globale du projet saisie dans Projects.dateFin.")}</div><div class="value">${dt(p.dateFin)}</div>
+    ${typeOf(p)==="projet"?`<div class="key">Début calculé étapes ${indicatorHelp("Minimum des Date_Debut_Calculee des étapes actives du projet.")}</div><div class="value">${stageCalcStarts.length?dt(Math.min(...stageCalcStarts)):"—"}</div>
+    <div class="key">Fin calculée étapes ${indicatorHelp("Maximum des Date_Fin_Calculee des étapes actives du projet.")}</div><div class="value">${stageCalcEnds.length?dt(Math.max(...stageCalcEnds)):"—"}</div>
+    <div class="key">Étapes en alerte ${indicatorHelp("Somme des étapes dont Alerte_Planning vaut Retard ou Attention.")}</div><div class="value">${stagePlanningLate.length+stagePlanningAttention.length}</div>`:""}
     <div class="key">Prochaine échéance</div><div class="value">${nextDue?`${esc(nextDue.titre||"")} — ${dt(nextDue.dateEcheance)}`:"—"}</div>
-    <div class="key">Charge passée</div><div class="value">${Math.round(spent)} h</div>
-    <div class="key">Charge estimée</div><div class="value">${Math.round(est)} h</div>
+    <div class="key">Charge passée ${indicatorHelp("Somme de tempsPasse de toutes les tâches du projet.")}</div><div class="value">${Math.round(spent)} h</div>
+    <div class="key">Charge estimée ${indicatorHelp("Somme de estimationH de toutes les tâches du projet.")}</div><div class="value">${Math.round(est)} h</div>
   </div>`;
 
   const objNames=cs.map(c=>get("objectives",id(c.Objectif_Libelle)||id(c.Objectif_Code2))?.Nom).filter(Boolean);
@@ -490,9 +515,9 @@ function renderSynthesis(p,ts,cs,as){
     :`<strong>${featureCount} fonctionnalité(s)</strong><div class="muted" style="margin-top:6px">Elles peuvent être reliées aux tâches du planning projet.</div>`);
 
   $("summaryResources").innerHTML=`<div class="kv">
-    <div class="key">Allocations</div><div class="value">${as.length}</div><div class="project-allocation-shortcut"><button type="button" class="primary small" id="projectAddAllocationBtn">+ Affecter une ressource</button></div>
-    <div class="key">Allocation cumulée</div><div class="value">${Math.round(allocTotal*100)}%</div>
-    <div class="key">Ressources actives</div><div class="value">${new Set(as.map(a=>id(a.Ressource_Code)).filter(Boolean)).size}</div>
+    <div class="key">Allocations ${indicatorHelp("Nombre de lignes d’allocation rattachées au projet.")}</div><div class="value">${as.length}</div><div class="project-allocation-shortcut"><button type="button" class="primary small" id="projectAddAllocationBtn">+ Affecter une ressource</button></div>
+    <div class="key">Allocation cumulée ${indicatorHelp("Somme de la colonne Allocation des lignes du projet, affichée en pourcentage. Plusieurs ressources peuvent donc conduire à une valeur supérieure à 100 %.")}</div><div class="value">${Math.round(allocTotal*100)}%</div>
+    <div class="key">Ressources actives ${indicatorHelp("Nombre de ressources distinctes présentes dans les allocations du projet.")}</div><div class="value">${new Set(as.map(a=>id(a.Ressource_Code)).filter(Boolean)).size}</div>
   </div>`;
 
   let nextText="Aucune attention particulière.";
@@ -501,6 +526,7 @@ function renderSynthesis(p,ts,cs,as){
   else if(nextDue) nextText=`Sécuriser la prochaine échéance : ${nextDue.titre} (${dt(nextDue.dateEcheance)}).`;
   else if(cs.length===0) nextText="Associer au moins un objectif stratégique au projet.";
   $("summaryNext").innerHTML=`<div>${esc(nextText)}</div>`;
+  bindIndicatorHelp($("detailInfos"));
 }
 
 function switchDetailTab(tab,rerender=true){
@@ -549,28 +575,143 @@ function tasks(ts){
 
 /* ---------- Offre de services ---------- */
 
+function projectStagePlanRows(projectId){
+  return (db.projectStagePlans||[]).filter(r=>id(r.Projet)===Number(projectId));
+}
+function projectStagePlanFor(projectId,stageId){
+  return projectStagePlanRows(projectId).find(r=>id(r.Etape)===Number(stageId))||null;
+}
+function planningAlertClass(v){
+  const s=String(v||"").toLowerCase();
+  if(s.includes("retard"))return "red";
+  if(s.includes("attention"))return "orange";
+  if(s.includes("ok"))return "green";
+  return "neutral";
+}
+function planningDelta(v){
+  if(v===null||v===undefined||v==="")return "—";
+  const n=Number(v);
+  if(!Number.isFinite(n))return esc(v);
+  if(n===0)return "0 j";
+  return `${n>0?"+":""}${Math.round(n)} j`;
+}
+function projectFeatureRowsForStage(projectId,stageId){
+  return featureRowsForProject(projectId).filter(f=>featureProjectStageId(f)===Number(stageId));
+}
+function openProjectStagePlan(stageId){
+  const p=get("projects",currentProjectId),stage=get("projectStages",stageId);
+  if(!p||!stage)return;
+  const row=projectStagePlanFor(p.id,stageId);
+  const f=$("projectStagePlanForm");
+  f.reset();
+  f.elements.record_id.value=row?.id||"";
+  f.elements.project_id.value=p.id;
+  f.elements.stage_id.value=stageId;
+  f.Date_Debut_Planifiee.value=din(row?.Date_Debut_Planifiee);
+  f.Date_Fin_Planifiee.value=din(row?.Date_Fin_Planifiee);
+  f.Actif.value=String(row?.Actif!==false);
+  $("projectStagePlanDialogTitle").textContent=row?"Modifier le planning de l’étape":"Planifier l’étape";
+  $("projectStagePlanDialogMeta").textContent=`${p.nom||p.code||"Projet"} • ${stage.Nom||stage.Code||"Étape"}`;
+  $("projectStagePlanPreview").innerHTML=row?`<div class="planning-preview-grid">
+    <span><small>Début calculé</small><b>${dt(row.Date_Debut_Calculee)}</b></span>
+    <span><small>Fin calculée</small><b>${dt(row.Date_Fin_Calculee)}</b></span>
+    <span><small>Écart début</small><b>${planningDelta(row.Ecart_Debut)}</b></span>
+    <span><small>Écart fin</small><b>${planningDelta(row.Ecart_Fin)}</b></span>
+  </div>`:'<div class="muted">Les dates calculées seront alimentées automatiquement par Grist à partir des fonctionnalités de cette étape.</div>';
+  $("projectStagePlanDialog").showModal();
+}
+$("projectStagePlanForm").onsubmit=async e=>{
+  e.preventDefault();
+  const f=e.currentTarget;
+  const rid=Number(f.elements.record_id.value)||null;
+  const fields={
+    Projet:Number(f.elements.project_id.value),
+    Etape:Number(f.elements.stage_id.value),
+    Date_Debut_Planifiee:gd(f.Date_Debut_Planifiee.value),
+    Date_Fin_Planifiee:gd(f.Date_Fin_Planifiee.value),
+    Actif:f.Actif.value==="true"
+  };
+  const action=rid?["UpdateRecord","Projet_Etapes",rid,fields]:["AddRecord","Projet_Etapes",null,fields];
+  const ok=await apply([action],rid?"Planning de l’étape mis à jour.":"Étape planifiée.");
+  if(ok){$("projectStagePlanDialog").close();projectStagesView(get("projects",currentProjectId),taskRows(currentProjectId));renderSynthesis(get("projects",currentProjectId),taskRows(currentProjectId),contribRows(currentProjectId),allocRows(currentProjectId))}
+};
+
 function projectStagesView(p,ts){
-  if(typeOf(p)!=="projet"){$("projectStagesView").innerHTML='<div class="empty">Cette vue concerne les projets.</div>';return}
-  const stages=[...db.projectStages].sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0));
+  if(typeOf(p)!=="projet"){
+    $("projectStagesView").innerHTML='<div class="empty">Cette vue concerne les projets.</div>';
+    return
+  }
+  const stages=[...(db.projectStages||[])].filter(s=>s.Actif!==false).sort((a,b)=>Number(a.Ordre||0)-Number(b.Ordre||0));
+  const plans=projectStagePlanRows(p.id);
   const current=id(p.etape_courante);
-  if(!stages.length){$("projectStagesView").innerHTML='<div class="empty">Aucune étape dans Etapes_Projet. Crée le référentiel dans Admin & Audit.</div>';return}
-  const currentStage=get("projectStages",current);
-  $("projectStagesView").innerHTML=
-    `<div class="lifecycle">${stages.map(s=>{const cls=s.id===current?"current":(currentStage&&Number(s.Ordre||0)<Number(currentStage.Ordre||0)?"done":"");return`<span class="stage-pill ${cls}">${esc(s.Nom||s.Code||"")}</span>`}).join("")}</div>`+
-    stages.map(s=>{
-      const st=ts.filter(t=>id(t.etape_projet)===s.id);
-      const starts=st.map(t=>dms(t.dateDebut)).filter(Boolean),ends=st.map(t=>dms(t.dateEcheance)).filter(Boolean);
-      const avg=st.length?Math.round(st.reduce((n,t)=>n+pct(t.progression),0)/st.length):0;
-      return `<div class="stage-block">
-        <div class="stage-head">
-          <div><h4>${esc(s.Nom||s.Code||"")}</h4><div class="muted">${st.length} tâche(s) • ${avg}% • ${starts.length?dt(Math.min(...starts)):"—"} → ${ends.length?dt(Math.max(...ends)):"—"}</div></div>
-          <button class="primary-outline" data-add-stage-task="${s.id}">+ Tâche</button>
-        </div>
-        ${st.length?`<table><thead><tr><th>Tâche</th><th>Fonctionnalité</th><th>Statut</th><th>Début</th><th>Échéance</th><th>Avancement</th><th></th></tr></thead><tbody>${st.map(t=>`<tr><td>${esc(t.titre||"")}</td><td>${esc(get("features",id(t.fonctionnalite))?.Nom||"—")}</td><td>${esc(t.statut||"")}</td><td>${dt(t.dateDebut)}</td><td>${dt(t.dateEcheance)}</td><td>${pct(t.progression)}%</td><td><button data-stage-edit-task="${t.id}">Modifier</button></td></tr>`).join("")}</tbody></table>`:'<div class="muted">Aucune tâche rattachée.</div>'}
-      </div>`;
-    }).join("");
+
+  if(tableLoadErrors.projectStagePlans){
+    $("projectStagesView").innerHTML=`<div class="alert-item warn"><strong>Table Projet_Etapes inaccessible.</strong><br>${esc(tableLoadErrors.projectStagePlans)}</div>`;
+    return
+  }
+  if(!stages.length){
+    $("projectStagesView").innerHTML='<div class="empty">Aucune étape dans Etapes_Projet.</div>';
+    return
+  }
+
+  const planned=plans.filter(x=>x.Actif!==false);
+  const delays=planned.filter(x=>/retard/i.test(String(x.Alerte_Planning||""))).length;
+  const attentions=planned.filter(x=>/attention/i.test(String(x.Alerte_Planning||""))).length;
+  const calcStarts=planned.map(x=>dms(x.Date_Debut_Calculee)).filter(Boolean);
+  const calcEnds=planned.map(x=>dms(x.Date_Fin_Calculee)).filter(Boolean);
+
+  $("projectStagesView").innerHTML=`
+    <div class="planning-project-summary">
+      <div><small>Étapes planifiées ${indicatorHelp("Nombre d’étapes Projet_Etapes actives pour lesquelles un planning existe, rapporté au nombre total d’étapes actives du référentiel Etapes_Projet.")}</small><strong>${planned.length}/${stages.length}</strong></div>
+      <div><small>En retard ${indicatorHelp("Nombre d’étapes dont Alerte_Planning contient « Retard ». Cette alerte est calculée dans Grist à partir des dates planifiées, des dates calculées et des écarts.")}</small><strong class="${delays?"bad":""}">${delays}</strong></div>
+      <div><small>À surveiller ${indicatorHelp("Nombre d’étapes dont Alerte_Planning contient « Attention ». Dans le modèle actuel, cela correspond notamment à un démarrage calculé après le début planifié sans dépassement de la fin planifiée.")}</small><strong class="${attentions?"warn-text":""}">${attentions}</strong></div>
+      <div><small>Enveloppe calculée ${indicatorHelp("Début = date calculée la plus ancienne des étapes du projet. Fin = date calculée la plus tardive. Les dates calculées de chaque étape proviennent elles-mêmes du MIN(Date_Debut) et MAX(Date_Fin) de ses fonctionnalités.")}</small><strong>${calcStarts.length?dt(Math.min(...calcStarts)):"—"} → ${calcEnds.length?dt(Math.max(...calcEnds)):"—"}</strong></div>
+    </div>
+    <div class="lifecycle">${stages.map(stage=>{
+      const plan=projectStagePlanFor(p.id,stage.id);
+      const cls=stage.id===current?"current":planningAlertClass(plan?.Alerte_Planning);
+      return `<span class="stage-pill ${cls}" title="${esc(plan?.Alerte_Planning||"Non planifié")}">${esc(stage.Nom||stage.Code||"")}</span>`;
+    }).join("")}</div>
+    <div class="project-stage-plan-list">
+      ${stages.map(stage=>{
+        const plan=projectStagePlanFor(p.id,stage.id);
+        const tasksForStage=ts.filter(t=>id(t.etape_projet)===stage.id);
+        const features=projectFeatureRowsForStage(p.id,stage.id);
+        const alert=plan?.Alerte_Planning||"Non planifié";
+        const avg=features.length?Math.round(features.reduce((n,f)=>n+pct(f.Progression),0)/features.length):0;
+        return `<article class="project-stage-plan ${planningAlertClass(alert)}">
+          <div class="project-stage-plan-head">
+            <div class="project-stage-title">
+              <span class="project-stage-order">${stage.Ordre??"•"}</span>
+              <div><h4>${esc(stage.Nom||stage.Code||"Étape")}</h4><div class="muted">${features.length} fonctionnalité(s) • ${tasksForStage.length} tâche(s) • ${avg}% d’avancement fonctionnel ${indicatorHelp("Moyenne arithmétique de Progression des fonctionnalités rattachées à cette étape. Chaque progression est normalisée en pourcentage entre 0 et 100.")}</div></div>
+            </div>
+            <div class="project-stage-actions">
+              <span class="planning-alert ${planningAlertClass(alert)}">${esc(alert)}</span>
+              <button class="primary-outline" data-plan-stage="${stage.id}">${plan?"Modifier planning":"Planifier"}</button>
+              <button class="primary-outline" data-add-stage-task="${stage.id}">+ Tâche</button>
+            </div>
+          </div>
+          <div class="project-stage-dates">
+            <div class="stage-date-block planned"><small>Planifié ${indicatorHelp("Dates de référence saisies manuellement dans Projet_Etapes : Date_Debut_Planifiee et Date_Fin_Planifiee.")}</small><b>${dt(plan?.Date_Debut_Planifiee)} → ${dt(plan?.Date_Fin_Planifiee)}</b></div>
+            <div class="stage-date-block calculated"><small>Calculé depuis les fonctionnalités ${indicatorHelp("Date de début calculée = MIN(Date_Debut) des fonctionnalités du même projet et de cette étape. Date de fin calculée = MAX(Date_Fin) de ces fonctionnalités.")}</small><b>${dt(plan?.Date_Debut_Calculee)} → ${dt(plan?.Date_Fin_Calculee)}</b></div>
+            <div class="stage-date-block delta"><small>Écarts ${indicatorHelp("Écart début = Date_Debut_Calculee − Date_Debut_Planifiee. Écart fin = Date_Fin_Calculee − Date_Fin_Planifiee. Valeur positive = retard/dépassement ; négative = avance.")}</small><b>Début ${planningDelta(plan?.Ecart_Debut)} • Fin ${planningDelta(plan?.Ecart_Fin)}</b></div>
+          </div>
+          ${features.length?`<div class="stage-features">
+            ${features.map(f=>`<button class="stage-feature-chip" data-feature-edit="${f.id}" title="Modifier la fonctionnalité">${esc(f.Nom||"Fonctionnalité")} <small>${dt(f.Date_Debut)} → ${dt(f.Date_Fin)}</small></button>`).join("")}
+          </div>`:'<div class="muted stage-no-features">Aucune fonctionnalité rattachée à cette étape.</div>'}
+          ${tasksForStage.length?`<details class="stage-task-details"><summary>${tasksForStage.length} tâche(s) de l’étape</summary>
+            <table><thead><tr><th>Tâche</th><th>Fonctionnalité</th><th>Statut</th><th>Début</th><th>Échéance</th><th>Avancement</th><th></th></tr></thead>
+            <tbody>${tasksForStage.map(t=>`<tr><td>${esc(t.titre||"")}</td><td>${esc(get("features",id(t.fonctionnalite))?.Nom||"—")}</td><td>${esc(t.statut||"")}</td><td>${dt(t.dateDebut)}</td><td>${dt(t.dateEcheance)}</td><td>${pct(t.progression)}%</td><td><button data-stage-edit-task="${t.id}">Modifier</button></td></tr>`).join("")}</tbody></table>
+          </details>`:""}
+        </article>`;
+      }).join("")}
+    </div>`;
+
+  document.querySelectorAll("[data-plan-stage]").forEach(b=>b.onclick=()=>openProjectStagePlan(Number(b.dataset.planStage)));
   document.querySelectorAll("[data-add-stage-task]").forEach(b=>b.onclick=()=>openTask(null,{stageId:Number(b.dataset.addStageTask)}));
   document.querySelectorAll("[data-stage-edit-task]").forEach(b=>b.onclick=()=>openTask(Number(b.dataset.stageEditTask)));
+  document.querySelectorAll("#projectStagesView [data-feature-edit]").forEach(b=>b.onclick=()=>openFeature(Number(b.dataset.featureEdit)));
+  bindIndicatorHelp($("projectStagesView"));
 }
 
 function refIdAny(v){
@@ -663,143 +804,100 @@ function releaseProgress(releaseId){
   const ids=releaseFeatureIds(releaseId), fs=ids.map(fid=>get("features",fid)).filter(Boolean);
   return fs.length?Math.round(fs.reduce((n,f)=>n+pct(f.Progression),0)/fs.length):0;
 }
+function releasePlanningFromGrist(r){
+  const features=releaseFeatureIds(r.id).map(fid=>get("features",fid)).filter(Boolean);
+  const plannedStart=dms(r.Date_Debut||r.dateDebut);
+  const plannedEnd=dms(r.Date_Fin||r.dateFin);
+  const calcStart=dms(r.Date_Debut_Calculee);
+  const calcEnd=dms(r.Date_Fin_Calculee);
+  const alert=String(r.Alerte_Planning||"").trim()||"Non calculé";
+  const issues=[];
+
+  if(plannedStart&&plannedEnd&&plannedStart>plannedEnd){
+    issues.push("La date de début de la release est postérieure à sa date de fin.");
+  }
+  if(/incohérent début/i.test(alert)){
+    issues.push("Au moins une fonctionnalité commence avant le début planifié de la release.");
+  }
+  if(/retard/i.test(alert)){
+    issues.push("Au moins une fonctionnalité se termine après la fin planifiée de la release.");
+  }
+  if(/sans fonctionnalités/i.test(alert)){
+    issues.push("Aucune fonctionnalité datée ne permet de calculer l’enveloppe de la release.");
+  }
+  if(/non planifié/i.test(alert)){
+    issues.push("Les dates planifiées de la release sont incomplètes.");
+  }
+
+  return {
+    features,
+    plannedStart,
+    plannedEnd,
+    calcStart,
+    calcEnd,
+    startDelta:r.Ecart_Debut,
+    endDelta:r.Ecart_Fin,
+    alert,
+    issues
+  };
+}
 function releasesView(p){
-  const rs=releaseRowsForProject(p.id).sort((a,b)=>(dms(a.Date_Debut)||0)-(dms(b.Date_Debut)||0));
+  const rs=releaseRowsForProject(p.id);
+  const host=$("releasesView");
   if(!rs.length){
-    $("releasesView").innerHTML='<div class="empty">Aucune release. Crée la première fenêtre de livraison.</div>';
+    host.innerHTML='<div class="empty">Aucune release pour ce projet / produit.</div>';
     return;
   }
-  $("releasesView").innerHTML=`<div class="release-grid">${rs.map(r=>{
-    const fids=releaseFeatureIds(r.id), progress=releaseProgress(r.id);
-    const type=String(r.Type||p.Type||"");
-    return `<article class="release-card">
-      <div class="release-card-head">
-        <div><h4>${esc(r.Nom||r.Code||"Release")}</h4><div class="feature-meta">${esc(r.Code||"")} • ${esc(type||"")}</div></div>
-        <span class="release-status">${esc(r.Statut||"—")}</span>
+
+  host.innerHTML=`<div class="release-list">${rs.map(r=>{
+    const linked=releaseFeatureIds(r.id);
+    const planning=releasePlanningFromGrist(r);
+    const alertClass=planningAlertClass(planning.alert);
+
+    return `<article class="release-card release-date-${alertClass}">
+      <div class="release-head">
+        <div>
+          <h4>${esc(r.Nom||r.Code||`Release #${r.id}`)}</h4>
+          <div class="muted">${linked.length} fonctionnalité(s)</div>
+        </div>
+        <div class="release-actions">
+          <span class="planning-alert ${alertClass}">${esc(planning.alert)}</span>
+          <button data-release-features="${r.id}">Fonctionnalités</button>
+          <button data-release-edit="${r.id}">Modifier</button>
+          <button class="danger" data-release-del="${r.id}">Supprimer</button>
+        </div>
       </div>
-      <div class="release-dates">${dt(r.Date_Debut)} → ${dt(r.Date_Fin)}</div>
-      <div class="feature-meta">${esc(r.Objectif||"")}</div>
-      <div class="metric-bar" style="margin-top:10px"><div style="width:${progress}%"></div></div>
-      <div class="feature-meta">${fids.length} fonctionnalité(s) • ${progress}%</div>
-      <div class="release-features">${fids.slice(0,6).map(fid=>`<span>${esc(get("features",fid)?.Nom||`#${fid}`)}</span>`).join("")}</div>
-      <div class="feature-actions">
-        <button class="primary-outline" data-release-features="${r.id}">Fonctionnalités</button>
-        <button data-release-edit="${r.id}">Modifier</button>
-        <button class="danger" data-release-del="${r.id}">Supprimer</button>
+
+      <div class="release-date-grid">
+        <div>
+          <small>Planifié ${indicatorHelp("Dates saisies sur la release : Date_Debut et Date_Fin.")}</small>
+          <b>${dt(r.Date_Debut||r.dateDebut)} → ${dt(r.Date_Fin||r.dateFin)}</b>
+        </div>
+        <div>
+          <small>Calculé dans Grist ${indicatorHelp("Date_Debut_Calculee = MIN(Date_Debut) des fonctionnalités rattachées. Date_Fin_Calculee = MAX(Date_Fin). Ces valeurs sont calculées dans Grist.")}</small>
+          <b>${dt(r.Date_Debut_Calculee)} → ${dt(r.Date_Fin_Calculee)}</b>
+        </div>
+        <div>
+          <small>Écarts ${indicatorHelp("Ecart_Debut = Date_Debut_Calculee − Date_Debut. Ecart_Fin = Date_Fin_Calculee − Date_Fin. Valeur positive = dépassement ; valeur négative = avance.")}</small>
+          <b>Début ${planningDelta(r.Ecart_Debut)} • Fin ${planningDelta(r.Ecart_Fin)}</b>
+        </div>
       </div>
+
+      ${planning.issues.length?`<div class="release-date-issues">${planning.issues.map(x=>`<div>⚠ ${esc(x)}</div>`).join("")}</div>`:""}
+
+      ${planning.features.length?`<div class="release-feature-dates">${planning.features.map(f=>{
+        const fs=dms(f.Date_Debut||f.dateDebut),fe=dms(f.Date_Fin||f.dateFin);
+        const outside=(fs&&planning.plannedStart&&fs<planning.plannedStart)||(fe&&planning.plannedEnd&&fe>planning.plannedEnd);
+        return `<span class="${outside?"outside":""}">${esc(f.Nom||"Fonctionnalité")} <small>${fs?dt(fs):"—"} → ${fe?dt(fe):"—"}</small></span>`;
+      }).join("")}</div>`:""}
     </article>`;
   }).join("")}</div>`;
+
   document.querySelectorAll("[data-release-features]").forEach(b=>b.onclick=()=>openReleaseFeatures(Number(b.dataset.releaseFeatures)));
   document.querySelectorAll("[data-release-edit]").forEach(b=>b.onclick=()=>openRelease(Number(b.dataset.releaseEdit)));
   document.querySelectorAll("[data-release-del]").forEach(b=>b.onclick=()=>deleteRelease(Number(b.dataset.releaseDel)));
+  bindIndicatorHelp(host);
 }
-
-function productFeaturesView(p,ts){
-  const fs=featureRowsForProject(p.id);
-  const host=$("productFeaturesView");
-  if(!fs.length){
-    const loaded=(db.features||[]).length;
-    host.innerHTML=(typeOf(p)==="produit"
-      ?'<div class="empty">Aucune fonctionnalité rattachée à ce produit.</div>'
-      :'<div class="empty">Aucune fonctionnalité rattachée à ce projet.</div>')
-      +(loaded?`<div class="muted feature-diagnostic">La table Fonctionnalites contient ${loaded} ligne(s), mais aucune ne référence l’ID ${p.id} (${esc(p.nom||p.code||"")}).</div>`:"");
-    return;
-  }
-
-  const val=(o,...keys)=>{for(const k of keys){const v=o?.[k];if(v!==undefined&&v!==null&&v!=="")return v}return ""};
-  const moduleOf=f=>String(val(f,"Categ_module","Categorie_module","categ_module","categorie_module")||"Sans module");
-  const stageOf=f=>{const st=get("featureStages",id(f.Stade)||id(f.stade));return st?.Nom||st?.Libelle||"Sans stade"};
-  const dateOf=f=>val(f,"Date_Cible","date_cible","Date_Fin","dateFin");
-  const progressOf=f=>pct(val(f,"Progression","progression"));
-  const linkedTasks=f=>ts.filter(t=>id(t.fonctionnalite)===f.id);
-  const relsOf=f=>releaseIdsForFeature(f.id).map(rid=>get("releases",rid)).filter(Boolean);
-  const dateMs=f=>{const v=dateOf(f);if(!v)return Number.MAX_SAFE_INTEGER;const d=new Date(typeof v==="number"?v*1000:v);return Number.isNaN(d.getTime())?Number.MAX_SAFE_INTEGER:d.getTime()};
-  const modules=[...new Set(fs.map(moduleOf))].sort((a,b)=>a.localeCompare(b,"fr"));
-  const stages=[...new Set(fs.map(stageOf))].sort((a,b)=>a.localeCompare(b,"fr"));
-  const releases=[...new Set(fs.flatMap(f=>relsOf(f).map(r=>r.Nom||r.Code).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"fr"));
-
-  host.innerHTML=`<div class="features-toolbar">
-    <label class="features-search">⌕ <input data-f-filter="search" placeholder="Rechercher…"></label>
-    <label>Module<select data-f-filter="module"><option value="">Tous</option>${modules.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label>
-    <label>Stade<select data-f-filter="stage"><option value="">Tous</option>${stages.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label>
-    <label>Release<select data-f-filter="release"><option value="">Toutes</option>${releases.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label>
-    <label>Trier par<select data-f-filter="sort"><option value="dateAsc">Date cible ↑</option><option value="dateDesc">Date cible ↓</option><option value="moduleDate">Module + date</option><option value="name">Nom</option><option value="progress">Avancement ↓</option></select></label>
-    <div class="features-view"><button class="active" data-f-view="list">☷ Liste</button><button data-f-view="module">▦ Par module</button></div>
-  </div><div class="features-list" data-features-list></div>`;
-
-  let view="list";
-  const list=host.querySelector("[data-features-list]");
-  const filter=n=>host.querySelector(`[data-f-filter="${n}"]`);
-
-  function row(f){
-    const tasks=linkedTasks(f),rels=relsOf(f),progress=progressOf(f),module=moduleOf(f),stage=stageOf(f);
-    const due=dateOf(f),dueMs=dateMs(f),days=dueMs===Number.MAX_SAFE_INTEGER?99999:Math.ceil((dueMs-Date.now())/86400000);
-    const cls=days<0?" overdue":days<=30?" due-soon":"";
-    return `<article class="feature-line${cls}">
-      <button class="feature-line-name" data-feature-toggle="${f.id}">${esc(f.Nom||"Sans nom")}</button>
-      <span class="feature-module">${esc(module)}</span>
-      <span class="feature-cell"><small>Stade</small>${esc(stage)}</span>
-      <span class="feature-cell"><small>Date cible</small><strong>${dt(due)}</strong></span>
-      <span class="feature-line-progress"><span><b>${progress}%</b><small>${tasks.length} tâche${tasks.length>1?"s":""}</small></span><i><b style="width:${progress}%"></b></i></span>
-      <span class="feature-cell feature-release-cell"><small>Release</small>${rels.length?rels.map(r=>`<em>${esc(r.Nom||r.Code)}</em>`).join(""):"—"}</span>
-      <span class="feature-line-actions"><button class="primary-outline" data-feature-task="${f.id}">+ Tâche</button><button data-feature-edit="${f.id}">Modifier</button><button class="danger" data-feature-del="${f.id}">Supprimer</button></span>
-      <div class="feature-line-detail" data-feature-detail="${f.id}">${esc(f.Description||"Aucune description.")}</div>
-    </article>`;
-  }
-
-  function rows(){
-    const q=filter("search").value.trim().toLowerCase(),m=filter("module").value,st=filter("stage").value,rel=filter("release").value,sort=filter("sort").value;
-    const out=fs.filter(f=>{
-      const rr=relsOf(f).map(r=>r.Nom||r.Code);
-      return (!q||String(f.Nom||"").toLowerCase().includes(q)||moduleOf(f).toLowerCase().includes(q))
-        &&(!m||moduleOf(f)===m)&&(!st||stageOf(f)===st)&&(!rel||rr.includes(rel));
-    });
-    out.sort((a,b)=>sort==="dateDesc"?dateMs(b)-dateMs(a):sort==="moduleDate"?moduleOf(a).localeCompare(moduleOf(b),"fr")||dateMs(a)-dateMs(b):sort==="name"?String(a.Nom||"").localeCompare(String(b.Nom||""),"fr"):sort==="progress"?progressOf(b)-progressOf(a):dateMs(a)-dateMs(b));
-    return out;
-  }
-  function render(){
-    const rr=rows();
-    if(!rr.length){list.innerHTML='<div class="empty">Aucune fonctionnalité ne correspond aux filtres.</div>';return}
-    if(view==="module"){
-      const groups={};rr.forEach(f=>(groups[moduleOf(f)]??=[]).push(f));
-      list.innerHTML=Object.entries(groups).map(([name,items])=>`<section class="feature-module-group"><button data-feature-group><span>${esc(name)}</span><small>${items.length} fonctionnalité${items.length>1?"s":""}⌄</small></button><div>${items.map(row).join("")}</div></section>`).join("");
-    }else list.innerHTML=rr.map(row).join("");
-    bindRows();
-  }
-  function bindRows(){
-    list.querySelectorAll("[data-feature-task]").forEach(b=>b.onclick=()=>openTask(null,{featureId:Number(b.dataset.featureTask)}));
-    list.querySelectorAll("[data-feature-edit]").forEach(b=>b.onclick=()=>openFeature(Number(b.dataset.featureEdit)));
-    list.querySelectorAll("[data-feature-del]").forEach(b=>b.onclick=()=>deleteFeature(Number(b.dataset.featureDel)));
-    list.querySelectorAll("[data-feature-toggle]").forEach(b=>b.onclick=()=>list.querySelector(`[data-feature-detail="${b.dataset.featureToggle}"]`)?.classList.toggle("open"));
-    list.querySelectorAll("[data-feature-group]").forEach(b=>b.onclick=()=>b.parentElement.classList.toggle("collapsed"));
-  }
-  host.querySelectorAll("[data-f-filter]").forEach(x=>x.addEventListener(x.tagName==="INPUT"?"input":"change",render));
-  host.querySelectorAll("[data-f-view]").forEach(b=>b.onclick=()=>{view=b.dataset.fView;host.querySelectorAll("[data-f-view]").forEach(x=>x.classList.toggle("active",x===b));render()});
-  render();
-}
-
-function releaseIdsForFeature(fid){
-  return db.releaseFeatures.filter(x=>id(x.fonctionnalite)===Number(fid)).map(x=>id(x.release)).filter(Boolean);
-}
-async function syncFeatureReleases(fid,selectedReleaseIds){
-  const selected=new Set((selectedReleaseIds||[]).map(Number));
-  const existing=db.releaseFeatures.filter(x=>id(x.fonctionnalite)===Number(fid));
-  const existingIds=new Set(existing.map(x=>id(x.release)));
-  const actions=[];
-  existing.filter(x=>!selected.has(id(x.release))).forEach(x=>actions.push(["RemoveRecord","Release_Fonctionnalites",x.id]));
-  [...selected].filter(rid=>!existingIds.has(rid)).forEach((rid,i)=>actions.push(["AddRecord","Release_Fonctionnalites",null,{release:rid,fonctionnalite:Number(fid),Ordre:i+1}]));
-  if(actions.length)await grist.docApi.applyUserActions(actions);
-}
-async function syncReleaseFeatures(rid,selectedFeatureIds){
-  const selected=new Set((selectedFeatureIds||[]).map(Number));
-  const existing=releaseFeatureRows(rid),existingIds=new Set(existing.map(x=>id(x.fonctionnalite)));
-  const actions=[];
-  existing.filter(x=>!selected.has(id(x.fonctionnalite))).forEach(x=>actions.push(["RemoveRecord","Release_Fonctionnalites",x.id]));
-  [...selected].filter(fid=>!existingIds.has(fid)).forEach((fid,i)=>actions.push(["AddRecord","Release_Fonctionnalites",null,{release:Number(rid),fonctionnalite:fid,Ordre:i+1}]));
-  if(actions.length)await grist.docApi.applyUserActions(actions);
-}
-
-/* ---------- Releases (Projet / Produit) ---------- */
 function openRelease(rid=null){
   const p=get("projects",currentProjectId);if(!p){notifyBanner("Sélectionne un Projet ou un Produit.");return}
   const f=$("releaseForm"),row=rid?get("releases",rid):null;f.reset();f.id.value=rid||"";
@@ -862,6 +960,23 @@ async function deleteRelease(rid){
 }
 
 /* ---------- Fonctionnalités (Projet / Produit) ---------- */
+function featureFieldName(...aliases){
+  const sample=(db.features&&db.features[0])||{};
+  const entries=Object.keys(sample);
+  for(const a of aliases){
+    const hit=entries.find(k=>String(k).toLowerCase()===String(a).toLowerCase());
+    if(hit)return hit;
+  }
+  return null;
+}
+function featureStageField(){return featureFieldName("Stade","stade")}
+function featureStatusField(){return featureFieldName("Statut","statut")}
+function featureProjectStageField(){return featureFieldName("Etape_Projet","etape_projet","EtapeProjet","etapeProjet")}
+function featureProjectStageId(f){
+  const k=featureProjectStageField();
+  return k?id(f?.[k]):null;
+}
+
 function openFeature(fid=null){
   const p=get("projects",currentProjectId);if(!p){notifyBanner("Sélectionne un Projet ou un Produit.");return}
   const f=$("featureForm"),row=fid?get("features",fid):null;f.reset();f.id.value=fid||"";
@@ -869,7 +984,17 @@ function openFeature(fid=null){
   if($("featureCategModuleLabel")) $("featureCategModuleLabel").childNodes[0].nodeValue=typeOf(p)==="produit"?"Catégorie ":"Module ";
   if(row){["Code","Nom","Categ_module","Description","Priorite"].forEach(k=>{if(f[k])f[k].value=row[k]??""});f.Progression.value=pct(row.Progression);allocationFormField(f,"Date_Debut").value=din(row.Date_Debut||row.dateDebut);allocationFormField(f,"Date_Fin").value=din(row.Date_Fin||row.dateFin);f.Date_Cible.value=din(row.Date_Cible);f.Actif.value=String(row.Actif!==false)}
   else{f.Progression.value=0;f.Actif.value="true"}
-  opt(f.stade,db.featureStages,r=>r.Nom,row?id(row.stade):null,"— stade —");
+  const stadeField=featureStageField();
+  const statusField=featureStatusField();
+  const projectStageField=featureProjectStageField();
+  opt(f.stade,db.featureStages,r=>r.Nom,row&&stadeField?id(row[stadeField]):null,"— stade —");
+  f.Statut.value=row&&statusField?(row[statusField]??""):"";
+  const isProject=typeOf(p)!=="produit";
+  $("featureProjectStageLabel").classList.toggle("hidden",!isProject);
+  opt(f.Etape_Projet,db.projectStages,r=>r.Nom,row&&projectStageField?id(row[projectStageField]):null,"— étape projet —");
+  if(isProject&&!projectStageField){
+    f.Etape_Projet.title="Ajoute une colonne Ref vers Etapes_Projet dans Fonctionnalites pour enregistrer cette valeur.";
+  }
   opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");
   if(f.Releases) fillMulti(f.Releases,releaseRowsForProject(currentProjectId),x=>`${x.Nom||x.Code||"Release"} — ${dt(x.Date_Debut)} → ${dt(x.Date_Fin)}`,row?releaseIdsForFeature(row.id):[]);
   $("featureDialog").showModal()
@@ -877,7 +1002,11 @@ function openFeature(fid=null){
 $("featureForm").onsubmit=async e=>{
   e.preventDefault();
   const f=e.currentTarget,fid=Number(f.id.value)||null;
-  const fields={Code:f.Code.value,Nom:f.Nom.value,Categ_module:f.Categ_module?.value||"",Description:f.Description.value,stade:f.stade.value?Number(f.stade.value):null,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(allocationFormField(f,"Date_Debut").value),Date_Fin:gd(allocationFormField(f,"Date_Fin").value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
+  const fields={Code:f.Code.value,Nom:f.Nom.value,Categ_module:f.Categ_module?.value||"",Description:f.Description.value,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(allocationFormField(f,"Date_Debut").value),Date_Fin:gd(allocationFormField(f,"Date_Fin").value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
+  const stadeField=featureStageField(),statusField=featureStatusField(),projectStageField=featureProjectStageField();
+  if(stadeField)fields[stadeField]=f.stade.value?Number(f.stade.value):null;
+  if(statusField)fields[statusField]=f.Statut.value||null;
+  if(typeOf(get("projects",currentProjectId))!=="produit"&&projectStageField)fields[projectStageField]=f.Etape_Projet.value?Number(f.Etape_Projet.value):null;
   fields[featureParentField()]=currentProjectId;
   const selected=f.Releases?[...f.Releases.selectedOptions].map(o=>Number(o.value)):[];
   $("featureDialog").close();

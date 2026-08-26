@@ -684,3 +684,69 @@ La modification Projet ↔ Produit n'est plus bloquée par l'audit.
 
 ## v5.4.19 — libellé Synthèse
 Dans la fiche Projet / Produit, `Synthèse projet` devient `Synthèse`.
+
+## v5.4.21 — Statut, stade et étape projet des fonctionnalités
+
+- ajout explicite de `Statut` dans l'édition d'une fonctionnalité ;
+- `Stade` reste la phase de réalisation (`Développement`, `Recette`, `Production`, `Déploiement`) ;
+- ajout de `Étape projet` pour les fonctionnalités rattachées à un objet de type Projet ;
+- ajout des filtres Statut et Étape projet dans la vue Fonctionnalités ;
+- enrichissement du détail dépliable avec Statut, Stade, Étape projet, dates, avancement et description ;
+- résolution tolérante des IDs techniques `Stade/stade`, `Statut/statut`, `Etape_Projet/etape_projet`.
+
+Pour enregistrer `Étape projet`, la table `Fonctionnalites` doit posséder une colonne Ref vers `Etapes_Projet`
+(par exemple `Etape_Projet`). Si elle n'existe pas, le champ est affiché mais n'est pas envoyé à Grist.
+
+## v5.4.22 — exploitation de `Projet_Etapes`
+
+Le Cockpit charge désormais la table `Projet_Etapes`.
+
+Dans l'onglet Planning projet :
+- affichage de chaque étape du référentiel ;
+- dates planifiées et dates calculées depuis les fonctionnalités ;
+- écarts début / fin ;
+- alerte planning `OK`, `Attention`, `Retard`, etc. ;
+- fonctionnalités rattachées à l'étape ;
+- tâches de l'étape en détail repliable ;
+- création / modification des dates planifiées directement depuis le Cockpit.
+
+Dans la Synthèse :
+- ajout des dates calculées des étapes ;
+- remontée du nombre d'étapes en alerte ;
+- les retards de `Projet_Etapes` alimentent le bloc Alertes.
+
+Colonnes attendues dans `Projet_Etapes` :
+`Projet`, `Etape`, `Date_Debut_Planifiee`, `Date_Fin_Planifiee`,
+`Date_Debut_Calculee`, `Date_Fin_Calculee`, `Ecart_Debut`, `Ecart_Fin`,
+`Alerte_Planning`, `Actif`.
+
+## v5.4.23 — explication des indicateurs
+Ajout d'un bouton `?` contextuel à côté des principaux indicateurs de Synthèse et de Planning projet.
+Le survol affiche la formule dans une infobulle native ; le clic affiche également l'explication dans la bannière du Cockpit.
+Les explications décrivent le calcul réellement effectué par le code ou, pour `Projet_Etapes`, les formules Grist attendues.
+
+## v5.4.24 — dates calculées et cohérence des Releases
+
+La vue Releases calcule désormais à la volée :
+- début calculé = MIN(Date_Debut) des fonctionnalités rattachées ;
+- fin calculée = MAX(Date_Fin) des fonctionnalités rattachées.
+
+Le Cockpit compare ces bornes aux dates planifiées de la release et signale :
+- une fonctionnalité qui commence avant le début planifié ;
+- une fonctionnalité qui se termine après la fin planifiée ;
+- une release dont la date de début est postérieure à sa date de fin.
+
+Les anomalies remontent également dans le bloc Alertes de la Synthèse.
+
+## v5.4.25 — Releases : calculs portés par Grist
+
+Le Cockpit ne recalcule plus le planning métier des Releases.
+Il lit directement les colonnes Grist :
+- `Date_Debut_Calculee`
+- `Date_Fin_Calculee`
+- `Ecart_Debut`
+- `Ecart_Fin`
+- `Alerte_Planning`
+
+Les fonctionnalités sont encore affichées pour contextualiser visuellement les anomalies,
+mais les indicateurs et alertes métier viennent de Grist.
