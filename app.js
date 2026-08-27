@@ -1,5 +1,5 @@
 
-const VERSION="5.4.28";
+const VERSION="5.4.30";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -50,7 +50,7 @@ function notifyBanner(message,type="info"){
 
 window.addEventListener("error",e=>pmoError("Erreur JavaScript",{message:e.message,source:e.filename,line:e.lineno,column:e.colno}));
 window.addEventListener("unhandledrejection",e=>pmoError("Promesse rejetée",e.reason));
-const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",projectStagePlans:"Projet_Etapes",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation"};
+const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",projectStagePlans:"Projet_Etapes",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation",suggestions:"Suggestions",featureFollowups:"Suivi_Fonctionnalites",discussions:"Discussions",messages:"Messages"};
 function tableKeyFromName(tableName){
   const wanted=String(tableName||"").trim().toLowerCase();
   if(!wanted)return null;
@@ -1144,6 +1144,7 @@ function openFeature(fid=null){
 }
 $("featureForm").onsubmit=async e=>{
   e.preventDefault();
+  renderFeatureFollowups(fid);
   const f=e.currentTarget,fid=Number(f.id.value)||null;
   const fields={Code:f.Code.value,Nom:f.Nom.value,Categ_module:f.Categ_module?.value||"",Description:f.Description.value,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(allocationFormField(f,"Date_Debut").value),Date_Fin:gd(allocationFormField(f,"Date_Fin").value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
   const stadeField=featureStageField(),statusField=featureStatusField(),projectStageField=featureProjectStageField();
@@ -1734,6 +1735,173 @@ optionalEl("presenceRefreshBtn")?.addEventListener("click",refreshPresenceUsers)
 optionalEl("presenceAllWidgets")?.addEventListener("change",refreshPresenceUsers);
 optionalEl("presencePopover")?.addEventListener("click",e=>e.stopPropagation());
 document.addEventListener("click",()=>togglePresencePopover(false));
+
+
+function suggestionContext(){
+  let context="Cockpit";
+  let projectId=null;
+  if(currentTab==="project"){
+    const project=get("projects",currentProjectId);
+    const onDetail=projectId=currentProjectId;
+    if(project && !optionalEl("projectPage")?.classList.contains("hidden")){
+      const labels={
+        infos:"Synthèse",
+        tasks:"Tâches / Gantt",
+        stages:"Planning projet",
+        features:typeOf(project)==="produit"?"Roadmap produit":"Fonctionnalités",
+        releases:"Releases",
+        objectives:"Objectifs",
+        resources:"Ressources"
+      };
+      context=`${project.nom||project.code||"Projet"} — ${labels[detailTab]||detailTab}`;
+    }else{
+      context="Portefeuille projets / produits";
+    }
+  }else if(currentTab==="resources"){
+    context=selectedResourceId?`Pilotage ressources — Ressource #${selectedResourceId}`:"Pilotage ressources";
+  }else if(currentTab==="offer"){
+    context=currentOfferId?`Offres de services — Offre #${currentOfferId}`:"Offres de services";
+  }else if(currentTab==="docs"){
+    context="Documentation";
+  }
+  return {module:"Cockpit",context,projectId};
+}
+
+function openSuggestion(){
+  if(tableLoadErrors.suggestions){
+    notifyBanner(`Table Suggestions inaccessible : ${tableLoadErrors.suggestions}`);
+    return;
+  }
+  const ctx=suggestionContext();
+  const f=$("suggestionForm");
+  f.reset();
+  $("suggestionContextLabel").textContent=`${ctx.module} • ${ctx.context}`;
+  $("suggestionDialog").showModal();
+}
+
+$("suggestionForm").onsubmit=async e=>{
+  e.preventDefault();
+  const f=e.currentTarget;
+  const ctx=suggestionContext();
+  const fields={
+    Module:ctx.module,
+    Contexte:ctx.context,
+    Titre:f.Titre.value.trim(),
+    Description:f.Description.value.trim(),
+    Type:f.Type.value,
+    Statut:"Nouvelle",
+    Actif:true
+  };
+  // Auteur_Email et Date_Creation sont volontairement laissés à Grist
+  // via trigger formulas user.Email et NOW() lors de la création.
+  if(ctx.projectId)fields.Projet=Number(ctx.projectId);
+
+  try{
+    await grist.docApi.applyUserActions([["AddRecord","Suggestions",null,fields]]);
+    $("suggestionDialog").close();
+    notifyBanner("Suggestion envoyée. Merci !");
+    await load();
+  }catch(err){
+    console.error("Suggestion",err);
+    notifyBanner(`Impossible d'envoyer la suggestion : ${err?.message||err}`);
+  }
+};
+
+optionalEl("suggestionBtn")?.addEventListener("click",openSuggestion);
+
+
+let currentDiscussionId=null;
+
+function featureFollowupRows(fid){
+  return (db.featureFollowups||[]).filter(x=>id(x.Fonctionnalite)===Number(fid) && x.Actif!==false)
+    .sort((a,b)=>(dms(b.Date_Suivi)||0)-(dms(a.Date_Suivi)||0));
+}
+function renderFeatureFollowups(fid){
+  const host=optionalEl("featureFollowupList");
+  if(!host)return;
+  if(!fid){host.innerHTML='<span class="muted">Enregistre la fonctionnalité pour consulter son historique.</span>';return}
+  const rows=featureFollowupRows(fid);
+  host.innerHTML=rows.length?rows.map(r=>`<article class="followup-item">
+    <div><strong>${dt(r.Date_Suivi)}</strong><span>${esc(r.Auteur_Email||"")}</span></div>
+    <p>${esc(r.Commentaire||"")}</p>
+    <small>${r.Progression!==null&&r.Progression!==undefined?`${pct(r.Progression)}%`:""} ${r.Statut?`• Statut #${id(r.Statut)||esc(r.Statut)}`:""} ${r.Stade?`• Stade #${id(r.Stade)||esc(r.Stade)}`:""}</small>
+  </article>`).join(""):'<span class="muted">Aucun commentaire daté.</span>';
+}
+function openFeatureFollowup(){
+  const ff=optionalEl("featureForm");
+  const fid=Number(ff?.elements?.record_id?.value||0);
+  if(!fid){notifyBanner("Enregistre d’abord la fonctionnalité.");return}
+  const feature=get("features",fid);
+  const f=$("featureFollowupForm"); f.reset();
+  f.Fonctionnalite.value=fid;
+  f.Date_Suivi.value=new Date().toISOString().slice(0,10);
+  f.Progression.value=Math.round(pct(feature?.Progression));
+  $("featureFollowupMeta").textContent=feature?.Nom||`Fonctionnalité #${fid}`;
+  $("featureFollowupDialog").showModal();
+}
+optionalEl("addFeatureFollowupBtn")?.addEventListener("click",openFeatureFollowup);
+$("featureFollowupForm").onsubmit=async e=>{
+  e.preventDefault();
+  const f=e.currentTarget, fid=Number(f.Fonctionnalite.value), feature=get("features",fid);
+  const fields={Fonctionnalite:fid,Date_Suivi:gd(f.Date_Suivi.value),Commentaire:f.Commentaire.value.trim(),Progression:Number(f.Progression.value||0),Actif:true};
+  const sf=featureStatusField(); if(sf&&feature?.[sf])fields.Statut=id(feature[sf])||feature[sf];
+  const stf=featureStageField(); if(stf&&feature?.[stf])fields.Stade=id(feature[stf])||feature[stf];
+  try{
+    await grist.docApi.applyUserActions([["AddRecord","Suivi_Fonctionnalites",null,fields]]);
+    $("featureFollowupDialog").close(); await load(); renderFeatureFollowups(fid); notifyBanner("Commentaire ajouté au suivi.");
+  }catch(err){notifyBanner(`Impossible d'ajouter le suivi : ${err?.message||err}`)}
+};
+
+function discussionRows(){
+  const pid=Number(currentProjectId)||null;
+  return (db.discussions||[]).filter(d=>d.Actif!==false && (!id(d.Projet)||!pid||id(d.Projet)===pid))
+    .sort((a,b)=>(dms(b.Date_Creation)||0)-(dms(a.Date_Creation)||0));
+}
+function messageRows(did){
+  return (db.messages||[]).filter(m=>id(m.Discussion)===Number(did)&&m.Actif!==false)
+    .sort((a,b)=>(dms(a.Date_Heure)||0)-(dms(b.Date_Heure)||0));
+}
+function renderDiscussions(){
+  const list=$("discussionList"), rows=discussionRows();
+  list.innerHTML=rows.length?rows.map(d=>`<button class="discussion-item ${d.id===currentDiscussionId?"active":""}" data-discussion="${d.id}">
+    <strong>${esc(d.Titre||"Discussion")}</strong><small>${esc(d.Type||"")} ${d.Projet?`• projet #${id(d.Projet)}`:""}</small>
+  </button>`).join(""):'<div class="muted">Aucune discussion.</div>';
+  list.querySelectorAll("[data-discussion]").forEach(b=>b.onclick=()=>{currentDiscussionId=Number(b.dataset.discussion);renderDiscussions();renderMessages()});
+}
+function renderMessages(){
+  const d=(db.discussions||[]).find(x=>x.id===currentDiscussionId), host=$("messageList");
+  $("chatThreadTitle").textContent=d?.Titre||"Sélectionne une discussion";
+  const rows=d?messageRows(d.id):[];
+  host.innerHTML=rows.length?rows.map(m=>`<div class="chat-message"><div><strong>${esc(m.Auteur_Email||"Utilisateur")}</strong><small>${dt(m.Date_Heure)}</small></div><p>${esc(m.Message||"")}</p></div>`).join(""):'<div class="muted">Aucun message.</div>';
+  host.scrollTop=host.scrollHeight;
+}
+function openChat(){
+  if(tableLoadErrors.discussions||tableLoadErrors.messages){notifyBanner("Les tables Discussions/Messages ne sont pas accessibles.");return}
+  $("chatDialog").showModal(); renderDiscussions(); renderMessages();
+}
+optionalEl("chatBtn")?.addEventListener("click",openChat);
+$("newDiscussionBtn").onclick=()=>{
+  const f=$("discussionForm"); f.reset();
+  f.Type.value=currentProjectId?"Projet":"Direct";
+  $("discussionDialog").showModal();
+};
+$("discussionForm").onsubmit=async e=>{
+  e.preventDefault(); const f=e.currentTarget;
+  const fields={Type:f.Type.value,Titre:f.Titre.value.trim(),Actif:true};
+  if(currentProjectId&&f.Type.value==="Projet")fields.Projet=Number(currentProjectId);
+  try{
+    await grist.docApi.applyUserActions([["AddRecord","Discussions",null,fields]]);
+    $("discussionDialog").close(); await load(); renderDiscussions(); notifyBanner("Discussion créée.");
+  }catch(err){notifyBanner(`Impossible de créer la discussion : ${err?.message||err}`)}
+};
+$("messageForm").onsubmit=async e=>{
+  e.preventDefault(); if(!currentDiscussionId){notifyBanner("Sélectionne d’abord une discussion.");return}
+  const f=e.currentTarget, msg=f.Message.value.trim(); if(!msg)return;
+  try{
+    await grist.docApi.applyUserActions([["AddRecord","Messages",null,{Discussion:currentDiscussionId,Message:msg,Actif:true}]]);
+    f.reset(); await load(); renderMessages();
+  }catch(err){notifyBanner(`Impossible d'envoyer le message : ${err?.message||err}`)}
+};
 
 grist.ready({requiredAccess:"full"});
 grist.onOptions(()=>load());

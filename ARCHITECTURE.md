@@ -385,3 +385,12 @@ Le Cockpit ne fait qu'afficher les champs calculés de la table Releases.
 
 ## v5.4.27
 La résolution des fonctionnalités est centralisée dans `featureRowsForProject(projectOrId)` : priorité à la Ref technique, puis fallback strict sur la valeur d'affichage de `Parent`.
+
+## v5.4.29 — collaboration
+Ajout de la table `Suggestions` comme point d'entrée des retours utilisateurs.
+L'identité auteur est portée par Grist via `user.Email`.
+
+## v5.4.30 — collaboration
+Les fonctions collaboratives utilisent quatre tables distinctes :
+`Suggestions`, `Suivi_Fonctionnalites`, `Discussions`, `Messages`.
+Le suivi métier d'une fonctionnalité reste distinct du chat conversationnel.

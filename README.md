@@ -771,3 +771,28 @@ La vue Roadmap passe directement l'objet Projet/Produit courant afin d'éviter t
 Correction de `a.localeCompare is not a function` dans la Roadmap/Fonctionnalités.
 Les valeurs issues de Grist (notamment les Ref et valeurs numériques) sont désormais normalisées
 avant tri des listes Module, Stade, Statut, Étape et Release.
+
+## v5.4.29 — Suggestions utilisateurs
+
+Ajout d'un bouton global `💡 Suggestion` dans le Cockpit.
+
+La suggestion enregistre automatiquement :
+- `Module = Cockpit`
+- le contexte courant (portefeuille, synthèse, planning, fonctionnalités, releases, ressources, etc.)
+- le projet courant lorsqu'il existe
+- `Statut = Nouvelle`
+- `Actif = true`
+
+`Auteur_Email` et `Date_Creation` doivent être alimentés dans Grist par des trigger formulas
+`user.Email` et `NOW()` à la création de la ligne. Le Cockpit ne peut donc pas usurper l'auteur.
+
+Table attendue : `Suggestions`.
+
+## v5.4.30 — Chat et suivi des fonctionnalités
+
+- Intégration des tables `Discussions` et `Messages` dans le Cockpit.
+- Bouton global `💬 Discussions`.
+- Création de discussions projet/directes et envoi de messages.
+- Intégration de `Suivi_Fonctionnalites` dans la fiche d'une fonctionnalité.
+- Ajout d'un commentaire daté avec photographie de la progression, du statut et du stade.
+- Les auteurs et horodatages restent alimentés côté Grist par trigger formulas (`user.Email`, `NOW()`).
