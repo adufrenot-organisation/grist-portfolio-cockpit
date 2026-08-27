@@ -1,5 +1,5 @@
 
-const VERSION="5.4.33";
+const VERSION="5.4.34";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -1729,7 +1729,7 @@ document.querySelectorAll("[data-home-action]").forEach(b=>b.onclick=()=>{
   if(a==="new-allocation"){openAllocationDialog(null,{projectId:currentProjectId||null})}
   if(a==="open-planning"){switchMainTab("project");if(currentProjectId){showProjectPage(currentProjectId);switchDetailTab("stages")}}
 });
-optionalEl("homePresenceBtn")?.addEventListener("click",()=>optionalEl("presenceBadge")?.click());
+optionalEl("homePresenceBtn")?.addEventListener("click",()=>switchMainTab("resources"));
 
 document.querySelectorAll("[data-main-tab]").forEach(b=>b.addEventListener("click",()=>switchMainTab(b.dataset.mainTab)));
 document.querySelectorAll("[data-type-filter]").forEach(b=>b.onclick=()=>{typeFilter=b.dataset.typeFilter;document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x===b));populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
@@ -1952,7 +1952,8 @@ function renderFrontOfficeMenu(){
   header.innerHTML=items.filter(x=>String(x.Emplacement||"HEADER").toUpperCase()==="HEADER").map(x=>collaborationActionButton(x.Code,true)).join("");
   more.innerHTML=items.filter(x=>String(x.Emplacement||"").toUpperCase()==="PLUS").map(x=>collaborationActionButton(x.Code,false)).join("");
   const presence=cfg.PRESENCE;
-  $("presenceWrap").classList.toggle("hidden",presence.Actif===false||String(presence.Emplacement||"HEADER").toUpperCase()==="HIDDEN");
+  const homePresenceCard=optionalEl("homePresenceCard");
+  if(homePresenceCard)homePresenceCard.classList.toggle("hidden",presence.Actif===false||String(presence.Emplacement||"HEADER").toUpperCase()==="HIDDEN");
   document.querySelectorAll("[data-collab-action]").forEach(b=>b.onclick=()=>{
     if(b.dataset.collabAction==="SUGGESTIONS")openSuggestion();
     if(b.dataset.collabAction==="DISCUSSIONS")openChat();

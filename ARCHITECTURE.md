@@ -406,3 +406,9 @@ Le back-office Admin PMO est seul responsable de la modification de cette config
 ## v5.4.33 — page d'accueil
 Ajout d'une couche d'accueil consolidée au-dessus des vues métier existantes.
 Les vues historiques Projets, Offres, Ressources, Documentation et leurs formulaires restent conservés.
+
+## v5.4.34 — présence et responsabilité UI
+
+La présence n'est plus un élément de navigation globale.
+Le heartbeat reste assuré par `presence.js`, tandis que la visualisation des utilisateurs actifs
+est concentrée dans la page Accueil. Le paramètre Front Office `PRESENCE` contrôle cette carte.

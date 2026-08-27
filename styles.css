@@ -1000,3 +1000,182 @@ body{background:#f4f7fb}
 .dashboard-progress-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(180px,3fr) 50px;align-items:center;gap:12px;padding:8px 0}.dashboard-progress-row i{height:6px;background:#e7edf5;border-radius:99px;overflow:hidden}.dashboard-progress-row i b{display:block;height:100%;background:#3478f6;border-radius:99px}
 @media(max-width:1150px){.dashboard-grid-main{grid-template-columns:1fr 1fr}.dashboard-overview{grid-column:1/-1}.home-kpis{grid-template-columns:1fr 1fr}.dashboard-module-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.dashboard-grid-main,.dashboard-analysis-grid{grid-template-columns:1fr}.dashboard-overview{grid-column:auto}.home-kpis,.dashboard-module-grid{grid-template-columns:1fr}.dashboard-quick-actions{flex-direction:column}.dashboard-quick-actions button{width:100%;border-right:0;border-bottom:1px solid #e7edf3}.dashboard-analysis-grid .span-2{grid-column:auto}}
+
+/* v5.4.34 — contraste, cadrage homogène et présence uniquement sur Accueil */
+
+/* Navigation : contraste explicite, y compris états inactifs */
+.dashboard-nav{
+  background:#ffffff !important;
+  border-bottom:1px solid #d8e2ec !important;
+  box-shadow:0 2px 5px rgba(15,42,67,.05);
+}
+.dashboard-nav .top-tab{
+  color:#334e68 !important;
+  opacity:1 !important;
+  font-weight:750 !important;
+}
+.dashboard-nav .top-tab:hover{
+  color:#175cd3 !important;
+  background:#f4f8ff !important;
+}
+.dashboard-nav .top-tab.active{
+  color:#0f5bd8 !important;
+  background:#ffffff !important;
+  border-bottom-color:#3478f6 !important;
+}
+.dashboard-nav .nav-more-btn{
+  color:#334e68 !important;
+}
+.nav-more-menu{
+  background:#ffffff !important;
+  color:#243b53 !important;
+}
+.nav-more-item{
+  color:#334e68 !important;
+}
+
+/* Bandeau : lisibilité stable */
+.ergonomic-header,
+.header-main-row{
+  background:#153a59 !important;
+}
+.pmo-brand-copy strong,
+.pmo-brand-copy small,
+.pmo-version{
+  opacity:1 !important;
+}
+.pmo-brand-copy strong{color:#ffffff !important}
+.pmo-brand-copy small{color:#dce8f3 !important}
+.pmo-version{
+  color:#dce8f3 !important;
+  background:rgba(255,255,255,.10) !important;
+}
+
+/* Suggestions / Discussions */
+.header-action{
+  background:#ffffff !important;
+  border-color:#d6e2ee !important;
+  color:#164c8c !important;
+  box-shadow:0 1px 2px rgba(16,42,67,.08);
+}
+.header-action:hover{
+  background:#eef5ff !important;
+  color:#0f5bd8 !important;
+}
+
+/* Un cadre de page cohérent pour toutes les vues */
+.view-shell{
+  background:#f4f7fb !important;
+}
+#homeView,
+#projectView,
+#offerView,
+#resourcesView,
+#docsView,
+#dashboardView{
+  padding-top:18px;
+}
+#projectView .cockpit-page,
+#offerView,
+#resourcesView .resource-page,
+#docsView .docs-page,
+#dashboardView,
+#homeView{
+  max-width:1600px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+/* Titres / héros de pages */
+.page-head,
+.resource-hero,
+.dashboard-page-head{
+  background:#ffffff !important;
+  border:1px solid #dbe5ef !important;
+  border-radius:14px !important;
+  box-shadow:0 1px 2px rgba(16,42,67,.04);
+}
+.page-head h1,
+.resource-hero h1,
+.dashboard-page-head h1{
+  color:#102a43 !important;
+}
+.page-head p,
+.resource-hero p,
+.dashboard-page-head p{
+  color:#627d98 !important;
+}
+
+/* Cartes, panneaux et blocs : même bordure */
+.panel,
+.summary-card,
+.portfolio-list-section,
+.portfolio-kpis .kpi,
+.dashboard-card,
+.dashboard-module-card,
+.home-kpi,
+.resource-main-panel,
+.docs-card,
+.filter-box{
+  border-color:#dbe5ef !important;
+  box-shadow:0 1px 3px rgba(16,42,67,.05) !important;
+}
+
+/* KPI : texte plus contrasté */
+.kpi .label,
+.home-kpi small,
+.dashboard-card .muted,
+.panel .muted{
+  color:#5d7288 !important;
+}
+.kpi .value,
+.home-kpi strong{
+  color:#102a43 !important;
+}
+
+/* Tableaux */
+table th{
+  color:#486581 !important;
+  background:#f6f9fc !important;
+}
+table td{
+  color:#243b53 !important;
+}
+
+/* Filtres / champs */
+select,input,textarea{
+  color:#243b53 !important;
+  background:#ffffff !important;
+  border-color:#cbd8e6 !important;
+}
+select:disabled,input:disabled{
+  color:#829ab1 !important;
+  background:#f3f6f9 !important;
+}
+
+/* Le bloc de présence n'existe plus dans le bandeau.
+   La présence est affichée uniquement dans l'Accueil. */
+#homePresenceCard{
+  display:block;
+}
+#homePresenceCard.hidden{
+  display:none !important;
+}
+
+/* Le bouton "Voir toute l'équipe" mène désormais au pilotage des ressources */
+#homePresenceBtn{
+  color:#175cd3 !important;
+}
+
+/* Corrige quelques héritages d'opacité vus sur les onglets */
+.top-nav button,
+.top-nav button span{
+  opacity:1 !important;
+}
+
+/* Footer plus discret mais lisible */
+footer{
+  color:#6b7f93 !important;
+  background:#ffffff !important;
+  border-top:1px solid #e4ebf2;
+}

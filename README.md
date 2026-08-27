@@ -829,3 +829,14 @@ Le Cockpit intègre réellement le design de tableau de bord validé :
 - cartes d'accès `Piloter`, `Planifier`, `Allouer`, `Analyser` ;
 - nouvel onglet `Tableaux de bord` avec consolidation des statuts, alertes et avancements ;
 - Suggestions / Discussions / Présence restent pilotées par `Parametres_FrontOffice`.
+
+## v5.4.34 — contraste, cadrage homogène et présence sur l’Accueil
+
+- renforcement du contraste de la navigation principale ;
+- suppression des effets d’opacité qui rendaient certains onglets presque illisibles ;
+- harmonisation du cadrage des vues Accueil, Projets/Produits, Offres, Ressources, Documentation et Tableaux de bord ;
+- cartes, panneaux, tableaux, filtres et titres utilisent désormais une bordure et une hiérarchie visuelle communes ;
+- suppression du badge / popover Présence du bandeau supérieur ;
+- la présence reste active techniquement en arrière-plan et s’affiche sur la carte `Présence équipe` de l’Accueil ;
+- `Voir toute l’équipe` ouvre désormais le pilotage des Ressources ;
+- `Parametres_FrontOffice.PRESENCE` pilote désormais la visibilité de la carte Présence de l’Accueil, plus celle du bandeau.

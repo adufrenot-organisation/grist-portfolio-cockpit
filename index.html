@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.4.33" />
+  <link rel="stylesheet" href="styles.css?v=5.4.34" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -14,25 +14,11 @@
     <div class="brand pmo-brand-lockup">
       <div class="pmo-brand-badge">PMO</div>
       <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
-      <span class="version pmo-version">v5.4.33</span>
+      <span class="version pmo-version">v5.4.34</span>
     </div>
 
     <div class="header-utilities">
       <div id="headerCollabActions" class="header-collab-actions"></div>
-      <div class="presence-wrap" id="presenceWrap">
-        <button id="presenceBadge" class="presence-badge presence-pending" type="button" title="Présence Cockpit">● Présence…</button>
-        <div id="presencePopover" class="presence-popover hidden">
-          <div class="presence-popover-head">
-            <div><strong>👥 Utilisateurs actifs</strong><div class="muted">Activité dans les 10 dernières minutes</div></div>
-            <button id="presenceCloseBtn" class="icon" type="button" aria-label="Fermer">×</button>
-          </div>
-          <div class="presence-popover-tools">
-            <label><input id="presenceAllWidgets" type="checkbox" checked /> Tous les widgets</label>
-            <button id="presenceRefreshBtn" type="button">↻ Actualiser</button>
-          </div>
-          <div id="presenceUsers" class="presence-users"><div class="muted">Chargement…</div></div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -75,7 +61,7 @@
       <button type="button" class="dashboard-link" data-home-nav="project">Voir tous les projets →</button>
     </section>
 
-    <section class="dashboard-card dashboard-presence">
+    <section class="dashboard-card dashboard-presence" id="homePresenceCard">
       <div class="dashboard-card-head"><h2>Présence équipe</h2></div>
       <div id="homePresence"><div class="muted">Chargement…</div></div>
       <button type="button" class="dashboard-link" id="homePresenceBtn">Voir toute l’équipe →</button>
@@ -394,7 +380,7 @@
   </div>
 </section>
 
-  <footer>Cockpit PMO • v5.4.33 • Grist reste l’unique source de vérité</footer>
+  <footer>Cockpit PMO • v5.4.34 • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -633,7 +619,7 @@
   </form>
 </dialog>
 
-  <script src="presence.js?v=5.4.33"></script>
-<script src="app.js?v=5.4.33"></script>
+  <script src="presence.js?v=5.4.34"></script>
+<script src="app.js?v=5.4.34"></script>
 </body>
 </html>
