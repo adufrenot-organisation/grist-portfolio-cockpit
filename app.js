@@ -1,5 +1,5 @@
 
-const VERSION="5.4.36";
+const VERSION="5.4.37";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -284,7 +284,7 @@ function renderHome(){
   $("homeRecentProjects").innerHTML=recent.length?recent.map(p=>`
     <button class="home-project-row" data-home-project="${p.id}">
       <span><strong>${esc(p.nom||p.code||`#${p.id}`)}</strong><small>${esc(typeOf(p)==="produit"?"Produit":"Projet")} • ${esc(projectWeatherText(p))}</small></span>
-      <span class="home-project-progress"><i><b style="width:${pct(p.progression)}%"></b></i><em>${pct(p.progression)}%</em></span>
+      <span class="home-project-progress"><i><b style="width:${projectProgressValue(p)}%"></b></i><em>${projectProgressValue(p)}%</em></span>
     </button>`).join(""):'<div class="muted">Aucun projet.</div>';
   document.querySelectorAll("[data-home-project]").forEach(b=>b.onclick=()=>{currentProjectId=Number(b.dataset.homeProject);switchMainTab("project");showProjectPage(currentProjectId)});
 
@@ -313,32 +313,91 @@ async function renderHomePresence(){
     host.innerHTML=`<div class="muted">Présence indisponible.</div>`;
   }
 }
+
+function projectProgressValue(p){
+  if(!p)return 0;
+  for(const k of ["progression","Progression","avancement","Avancement"]){
+    if(Object.prototype.hasOwnProperty.call(p,k) && p[k]!==null && p[k]!==undefined && p[k]!=="")return pct(p[k]);
+  }
+  return 0;
+}
+function projectStatusValue(p){
+  if(!p)return "Non renseigné";
+  for(const k of ["statut","Statut","STATUT"]){
+    const v=p[k];
+    if(v!==null&&v!==undefined&&String(v).trim())return String(v).trim();
+  }
+  return "Non renseigné";
+}
+function featureIsActive(f){
+  if(!f)return false;
+  const keys=["Actif","actif","Active","active"];
+  const existing=keys.find(k=>Object.prototype.hasOwnProperty.call(f,k));
+  if(!existing)return true;
+  const v=f[existing];
+  if(v===null||v===undefined||v==="")return true;
+  if(v===false||v===0)return false;
+  if(typeof v==="string" && /^(false|non|no|0)$/i.test(v.trim()))return false;
+  return true;
+}
+
 function renderDashboard(){
   if(!optionalEl("dashboardView"))return;
-  const ps=db.projects||[],features=db.features||[];
-  const avg=ps.length?Math.round(ps.reduce((n,p)=>n+pct(p.progression),0)/ps.length):0;
+
+  const ps=db.projects||[];
+  const features=db.features||[];
+  const progressValues=ps.map(projectProgressValue);
+  const avg=progressValues.length?Math.round(progressValues.reduce((a,b)=>a+b,0)/progressValues.length):0;
   const lateProjects=ps.filter(p=>taskRows(p.id).some(late));
   const alerts=portfolioAlertCount();
+  const activeFeatures=features.filter(featureIsActive).length;
+
   $("dashboardKpis").innerHTML=
     kpi("Portefeuille",ps.length,`${ps.filter(p=>typeOf(p)==="projet").length} projets • ${ps.filter(p=>typeOf(p)==="produit").length} produits`)+
-    kpi("Fonctionnalités",features.length,`${features.filter(f=>f.Actif!==false).length} actives`)+
+    kpi("Fonctionnalités",features.length,`${activeFeatures} active${activeFeatures>1?"s":""}`)+
     kpi("Avancement moyen",`${avg}%`,"Moyenne des projets / produits")+
     kpi("Projets en retard",lateProjects.length,"Au moins une tâche en retard")+
     kpi("Alertes planning",alerts,"Tâches critiques + étapes + releases");
 
   const groups={};
-  ps.forEach(p=>{const k=String(p.statut||"Non renseigné");groups[k]=(groups[k]||0)+1});
-  $("dashboardStatus").innerHTML=Object.entries(groups).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="dashboard-stat-row"><span>${esc(k)}</span><strong>${v}</strong></div>`).join("")||'<div class="muted">Aucune donnée.</div>';
+  ps.forEach(p=>{
+    const k=projectStatusValue(p);
+    groups[k]=(groups[k]||0)+1;
+  });
+  const groupEntries=Object.entries(groups).sort((a,b)=>b[1]-a[1]);
+  $("dashboardStatus").innerHTML=groupEntries.length
+    ?`<div class="dashboard-compact-list">${groupEntries.map(([k,v])=>`
+       <div class="dashboard-stat-row">
+         <span>${esc(k)}</span>
+         <strong>${v}</strong>
+       </div>`).join("")}</div>`
+    :'<div class="dashboard-empty">Aucune donnée.</div>';
 
   const stageAlerts=(db.projectStagePlans||[]).filter(x=>/retard|attention/i.test(String(x.Alerte_Planning||"")));
   const releaseAlerts=(db.releases||[]).filter(x=>/retard|incohérent/i.test(String(x.Alerte_Planning||"")));
   $("dashboardAlerts").innerHTML=`
-    <div class="dashboard-alert-summary"><span>Étapes projet</span><strong>${stageAlerts.length}</strong></div>
-    <div class="dashboard-alert-summary"><span>Releases</span><strong>${releaseAlerts.length}</strong></div>
-    <div class="dashboard-alert-summary"><span>Projets avec tâches en retard</span><strong>${lateProjects.length}</strong></div>`;
+    <div class="dashboard-compact-list">
+      <div class="dashboard-alert-summary"><span>Étapes projet</span><strong>${stageAlerts.length}</strong></div>
+      <div class="dashboard-alert-summary"><span>Releases</span><strong>${releaseAlerts.length}</strong></div>
+      <div class="dashboard-alert-summary"><span>Projets avec tâches en retard</span><strong>${lateProjects.length}</strong></div>
+    </div>`;
 
-  $("dashboardProgress").innerHTML=ps.slice().sort((a,b)=>pct(b.progression)-pct(a.progression)).slice(0,12).map(p=>`
-    <div class="dashboard-progress-row"><span>${esc(p.nom||p.code||"")}</span><i><b style="width:${pct(p.progression)}%"></b></i><strong>${pct(p.progression)}%</strong></div>`).join("")||'<div class="muted">Aucune donnée.</div>';
+  const progressRows=ps.slice()
+    .sort((a,b)=>projectProgressValue(b)-projectProgressValue(a))
+    .slice(0,12);
+
+  $("dashboardProgress").innerHTML=progressRows.length
+    ?`<div class="dashboard-progress-list">${progressRows.map(p=>{
+       const progress=projectProgressValue(p);
+       return `<div class="dashboard-progress-row">
+         <span title="${esc(p.nom||p.code||"")}">${esc(p.nom||p.code||"Sans nom")}</span>
+         <i><b style="width:${progress}%"></b></i>
+         <strong>${progress}%</strong>
+       </div>`;
+     }).join("")}</div>`
+    :'<div class="dashboard-empty">Aucune donnée.</div>';
+
+  bindIndicatorHelp(optionalEl("dashboardView")||document);
 }
 
 function renderAll(){renderHome();renderDashboard();renderPortfolioKpis();renderProject();renderOffer();renderResources();renderDocumentation();}
@@ -347,7 +406,7 @@ function renderPortfolioKpis(){
   const active=ps.filter(p=>!/termin|clos|done/i.test(String(p.statut||""))).length;
   const lateProjects=ps.filter(p=>taskRows(p.id).some(late)).length;
   const doneProjects=ps.filter(p=>/termin|clos|done/i.test(String(p.statut||""))).length;
-  const avg=ps.length?Math.round(ps.reduce((n,p)=>n+pct(p.progression),0)/ps.length):0;
+  const avg=ps.length?Math.round(ps.reduce((n,p)=>n+projectProgressValue(p),0)/ps.length):0;
   const remaining=ps.reduce((sum,p)=>sum+taskRows(p.id).reduce((n,t)=>n+Math.max(0,Number(t.estimationH||0)-Number(t.tempsPasse||0)),0),0);
   const proj=ps.filter(p=>typeOf(p)==="projet").length,prod=ps.filter(p=>typeOf(p)==="produit").length;
   $("portfolioKpis").innerHTML=

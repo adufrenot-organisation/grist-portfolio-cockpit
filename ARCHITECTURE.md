@@ -416,3 +416,7 @@ est concentrée dans la page Accueil. Le paramètre Front Office `PRESENCE` cont
 ## v5.4.36 — libellés des références
 La vue Offres ne doit jamais exposer directement un rowId Grist comme libellé utilisateur.
 Les références sont résolues vers leurs champs métier ou `gristHelper_Display`.
+
+## v5.4.37 — dashboard
+Le tableau de bord utilise des lecteurs de champs tolérants aux variantes de casse/nomenclature des colonnes Grist.
+Les panneaux ne fixent plus artificiellement leur hauteur et se dimensionnent sur leur contenu.

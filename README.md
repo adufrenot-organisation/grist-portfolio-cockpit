@@ -852,3 +852,13 @@ Le Cockpit intègre réellement le design de tableau de bord validé :
 - suppression des libellés techniques `#1`, `#2`, etc. dans la vue Offres ;
 - résolution robuste des noms des activités OFS et des ressources via les champs métier et les helpers d'affichage Grist ;
 - si une référence ne peut vraiment pas être résolue, affichage d'un libellé fonctionnel plutôt que de l'ID technique.
+
+## v5.4.37 — correction Tableaux de bord
+
+- suppression des grands espaces blancs dans les panneaux ;
+- panneaux `Statut`, `Alertes planning` et `Avancement` en hauteur automatique ;
+- grille KPI plus compacte et responsive ;
+- calcul d'avancement rendu robuste aux variantes `progression`, `Progression`, `avancement`, `Avancement` ;
+- statut projet rendu robuste aux variantes `statut` / `Statut` ;
+- comptage des fonctionnalités actives compatible avec les variantes de colonne `Actif` et l'absence de cette colonne ;
+- cohérence du calcul d'avancement entre le tableau de bord et le portefeuille.
