@@ -840,3 +840,15 @@ Le Cockpit intègre réellement le design de tableau de bord validé :
 - la présence reste active techniquement en arrière-plan et s’affiche sur la carte `Présence équipe` de l’Accueil ;
 - `Voir toute l’équipe` ouvre désormais le pilotage des Ressources ;
 - `Parametres_FrontOffice.PRESENCE` pilote désormais la visibilité de la carte Présence de l’Accueil, plus celle du bandeau.
+
+## v5.4.35 — actions collaboratives compactes
+- `Suggestion` devient `Suggérer`.
+- `Suggérer` et `Discussions` deviennent des actions secondaires fines (32 px de haut).
+- Sur écrans étroits, seuls les pictogrammes restent visibles.
+
+## v5.4.36 — page Offres de services
+- cadrage visuel harmonisé avec les autres pages du Cockpit ;
+- en-tête de l'offre plus clair avec libellé de l'offre sélectionnée ;
+- suppression des libellés techniques `#1`, `#2`, etc. dans la vue Offres ;
+- résolution robuste des noms des activités OFS et des ressources via les champs métier et les helpers d'affichage Grist ;
+- si une référence ne peut vraiment pas être résolue, affichage d'un libellé fonctionnel plutôt que de l'ID technique.

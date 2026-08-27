@@ -412,3 +412,7 @@ Les vues historiques Projets, Offres, Ressources, Documentation et leurs formula
 La présence n'est plus un élément de navigation globale.
 Le heartbeat reste assuré par `presence.js`, tandis que la visualisation des utilisateurs actifs
 est concentrée dans la page Accueil. Le paramètre Front Office `PRESENCE` contrôle cette carte.
+
+## v5.4.36 — libellés des références
+La vue Offres ne doit jamais exposer directement un rowId Grist comme libellé utilisateur.
+Les références sont résolues vers leurs champs métier ou `gristHelper_Display`.

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.4.34" />
+  <link rel="stylesheet" href="styles.css?v=5.4.36" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -14,7 +14,7 @@
     <div class="brand pmo-brand-lockup">
       <div class="pmo-brand-badge">PMO</div>
       <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
-      <span class="version pmo-version">v5.4.34</span>
+      <span class="version pmo-version">v5.4.36</span>
     </div>
 
     <div class="header-utilities">
@@ -310,17 +310,18 @@
   </section>
 
   <section id="offerView" class="view-shell hidden">
-    <div class="page-head">
+    <div class="page-head offer-page-head">
       <div class="page-intro">
         <div class="page-icon">🏢</div>
         <div>
           <h1>Pilotage par offre de services</h1>
-          <p>Vue consolidée des activités, projets, produits, objectifs et ressources par offre</p>
+          <p>Vue consolidée des activités, projets, produits, objectifs et ressources par offre.</p>
+          <div class="offer-current"><span>Offre sélectionnée</span><strong id="offerCurrentLabel">—</strong></div>
         </div>
       </div>
-      <select id="offerSelect" class="head-select"></select>
+      <div class="offer-head-control"><label for="offerSelect">Changer d’offre</label><select id="offerSelect" class="head-select"></select></div>
     </div>
-    <div class="toolbar">
+    <div class="toolbar offer-toolbar-card">
       <div class="segmented">
         <button class="seg active" data-offer-type-filter="all">Tous</button>
         <button class="seg" data-offer-type-filter="projet">Projets</button>
@@ -380,7 +381,7 @@
   </div>
 </section>
 
-  <footer>Cockpit PMO • v5.4.34 • Grist reste l’unique source de vérité</footer>
+  <footer>Cockpit PMO • v5.4.36 • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -619,7 +620,7 @@
   </form>
 </dialog>
 
-  <script src="presence.js?v=5.4.34"></script>
-<script src="app.js?v=5.4.34"></script>
+  <script src="presence.js?v=5.4.36"></script>
+<script src="app.js?v=5.4.36"></script>
 </body>
 </html>

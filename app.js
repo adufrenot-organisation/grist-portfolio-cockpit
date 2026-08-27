@@ -1,5 +1,5 @@
 
-const VERSION="5.4.34";
+const VERSION="5.4.36";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -139,8 +139,8 @@ function projectDomainId(p){
   return domainRefFromRecord(get("activities",id(p.activite)));
 }
 function populatePortfolioFilters(){
-  $("domainFilter").innerHTML='<option value="all">Tous les domaines</option>'+db.domains.map(d=>`<option value="${d.id}">${esc(d.Nom||d.Libelle||d.Code||`#${d.id}`)}</option>`).join("");
-  $("serviceFilter").innerHTML='<option value="all">Tous les services</option>'+db.offers.map(o=>`<option value="${o.id}">${esc(o.Nom||o.Code||`#${o.id}`)}</option>`).join("");
+  $("domainFilter").innerHTML='<option value="all">Tous les domaines</option>'+db.domains.map(d=>`<option value="${d.id}">${esc(recordDisplayLabel(d,["Nom","Libelle","Code"])||"Domaine")}</option>`).join("");
+  $("serviceFilter").innerHTML='<option value="all">Tous les services</option>'+db.offers.map(o=>`<option value="${o.id}">${esc(offerLabel(o))}</option>`).join("");
   $("domainFilter").value=domainFilter;$("serviceFilter").value=serviceFilter;
 }
 function filteredProjects(filter=typeFilter){return db.projects.filter(p=>{
@@ -179,7 +179,7 @@ function populateProjectSelect(){
   renderProjectList();
 }
 function populateOfferSelect(){
-  $("offerSelect").innerHTML=db.offers.map(o=>`<option value="${o.id}">${esc(o.Nom||o.Code||`#${o.id}`)}</option>`).join("");
+  $("offerSelect").innerHTML=db.offers.map(o=>`<option value="${o.id}">${esc(offerLabel(o))}</option>`).join("");
   if(currentOfferId)$("offerSelect").value=currentOfferId;
 }
 
@@ -1513,8 +1513,44 @@ function projectsForOffer(offerId){
   return db.projects.filter(p=>actIds.has(id(p.activite)) && (offerTypeFilter==="all"||typeOf(p)===offerTypeFilter));
 }
 
+
+function recordDisplayLabel(r,preferred=[]){
+  if(!r)return "";
+  for(const k of preferred){
+    const v=r[k];
+    if(v!==null&&v!==undefined&&String(v).trim())return String(v).trim();
+  }
+  for(const [k,v] of Object.entries(r)){
+    if(/^gristHelper_Display/i.test(k)&&v!==null&&v!==undefined&&String(v).trim())return String(v).trim();
+  }
+  return "";
+}
+function offerLabel(o){
+  return recordDisplayLabel(o,["Nom","Libelle","Code","nom","libelle","code"])||"Offre de services";
+}
+function activityLabel(a){
+  return recordDisplayLabel(a,["Nom","Libelle","Code","Activites_Nom","Activite_Nom","nom","libelle","code"])||"Activité";
+}
+function activityOfferLabel(ao){
+  const direct=recordDisplayLabel(ao,["Activites_Nom","Activite_Nom","Nom","Libelle","Code","nom","libelle","code"]);
+  if(direct)return direct;
+  const linked=(db.activities||[]).filter(a=>id(a.Service_Code)===Number(ao?.id));
+  const labels=[...new Set(linked.map(activityLabel).filter(Boolean))];
+  if(labels.length===1)return labels[0];
+  if(labels.length>1)return labels.slice(0,2).join(" • ")+(labels.length>2?` +${labels.length-2}`:"");
+  return "Activité OFS";
+}
+function resourceLabelById(rid){
+  const r=get("team",rid);
+  if(!r)return "Ressource non résolue";
+  return recordDisplayLabel(r,["nom","Nom","Prenom_Nom","Nom_Complet","Email","email","Code","code"])||"Ressource";
+}
+
 function renderOffer(){
   const o=get("offers",currentOfferId);if(!o)return;
+  const offerTitle=offerLabel(o);
+  const titleEl=optionalEl("offerCurrentLabel");
+  if(titleEl)titleEl.textContent=offerTitle;
   const aos=db.activityOffers.filter(x=>id(x.OFS_Code)===Number(o.id));
   const projects=projectsForOffer(o.id);
   const projectIds=new Set(projects.map(p=>p.id));
@@ -1524,12 +1560,12 @@ function renderOffer(){
   const projCount=projects.filter(p=>typeOf(p)==="projet").length,prodCount=projects.filter(p=>typeOf(p)==="produit").length;
   const avg=projects.length?Math.round(projects.reduce((n,p)=>n+pct(p.progression),0)/projects.length):0;
   $("offerKpis").innerHTML=kpi("Projets",projCount,"")+kpi("Produits",prodCount,"")+kpi("Total",projects.length,"éléments liés")+kpi("Avancement moyen",`${avg}%`,bar(avg))+kpi("Objectifs",objectiveIds.size,"couverts");
-  $("offerActivities").innerHTML=aos.length?`<div class="offer-tree">${aos.map(ao=>{const acts=db.activities.filter(a=>id(a.Service_Code)===ao.id);return`<div class="offer-node"><div class="title">${esc(ao.Activites_Nom||ao.Nom||`#${ao.id}`)}</div><div class="sub">${acts.length} activité(s) internes</div></div>`}).join("")}</div>`:'<div class="empty">Aucune activité OFS.</div>';
+  $("offerActivities").innerHTML=aos.length?`<div class="offer-tree">${aos.map(ao=>{const acts=db.activities.filter(a=>id(a.Service_Code)===ao.id);return`<div class="offer-node"><div class="title">${esc(activityOfferLabel(ao))}</div><div class="sub">${acts.length} activité(s) internes</div></div>`}).join("")}</div>`:'<div class="empty">Aucune activité OFS.</div>';
   $("offerProjects").innerHTML=projects.length?`<table><thead><tr><th>Type</th><th>Nom</th><th>Statut</th><th>Avancement</th><th>Risque</th></tr></thead><tbody>${projects.map(p=>`<tr><td>${typeBadge(p)}</td><td><strong>${esc(p.nom||"")}</strong></td><td>${esc(p.statut||"")}</td><td>${pct(p.progression)}%</td><td>${esc(p.risque||"—")}</td></tr>`).join("")}</tbody></table>`:'<div class="empty">Aucun projet/produit lié.</div>';
   const objectives=[...objectiveIds].map(i=>get("objectives",i)).filter(Boolean);
   $("offerObjectives").innerHTML=objectives.length?`<table><thead><tr><th>Objectif</th><th>KPI</th><th>Échéance</th><th>Statut</th></tr></thead><tbody>${objectives.map(x=>`<tr><td><strong>${esc(x.Nom||"")}</strong></td><td>${esc(x.KPI||"")}</td><td>${dt(x.Echeance)}</td><td>${esc(x.Statut||"")}</td></tr>`).join("")}</tbody></table>`:'<div class="empty">Aucun objectif couvert.</div>';
   const byRes=new Map();for(const a of allocations){const rid=id(a.Ressource_Code);if(!rid)continue;byRes.set(rid,(byRes.get(rid)||0)+Number(a.Allocation||0))}
-  $("offerResources").innerHTML=byRes.size?`<div class="resource-row header"><div>Ressource</div><div>Allocation cumulée</div><div></div><div></div></div>${[...byRes.entries()].map(([rid,v])=>`<div class="resource-row"><div><strong>${esc(get("team",rid)?.nom||`#${rid}`)}</strong></div><div><div class="load-track"><div class="load-fill ${v>1?"over":""}" style="width:${Math.min(100,v*100)}%"></div></div><div class="muted">${Math.round(v*100)}%</div></div><div></div><div></div></div>`).join("")}`:'<div class="empty">Aucune allocation.</div>';
+  $("offerResources").innerHTML=byRes.size?`<div class="resource-row header"><div>Ressource</div><div>Allocation cumulée</div><div></div><div></div></div>${[...byRes.entries()].map(([rid,v])=>`<div class="resource-row"><div><strong>${esc(resourceLabelById(rid))}</strong></div><div><div class="load-track"><div class="load-fill ${v>1?"over":""}" style="width:${Math.min(100,v*100)}%"></div></div><div class="muted">${Math.round(v*100)}%</div></div><div></div><div></div></div>`).join("")}`:'<div class="empty">Aucune allocation.</div>';
 }
 
 
@@ -1941,7 +1977,7 @@ function frontOfficeConfigMap(){
   return out;
 }
 function collaborationActionButton(code,compact=false){
-  if(code==="SUGGESTIONS")return `<button type="button" class="${compact?"header-action":"nav-more-item"}" data-collab-action="SUGGESTIONS">💡 <span>Suggestion</span></button>`;
+  if(code==="SUGGESTIONS")return `<button type="button" class="${compact?"header-action":"nav-more-item"}" data-collab-action="SUGGESTIONS">💡 <span>Suggérer</span></button>`;
   if(code==="DISCUSSIONS")return `<button type="button" class="${compact?"header-action":"nav-more-item"}" data-collab-action="DISCUSSIONS">💬 <span>Discussions</span></button>`;
   return "";
 }
