@@ -402,3 +402,7 @@ Le Cockpit ne code plus en dur la visibilité de Suggestions/Discussions/Présen
 ## v5.4.32 — responsabilité Front Office
 Le Cockpit consomme `Parametres_FrontOffice` en lecture.
 Le back-office Admin PMO est seul responsable de la modification de cette configuration.
+
+## v5.4.33 — page d'accueil
+Ajout d'une couche d'accueil consolidée au-dessus des vues métier existantes.
+Les vues historiques Projets, Offres, Ressources, Documentation et leurs formulaires restent conservés.

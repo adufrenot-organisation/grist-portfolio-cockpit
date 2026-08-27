@@ -818,3 +818,14 @@ Il conserve uniquement le comportement Front Office :
 - ordre d'affichage.
 
 La modification de ces paramètres est désormais réservée au widget Admin & Audit PMO.
+
+## v5.4.33 — nouvel Accueil / Dashboard
+
+Le Cockpit intègre réellement le design de tableau de bord validé :
+- nouvel onglet `Accueil` par défaut ;
+- barre de navigation blanche séparée du bandeau PMO ;
+- KPI portefeuille, projets récents, présence équipe et actualités ;
+- barre d'actions rapides ;
+- cartes d'accès `Piloter`, `Planifier`, `Allouer`, `Analyser` ;
+- nouvel onglet `Tableaux de bord` avec consolidation des statuts, alertes et avancements ;
+- Suggestions / Discussions / Présence restent pilotées par `Parametres_FrontOffice`.

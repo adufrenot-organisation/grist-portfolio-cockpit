@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.4.32" />
+  <link rel="stylesheet" href="styles.css?v=5.4.33" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -14,7 +14,7 @@
     <div class="brand pmo-brand-lockup">
       <div class="pmo-brand-badge">PMO</div>
       <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
-      <span class="version pmo-version">v5.4.32</span>
+      <span class="version pmo-version">v5.4.33</span>
     </div>
 
     <div class="header-utilities">
@@ -36,17 +36,20 @@
     </div>
   </div>
 
-  <nav class="top-nav ergonomic-nav">
-    <button class="top-tab active" data-main-tab="project">📁 Projets / Produits</button>
-    <button class="top-tab" data-main-tab="offer">🏢 Offres de services</button>
-    <button class="top-tab" data-main-tab="resources">👥 Ressources</button>
-    <button class="top-tab" data-main-tab="docs">📚 Documentation</button>
+  <nav class="top-nav ergonomic-nav dashboard-nav">
+    <button class="top-tab active" data-main-tab="home">⌂ Accueil</button>
+    <button class="top-tab" data-main-tab="project">📁 Projets / Produits</button>
+    <button class="top-tab" data-main-tab="offer">▦ Offres de services</button>
+    <button class="top-tab" data-main-tab="resources">♙ Ressources</button>
+    <button class="top-tab" data-main-tab="docs">▤ Documentation</button>
+    <button class="top-tab" data-main-tab="dashboard">▥ Tableaux de bord</button>
 
     <div class="nav-more-wrap">
       <button class="top-tab nav-more-btn" id="moreMenuBtn" type="button">••• Plus</button>
       <div id="moreMenu" class="nav-more-menu hidden">
         <div id="moreCollabActions"></div>
-        
+        <button class="nav-more-item" data-main-tab-more="project" type="button">📁 Portefeuille</button>
+        <button class="nav-more-item" data-main-tab-more="resources" type="button">👥 Plan de charge</button>
         <button class="nav-more-item" id="openLogsBtn" type="button">🧾 Logs <span id="logErrorBadge" class="log-error-badge hidden">0</span></button>
       </div>
     </div>
@@ -55,7 +58,79 @@
 
   <div id="banner" class="banner hidden"></div>
 
-  <section id="projectView" class="view-shell">
+  <section id="homeView" class="view-shell dashboard-home">
+  <div class="dashboard-grid-main">
+    <section class="dashboard-card dashboard-overview">
+      <div class="dashboard-card-head"><h2>Vue d’ensemble</h2><span class="muted" id="homeUpdatedAt"></span></div>
+      <div id="homeKpis" class="home-kpis"></div>
+      <div class="home-news">
+        <div class="dashboard-card-head compact"><h3>Dernières actualités</h3></div>
+        <div id="homeNews"></div>
+      </div>
+    </section>
+
+    <section class="dashboard-card dashboard-recent">
+      <div class="dashboard-card-head"><h2>Projets récents</h2></div>
+      <div id="homeRecentProjects"></div>
+      <button type="button" class="dashboard-link" data-home-nav="project">Voir tous les projets →</button>
+    </section>
+
+    <section class="dashboard-card dashboard-presence">
+      <div class="dashboard-card-head"><h2>Présence équipe</h2></div>
+      <div id="homePresence"><div class="muted">Chargement…</div></div>
+      <button type="button" class="dashboard-link" id="homePresenceBtn">Voir toute l’équipe →</button>
+    </section>
+  </div>
+
+  <div class="dashboard-quick-actions">
+    <button type="button" data-home-action="new-project">＋ Nouveau projet</button>
+    <button type="button" data-home-action="new-feature">＋ Nouvelle fonctionnalité</button>
+    <button type="button" data-home-action="new-allocation">♙ Nouvelle allocation</button>
+    <button type="button" data-home-nav="resources">▣ Plan de charge</button>
+    <button type="button" data-home-nav="dashboard">▥ Indicateurs</button>
+  </div>
+
+  <div class="dashboard-module-grid">
+    <article class="dashboard-module-card">
+      <h3>📁 Piloter</h3>
+      <p>Suivez vos projets, produits et fonctionnalités.</p>
+      <ul><li>Liste des projets / produits</li><li>Suivi des jalons et livrables</li><li>Avancement et indicateurs</li></ul>
+      <button data-home-nav="project">Accéder →</button>
+    </article>
+    <article class="dashboard-module-card">
+      <h3>▣ Planifier</h3>
+      <p>Pilotez les étapes, fonctionnalités et releases.</p>
+      <ul><li>Planning projet</li><li>Roadmap fonctionnalités</li><li>Releases et cohérence des dates</li></ul>
+      <button data-home-action="open-planning">Accéder →</button>
+    </article>
+    <article class="dashboard-module-card">
+      <h3>♙ Allouer</h3>
+      <p>Gérez les ressources, capacités et allocations.</p>
+      <ul><li>Plan de charge</li><li>Allocations par projet</li><li>Disponibilités</li></ul>
+      <button data-home-nav="resources">Accéder →</button>
+    </article>
+    <article class="dashboard-module-card">
+      <h3>▥ Analyser</h3>
+      <p>Analysez la performance du portefeuille.</p>
+      <ul><li>Indicateurs clés</li><li>Projets en retard</li><li>Alertes planning</li></ul>
+      <button data-home-nav="dashboard">Accéder →</button>
+    </article>
+  </div>
+</section>
+
+<section id="dashboardView" class="view-shell hidden portfolio-dashboard-view">
+  <div class="page-head dashboard-page-head">
+    <div class="page-intro"><div class="page-icon">▥</div><div><h1>Tableaux de bord</h1><p>Indicateurs consolidés du portefeuille PMO.</p></div></div>
+  </div>
+  <div id="dashboardKpis" class="portfolio-kpis"></div>
+  <div class="dashboard-analysis-grid">
+    <section class="panel"><div class="panel-head"><h2>Projets / Produits par statut</h2></div><div id="dashboardStatus"></div></section>
+    <section class="panel"><div class="panel-head"><h2>Alertes planning</h2></div><div id="dashboardAlerts"></div></section>
+    <section class="panel span-2"><div class="panel-head"><h2>Avancement du portefeuille</h2></div><div id="dashboardProgress"></div></section>
+  </div>
+</section>
+
+<section id="projectView" class="view-shell hidden">
     <div id="portfolioPage" class="cockpit-page">
 <div class="page-head project-page-head framed-pilotage-head">
       <div class="page-intro pilotage-intro">
@@ -308,7 +383,7 @@
     </aside>
   </section>
 
-  <section id="docsView class="view-shell hidden">
+  <section id="docsView" class="view-shell hidden">
   <div class="docs-page">
     <div class="page-head docs-head">
       <div class="page-intro"><div class="page-icon">📚</div><div><h1>Documentation</h1><p>Accès aux ressources et liens de référence configurés par l'administrateur.</p></div></div>
@@ -319,7 +394,7 @@
   </div>
 </section>
 
-  <footer>GRIST. COCKPIT Pilotage PMO • v5.1.0 • Grist reste l’unique source de vérité</footer>
+  <footer>Cockpit PMO • v5.4.33 • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -558,7 +633,7 @@
   </form>
 </dialog>
 
-  <script src="presence.js?v=5.4.32"></script>
-<script src="app.js?v=5.4.32"></script>
+  <script src="presence.js?v=5.4.33"></script>
+<script src="app.js?v=5.4.33"></script>
 </body>
 </html>

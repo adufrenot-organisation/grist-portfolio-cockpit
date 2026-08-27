@@ -1,5 +1,5 @@
 
-const VERSION="5.4.32";
+const VERSION="5.4.33";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -57,8 +57,10 @@ function tableKeyFromName(tableName){
   const hit=Object.entries(T).find(([,name])=>String(name).trim().toLowerCase()===wanted);
   return hit?.[0]||null;
 }
-let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="project",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all",resourceTeamFilter="all",resourceRoleFilter="all",resourceProjectFilter="all",resourceLoadFilter="all",selectedResourceId=null;
+let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="home",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all",resourceTeamFilter="all",resourceRoleFilter="all",resourceProjectFilter="all",resourceLoadFilter="all",selectedResourceId=null;
 function presencePage(){
+  if(currentTab==="home")return "Accueil";
+  if(currentTab==="dashboard")return "Tableaux de bord";
   if(currentTab==="docs")return "Documentation";
   if(currentTab==="offer")return currentOfferId?`Offre #${currentOfferId}`:"Offres de services";
   if(currentTab==="resources")return selectedResourceId?`Ressource #${selectedResourceId}`:"Pilotage ressources";
@@ -243,7 +245,103 @@ function renderDocumentation(){
   document.querySelectorAll("[data-doc-att]").forEach(b=>b.onclick=()=>openDocAttachment(Number(b.dataset.docAtt)));
 }
 
-function renderAll(){renderPortfolioKpis();renderProject();renderOffer();renderResources();renderDocumentation();}
+
+function projectWeatherText(p){
+  const raw=String(p.Meteo_Projet||p.Météo_Projet||"").trim();
+  if(raw)return raw;
+  const ts=taskRows(p.id);
+  const overdue=ts.filter(late);
+  const critical=overdue.filter(t=>/haute|critique|high/i.test(String(t.priorite||"")));
+  if(critical.length)return "🔴 Rouge";
+  if(overdue.length||/haut|élev|critique|high/i.test(String(p.risque||"")))return "🟠 Orange";
+  return "🟢 Vert";
+}
+function portfolioAlertCount(){
+  const projectTaskAlerts=(db.projects||[]).reduce((n,p)=>{
+    const lateTasks=taskRows(p.id).filter(late);
+    return n+lateTasks.filter(t=>/haute|critique|high/i.test(String(t.priorite||""))).length;
+  },0);
+  const stageAlerts=(db.projectStagePlans||[]).filter(x=>/retard|attention/i.test(String(x.Alerte_Planning||""))).length;
+  const releaseAlerts=(db.releases||[]).filter(x=>/retard|incohérent/i.test(String(x.Alerte_Planning||""))).length;
+  return projectTaskAlerts+stageAlerts+releaseAlerts;
+}
+function renderHome(){
+  if(!optionalEl("homeView"))return;
+  const projects=db.projects||[];
+  const activeProjects=projects.filter(p=>!/termin|clos|done/i.test(String(p.statut||"")));
+  const features=db.features||[];
+  const allocated=new Set((db.allocations||[]).map(a=>id(a.Ressource_Code)).filter(Boolean));
+  const alerts=portfolioAlertCount();
+  $("homeUpdatedAt").textContent=new Intl.DateTimeFormat("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date());
+
+  $("homeKpis").innerHTML=`
+    <article class="home-kpi"><span>📁</span><div><small>Projets actifs</small><strong>${activeProjects.length}</strong><em>${projects.length} élément(s) au total</em></div></article>
+    <article class="home-kpi"><span>▦</span><div><small>Fonctionnalités</small><strong>${features.length}</strong><em>${features.filter(f=>f.Actif!==false).length} active(s)</em></div></article>
+    <article class="home-kpi"><span>♙</span><div><small>Ressources allouées</small><strong>${allocated.size}</strong><em>${(db.allocations||[]).length} allocation(s)</em></div></article>
+    <article class="home-kpi ${alerts?"danger":""}"><span>△</span><div><small>Alertes critiques</small><strong>${alerts}</strong><em>${alerts?"À traiter":"Aucune alerte majeure"}</em></div></article>`;
+
+  const recent=[...projects].sort((a,b)=>Number(b.id)-Number(a.id)).slice(0,4);
+  $("homeRecentProjects").innerHTML=recent.length?recent.map(p=>`
+    <button class="home-project-row" data-home-project="${p.id}">
+      <span><strong>${esc(p.nom||p.code||`#${p.id}`)}</strong><small>${esc(typeOf(p)==="produit"?"Produit":"Projet")} • ${esc(projectWeatherText(p))}</small></span>
+      <span class="home-project-progress"><i><b style="width:${pct(p.progression)}%"></b></i><em>${pct(p.progression)}%</em></span>
+    </button>`).join(""):'<div class="muted">Aucun projet.</div>';
+  document.querySelectorAll("[data-home-project]").forEach(b=>b.onclick=()=>{currentProjectId=Number(b.dataset.homeProject);switchMainTab("project");showProjectPage(currentProjectId)});
+
+  const news=[];
+  const releaseInProd=(db.releases||[]).filter(r=>/prod|livr|termin/i.test(String(r.Statut||""))).sort((a,b)=>Number(b.id)-Number(a.id))[0];
+  if(releaseInProd)news.push(`📦 ${releaseInProd.Nom||releaseInProd.Code||"Release"} — ${releaseInProd.Statut||"mise à jour"}`);
+  const delayed=(db.projectStagePlans||[]).find(x=>/retard/i.test(String(x.Alerte_Planning||"")));
+  if(delayed){
+    const p=get("projects",id(delayed.Projet)),e=get("projectStages",id(delayed.Etape));
+    news.push(`⚠ ${p?.nom||"Projet"} — étape ${e?.Nom||"planning"} en retard`);
+  }
+  $("homeNews").innerHTML=news.length?news.slice(0,3).map(x=>`<div class="home-news-row">${esc(x)}</div>`).join(""):'<div class="muted">Aucune actualité critique à signaler.</div>';
+
+  renderHomePresence();
+}
+async function renderHomePresence(){
+  const host=optionalEl("homePresence");if(!host)return;
+  try{
+    if(!window.PmoPresence?.listActive){host.innerHTML='<div class="muted">Présence non disponible.</div>';return}
+    const users=await window.PmoPresence.listActive({minutes:10,allWidgets:true});
+    host.innerHTML=users.length?users.slice(0,5).map(u=>{
+      const name=u.Utilisateur_Nom||u.Utilisateur_Email||"Utilisateur";
+      return `<div class="home-presence-row"><span class="presence-dot"></span><span><strong>${esc(name)}</strong><small>${esc(u.Page||u.Widget_Code||"")}</small></span><em>En ligne</em></div>`;
+    }).join(""):'<div class="muted">Aucun utilisateur actif détecté.</div>';
+  }catch(e){
+    host.innerHTML=`<div class="muted">Présence indisponible.</div>`;
+  }
+}
+function renderDashboard(){
+  if(!optionalEl("dashboardView"))return;
+  const ps=db.projects||[],features=db.features||[];
+  const avg=ps.length?Math.round(ps.reduce((n,p)=>n+pct(p.progression),0)/ps.length):0;
+  const lateProjects=ps.filter(p=>taskRows(p.id).some(late));
+  const alerts=portfolioAlertCount();
+  $("dashboardKpis").innerHTML=
+    kpi("Portefeuille",ps.length,`${ps.filter(p=>typeOf(p)==="projet").length} projets • ${ps.filter(p=>typeOf(p)==="produit").length} produits`)+
+    kpi("Fonctionnalités",features.length,`${features.filter(f=>f.Actif!==false).length} actives`)+
+    kpi("Avancement moyen",`${avg}%`,"Moyenne des projets / produits")+
+    kpi("Projets en retard",lateProjects.length,"Au moins une tâche en retard")+
+    kpi("Alertes planning",alerts,"Tâches critiques + étapes + releases");
+
+  const groups={};
+  ps.forEach(p=>{const k=String(p.statut||"Non renseigné");groups[k]=(groups[k]||0)+1});
+  $("dashboardStatus").innerHTML=Object.entries(groups).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="dashboard-stat-row"><span>${esc(k)}</span><strong>${v}</strong></div>`).join("")||'<div class="muted">Aucune donnée.</div>';
+
+  const stageAlerts=(db.projectStagePlans||[]).filter(x=>/retard|attention/i.test(String(x.Alerte_Planning||"")));
+  const releaseAlerts=(db.releases||[]).filter(x=>/retard|incohérent/i.test(String(x.Alerte_Planning||"")));
+  $("dashboardAlerts").innerHTML=`
+    <div class="dashboard-alert-summary"><span>Étapes projet</span><strong>${stageAlerts.length}</strong></div>
+    <div class="dashboard-alert-summary"><span>Releases</span><strong>${releaseAlerts.length}</strong></div>
+    <div class="dashboard-alert-summary"><span>Projets avec tâches en retard</span><strong>${lateProjects.length}</strong></div>`;
+
+  $("dashboardProgress").innerHTML=ps.slice().sort((a,b)=>pct(b.progression)-pct(a.progression)).slice(0,12).map(p=>`
+    <div class="dashboard-progress-row"><span>${esc(p.nom||p.code||"")}</span><i><b style="width:${pct(p.progression)}%"></b></i><strong>${pct(p.progression)}%</strong></div>`).join("")||'<div class="muted">Aucune donnée.</div>';
+}
+
+function renderAll(){renderHome();renderDashboard();renderPortfolioKpis();renderProject();renderOffer();renderResources();renderDocumentation();}
 function renderPortfolioKpis(){
   const ps=visibleProjects(), all=filteredProjects();
   const active=ps.filter(p=>!/termin|clos|done/i.test(String(p.statut||""))).length;
@@ -1602,21 +1700,37 @@ function switchMainTab(tab){
   currentTab=tab;
   touchPresence();
   document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x.dataset.mainTab===tab));
+  optionalEl("homeView")?.classList.toggle("hidden",tab!=="home");
   $("projectView").classList.toggle("hidden",tab!=="project");
   $("offerView").classList.toggle("hidden",tab!=="offer");
   $("resourcesView").classList.toggle("hidden",tab!=="resources");
   optionalEl("docsView")?.classList.toggle("hidden",tab!=="docs");
+  optionalEl("dashboardView")?.classList.toggle("hidden",tab!=="dashboard");
+  if(tab==="home"){renderHome()}
+  if(tab==="dashboard"){renderDashboard()}
   if(tab==="resources"){renderResources()}
   if(tab==="docs"){
     try{renderDocumentation()}
     catch(e){
       console.error("Erreur onglet Documentation",e);
       optionalEl("docsView")?.classList.remove("hidden");
-      const s=$("docsStatus");s.classList.remove("hidden");
-      s.innerHTML=`<strong>Erreur d'affichage Documentation</strong><div class="muted">${esc(e?.message||e)}</div>`;
+      const st=$("docsStatus");st.classList.remove("hidden");
+      st.innerHTML=`<strong>Erreur d'affichage Documentation</strong><div class="muted">${esc(e?.message||e)}</div>`;
     }
   }
 }
+
+document.querySelectorAll("[data-home-nav]").forEach(b=>b.onclick=()=>switchMainTab(b.dataset.homeNav));
+document.querySelectorAll("[data-main-tab-more]").forEach(b=>b.onclick=()=>{switchMainTab(b.dataset.mainTabMore);optionalEl("moreMenu")?.classList.add("hidden")});
+document.querySelectorAll("[data-home-action]").forEach(b=>b.onclick=()=>{
+  const a=b.dataset.homeAction;
+  if(a==="new-project"){switchMainTab("project");openProject(true)}
+  if(a==="new-feature"){switchMainTab("project");openFeature()}
+  if(a==="new-allocation"){openAllocationDialog(null,{projectId:currentProjectId||null})}
+  if(a==="open-planning"){switchMainTab("project");if(currentProjectId){showProjectPage(currentProjectId);switchDetailTab("stages")}}
+});
+optionalEl("homePresenceBtn")?.addEventListener("click",()=>optionalEl("presenceBadge")?.click());
+
 document.querySelectorAll("[data-main-tab]").forEach(b=>b.addEventListener("click",()=>switchMainTab(b.dataset.mainTab)));
 document.querySelectorAll("[data-type-filter]").forEach(b=>b.onclick=()=>{typeFilter=b.dataset.typeFilter;document.querySelectorAll("[data-type-filter]").forEach(x=>x.classList.toggle("active",x===b));populateProjectSelect();renderPortfolioKpis();detailTab="infos";renderProject()});
 document.querySelectorAll("[data-offer-type-filter]").forEach(b=>b.onclick=()=>{offerTypeFilter=b.dataset.offerTypeFilter;document.querySelectorAll("[data-offer-type-filter]").forEach(x=>x.classList.toggle("active",x===b));renderOffer()});
