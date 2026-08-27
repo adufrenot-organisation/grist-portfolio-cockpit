@@ -1,5 +1,5 @@
 
-const VERSION="5.4.30";
+const VERSION="5.4.32";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -50,7 +50,7 @@ function notifyBanner(message,type="info"){
 
 window.addEventListener("error",e=>pmoError("Erreur JavaScript",{message:e.message,source:e.filename,line:e.lineno,column:e.colno}));
 window.addEventListener("unhandledrejection",e=>pmoError("Promesse rejetée",e.reason));
-const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",projectStagePlans:"Projet_Etapes",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation",suggestions:"Suggestions",featureFollowups:"Suivi_Fonctionnalites",discussions:"Discussions",messages:"Messages"};
+const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",projectStagePlans:"Projet_Etapes",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation",suggestions:"Suggestions",featureFollowups:"Suivi_Fonctionnalites",discussions:"Discussions",messages:"Messages",frontOfficeConfig:"Parametres_FrontOffice"};
 function tableKeyFromName(tableName){
   const wanted=String(tableName||"").trim().toLowerCase();
   if(!wanted)return null;
@@ -159,6 +159,7 @@ async function load(){pmoInfo("Chargement des données Grist démarré");
   if(!currentOfferId&&db.offers.length)currentOfferId=db.offers[0].id;
   populateOfferSelect();
   renderAll();
+  renderFrontOfficeMenu();
   switchMainTab(currentTab);
   }catch(e){
     console.error("Erreur de chargement cockpit",e);
@@ -1807,8 +1808,46 @@ $("suggestionForm").onsubmit=async e=>{
   }
 };
 
-optionalEl("suggestionBtn")?.addEventListener("click",openSuggestion);
 
+
+
+
+const DEFAULT_FRONT_OFFICE_CONFIG={
+  SUGGESTIONS:{Code:"SUGGESTIONS",Libelle:"Suggestions",Actif:true,Emplacement:"HEADER",Ordre:1},
+  DISCUSSIONS:{Code:"DISCUSSIONS",Libelle:"Discussions",Actif:true,Emplacement:"HEADER",Ordre:2},
+  PRESENCE:{Code:"PRESENCE",Libelle:"Présence",Actif:true,Emplacement:"HEADER",Ordre:3}
+};
+function frontOfficeConfigMap(){
+  const out={};
+  Object.values(DEFAULT_FRONT_OFFICE_CONFIG).forEach(x=>out[x.Code]={...x});
+  (db.frontOfficeConfig||[]).forEach(r=>{
+    const code=String(r.Code||"").trim().toUpperCase();
+    if(code&&out[code])out[code]={...out[code],...r,Code:code};
+  });
+  return out;
+}
+function collaborationActionButton(code,compact=false){
+  if(code==="SUGGESTIONS")return `<button type="button" class="${compact?"header-action":"nav-more-item"}" data-collab-action="SUGGESTIONS">💡 <span>Suggestion</span></button>`;
+  if(code==="DISCUSSIONS")return `<button type="button" class="${compact?"header-action":"nav-more-item"}" data-collab-action="DISCUSSIONS">💬 <span>Discussions</span></button>`;
+  return "";
+}
+function renderFrontOfficeMenu(){
+  const cfg=frontOfficeConfigMap();
+  const header=$("headerCollabActions"),more=$("moreCollabActions");
+  const items=["SUGGESTIONS","DISCUSSIONS"].map(code=>cfg[code]).filter(x=>x.Actif!==false&&String(x.Emplacement||"HEADER").toUpperCase()!=="HIDDEN").sort((a,b)=>Number(a.Ordre||99)-Number(b.Ordre||99));
+  header.innerHTML=items.filter(x=>String(x.Emplacement||"HEADER").toUpperCase()==="HEADER").map(x=>collaborationActionButton(x.Code,true)).join("");
+  more.innerHTML=items.filter(x=>String(x.Emplacement||"").toUpperCase()==="PLUS").map(x=>collaborationActionButton(x.Code,false)).join("");
+  const presence=cfg.PRESENCE;
+  $("presenceWrap").classList.toggle("hidden",presence.Actif===false||String(presence.Emplacement||"HEADER").toUpperCase()==="HIDDEN");
+  document.querySelectorAll("[data-collab-action]").forEach(b=>b.onclick=()=>{
+    if(b.dataset.collabAction==="SUGGESTIONS")openSuggestion();
+    if(b.dataset.collabAction==="DISCUSSIONS")openChat();
+    $("moreMenu").classList.add("hidden");
+  });
+}
+$("moreMenuBtn").onclick=e=>{e.stopPropagation();$("moreMenu").classList.toggle("hidden")};
+$("moreMenu").onclick=e=>e.stopPropagation();
+document.addEventListener("click",()=>optionalEl("moreMenu")?.classList.add("hidden"));
 
 let currentDiscussionId=null;
 
@@ -1879,7 +1918,7 @@ function openChat(){
   if(tableLoadErrors.discussions||tableLoadErrors.messages){notifyBanner("Les tables Discussions/Messages ne sont pas accessibles.");return}
   $("chatDialog").showModal(); renderDiscussions(); renderMessages();
 }
-optionalEl("chatBtn")?.addEventListener("click",openChat);
+
 $("newDiscussionBtn").onclick=()=>{
   const f=$("discussionForm"); f.reset();
   f.Type.value=currentProjectId?"Projet":"Direct";

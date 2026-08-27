@@ -394,3 +394,11 @@ L'identité auteur est portée par Grist via `user.Email`.
 Les fonctions collaboratives utilisent quatre tables distinctes :
 `Suggestions`, `Suivi_Fonctionnalites`, `Discussions`, `Messages`.
 Le suivi métier d'une fonctionnalité reste distinct du chat conversationnel.
+
+## v5.4.31 — paramétrage UI
+La table `Parametres_FrontOffice` pilote l'apparition des fonctions collaboratives.
+Le Cockpit ne code plus en dur la visibilité de Suggestions/Discussions/Présence.
+
+## v5.4.32 — responsabilité Front Office
+Le Cockpit consomme `Parametres_FrontOffice` en lecture.
+Le back-office Admin PMO est seul responsable de la modification de cette configuration.

@@ -796,3 +796,25 @@ Table attendue : `Suggestions`.
 - Intégration de `Suivi_Fonctionnalites` dans la fiche d'une fonctionnalité.
 - Ajout d'un commentaire daté avec photographie de la progression, du statut et du stade.
 - Les auteurs et horodatages restent alimentés côté Grist par trigger formulas (`user.Email`, `NOW()`).
+
+## v5.4.31 — Menu ergonomique et paramétrage du Front Office
+
+- barre d'identité/présence séparée de la navigation principale ;
+- navigation principale simplifiée : Projets/Produits, Offres, Ressources, Documentation ;
+- menu `Plus` pour les actions secondaires et les Logs ;
+- Suggestions et Discussions peuvent être affichées dans la barre principale, dans `Plus`, ou masquées ;
+- Présence peut être affichée ou masquée ;
+- ordre des fonctions collaboratives configurable ;
+- paramètres stockés dans Grist dans `Parametres_FrontOffice`.
+
+## v5.4.32 — séparation Front Office / Back Office
+
+Le Cockpit ne propose plus d'écran de paramétrage de `Parametres_FrontOffice`.
+
+Il conserve uniquement le comportement Front Office :
+- lecture de `Parametres_FrontOffice` ;
+- affichage / masquage de Suggestions, Discussions et Présence ;
+- positionnement Barre principale / menu Plus ;
+- ordre d'affichage.
+
+La modification de ces paramètres est désormais réservée au widget Admin & Audit PMO.

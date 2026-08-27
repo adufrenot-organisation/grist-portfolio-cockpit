@@ -4,16 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.4.30-filter-sort-fix" />
+  <link rel="stylesheet" href="styles.css?v=5.4.32" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
 <div id="app">
-  <header class="app-header">
+  <header class="app-header ergonomic-header">
+  <div class="header-main-row">
     <div class="brand pmo-brand-lockup">
       <div class="pmo-brand-badge">PMO</div>
       <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
-      <span class="version pmo-version">v5.4.30</span><button id="suggestionBtn" class="suggestion-trigger" type="button" title="Faire une suggestion">💡 Suggestion</button><button id="chatBtn" class="suggestion-trigger" type="button" title="Discussions">💬 Discussions</button><div class="presence-wrap">
+      <span class="version pmo-version">v5.4.32</span>
+    </div>
+
+    <div class="header-utilities">
+      <div id="headerCollabActions" class="header-collab-actions"></div>
+      <div class="presence-wrap" id="presenceWrap">
         <button id="presenceBadge" class="presence-badge presence-pending" type="button" title="Présence Cockpit">● Présence…</button>
         <div id="presencePopover" class="presence-popover hidden">
           <div class="presence-popover-head">
@@ -28,13 +34,24 @@
         </div>
       </div>
     </div>
+  </div>
 
-    <nav class="top-nav">
-      <button class="top-tab active" data-main-tab="project">📁 Pilotage par projets / produits</button>
-      <button class="top-tab" data-main-tab="offer">🏢 Pilotage par offre de services</button><button class="top-tab" data-main-tab="resources">👥 Pilotage par les ressources</button><button class="top-tab" data-main-tab="docs">📚 Documentation</button>
-    
-      <button class="top-tab pmo-log-button" id="openLogsBtn" type="button">Logs <span id="logErrorBadge" class="log-error-badge hidden">0</span></button></nav>
-  </header>
+  <nav class="top-nav ergonomic-nav">
+    <button class="top-tab active" data-main-tab="project">📁 Projets / Produits</button>
+    <button class="top-tab" data-main-tab="offer">🏢 Offres de services</button>
+    <button class="top-tab" data-main-tab="resources">👥 Ressources</button>
+    <button class="top-tab" data-main-tab="docs">📚 Documentation</button>
+
+    <div class="nav-more-wrap">
+      <button class="top-tab nav-more-btn" id="moreMenuBtn" type="button">••• Plus</button>
+      <div id="moreMenu" class="nav-more-menu hidden">
+        <div id="moreCollabActions"></div>
+        
+        <button class="nav-more-item" id="openLogsBtn" type="button">🧾 Logs <span id="logErrorBadge" class="log-error-badge hidden">0</span></button>
+      </div>
+    </div>
+  </nav>
+</header>
 
   <div id="banner" class="banner hidden"></div>
 
@@ -427,6 +444,8 @@
 </form>
 </dialog>
 
+
+
 <dialog id="featureFollowupDialog">
   <form method="dialog" id="featureFollowupForm">
     <input type="hidden" name="Fonctionnalite" />
@@ -539,7 +558,7 @@
   </form>
 </dialog>
 
-  <script src="presence.js?v=5.4.30"></script>
-<script src="app.js?v=5.4.30"></script>
+  <script src="presence.js?v=5.4.32"></script>
+<script src="app.js?v=5.4.32"></script>
 </body>
 </html>
