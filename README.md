@@ -766,3 +766,8 @@ Les évolutions `Projet_Etapes` et Releases pilotées par Grist sont conservées
 Correction du filtrage des fonctionnalités dans la fiche Projet / Produit.
 Le résolveur accepte désormais l'ID technique de la Ref Grist **et** sa valeur d'affichage (nom/code), y compris les helpers Grist.
 La vue Roadmap passe directement l'objet Projet/Produit courant afin d'éviter toute confusion avec un autre ID lors du fallback.
+
+## v5.4.28 — correction des filtres Roadmap
+Correction de `a.localeCompare is not a function` dans la Roadmap/Fonctionnalités.
+Les valeurs issues de Grist (notamment les Ref et valeurs numériques) sont désormais normalisées
+avant tri des listes Module, Stade, Statut, Étape et Release.

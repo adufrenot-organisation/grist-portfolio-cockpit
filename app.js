@@ -1,5 +1,5 @@
 
-const VERSION="5.4.27";
+const VERSION="5.4.28";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -931,18 +931,18 @@ function productFeaturesView(p,ts){
   const val=(o,...keys)=>{for(const k of keys){const v=o?.[k];if(v!==undefined&&v!==null&&v!=="")return v}return ""};
   const moduleOf=f=>String(val(f,"Categ_module","Categorie_module","categ_module","categorie_module")||"Sans module");
   const stageOf=f=>{const sf=featureStageField();const st=get("featureStages",sf?id(f[sf]):null);return st?.Nom||st?.Libelle||"Sans stade"};
-  const statusOf=f=>{const sf=featureStatusField();return sf?(f[sf]||"Sans statut"):"Sans statut"};
+  const statusOf=f=>{const sf=featureStatusField();return String(sf?(f[sf]||"Sans statut"):"Sans statut")};
   const projectStepOf=f=>{const st=get("projectStages",featureProjectStageId(f));return st?.Nom||st?.Libelle||"Sans étape"};
   const dateOf=f=>val(f,"Date_Cible","date_cible","Date_Fin","dateFin");
   const progressOf=f=>pct(val(f,"Progression","progression"));
   const linkedTasks=f=>ts.filter(t=>id(t.fonctionnalite)===f.id);
   const relsOf=f=>releaseIdsForFeature(f.id).map(rid=>get("releases",rid)).filter(Boolean);
   const dateMs=f=>{const v=dateOf(f);if(!v)return Number.MAX_SAFE_INTEGER;const d=new Date(typeof v==="number"?v*1000:v);return Number.isNaN(d.getTime())?Number.MAX_SAFE_INTEGER:d.getTime()};
-  const modules=[...new Set(fs.map(moduleOf))].sort((a,b)=>a.localeCompare(b,"fr"));
-  const stages=[...new Set(fs.map(stageOf))].sort((a,b)=>a.localeCompare(b,"fr"));
-  const statuses=[...new Set(fs.map(statusOf))].sort((a,b)=>a.localeCompare(b,"fr"));
-  const projectSteps=[...new Set(fs.map(projectStepOf))].sort((a,b)=>a.localeCompare(b,"fr"));
-  const releases=[...new Set(fs.flatMap(f=>relsOf(f).map(r=>r.Nom||r.Code).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"fr"));
+  const modules=[...new Set(fs.map(moduleOf))].sort((a,b)=>String(a??"").localeCompare(String(b??""),"fr"));
+  const stages=[...new Set(fs.map(stageOf))].sort((a,b)=>String(a??"").localeCompare(String(b??""),"fr"));
+  const statuses=[...new Set(fs.map(statusOf))].sort((a,b)=>String(a??"").localeCompare(String(b??""),"fr"));
+  const projectSteps=[...new Set(fs.map(projectStepOf))].sort((a,b)=>String(a??"").localeCompare(String(b??""),"fr"));
+  const releases=[...new Set(fs.flatMap(f=>relsOf(f).map(r=>r.Nom||r.Code).filter(Boolean)))].sort((a,b)=>String(a??"").localeCompare(String(b??""),"fr"));
 
   host.innerHTML=`<div class="features-toolbar">
     <label class="features-search">⌕ <input data-f-filter="search" placeholder="Rechercher…"></label>
