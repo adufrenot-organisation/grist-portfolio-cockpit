@@ -760,3 +760,9 @@ La modification de la vue Releases avait supprimé par erreur trois fonctions du
 
 Elles sont restaurées depuis la dernière version stable de la vue Fonctionnalités.
 Les évolutions `Projet_Etapes` et Releases pilotées par Grist sont conservées.
+
+## v5.4.27 — résolution de `Fonctionnalites.Parent`
+
+Correction du filtrage des fonctionnalités dans la fiche Projet / Produit.
+Le résolveur accepte désormais l'ID technique de la Ref Grist **et** sa valeur d'affichage (nom/code), y compris les helpers Grist.
+La vue Roadmap passe directement l'objet Projet/Produit courant afin d'éviter toute confusion avec un autre ID lors du fallback.

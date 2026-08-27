@@ -1,5 +1,5 @@
 
-const VERSION="5.4.26";
+const VERSION="5.4.27";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -509,7 +509,7 @@ function renderSynthesis(p,ts,cs,as){
   </div>`;
 
 
-  const featureCount=featureRowsForProject(p.id).length;const releaseCount=releaseRowsForProject(p.id).length;
+  const featureCount=featureRowsForProject(p).length;const releaseCount=releaseRowsForProject(p.id).length;
   $("summaryFeatures").innerHTML=`<div><strong>${releaseCount} release(s)</strong></div>`+(typeOf(p)==="produit"
     ?`<strong>${featureCount} fonctionnalité(s)</strong><div class="muted" style="margin-top:6px">La roadmap produit se construit à partir des fonctionnalités.</div>`
     :`<strong>${featureCount} fonctionnalité(s)</strong><div class="muted" style="margin-top:6px">Elles peuvent être reliées aux tâches du planning projet.</div>`);
@@ -746,27 +746,45 @@ function featureParentRaw(f){
 function featureParentId(f){
   return refIdAny(featureParentRaw(f));
 }
-function featureRowsForProject(pid){
-  const wanted=Number(pid);
-  const project=db.projects.find(p=>Number(p.id)===wanted);
-  const labels=new Set(
-    [project?.nom,project?.Nom,project?.code,project?.Code]
-      .filter(Boolean)
-      .map(v=>String(v).trim().toLowerCase())
-  );
+function normLabel(v){return String(v??"").trim().replace(/\s+/g," ").toLowerCase()}
+function projectIdentity(projectOrId){
+  const project=(projectOrId&&typeof projectOrId==="object")
+    ?projectOrId
+    :db.projects.find(p=>Number(p.id)===Number(projectOrId));
+  if(!project)return {project:null,id:Number(projectOrId)||null,labels:new Set()};
+  const labels=new Set([project.nom,project.Nom,project.code,project.Code]
+    .filter(v=>v!==undefined&&v!==null&&String(v).trim())
+    .map(normLabel));
+  return {project,id:Number(project.id),labels};
+}
+function featureParentDisplayValues(f){
+  const values=[];
+  const raw=featureParentRaw(f);
+  if(typeof raw==="string")values.push(raw);
+  if(Array.isArray(raw))raw.filter(x=>typeof x==="string"&&!/^R$|^L$/i.test(x)).forEach(x=>values.push(x));
+  for(const [k,v] of Object.entries(f||{})){
+    const key=String(k).toLowerCase();
+    // Colonnes d'affichage générées par Grist ou helpers associés à la Ref Parent.
+    if((key.includes("gristhelper_display")||key.includes("parent")&&key.includes("display"))&&typeof v==="string")values.push(v);
+  }
+  return values.map(normLabel).filter(Boolean);
+}
+function featureRowsForProject(projectOrId){
+  const ident=projectIdentity(projectOrId);
+  const wanted=ident.id;
+  const labels=ident.labels;
+  if(!wanted&&!labels.size)return [];
 
   return (db.features||[]).filter(f=>{
-    // 1. Cas normal : référence Grist vers Projects.
-    if(featureParentId(f)===wanted)return true;
+    // 1. Cas normal : la Ref Grist contient l'ID technique de Projects.
+    if(wanted&&featureParentId(f)===wanted)return true;
 
-    // 2. Ancienne donnée/import : valeur affichée au lieu de l'ID.
+    // 2. Certains contextes Grist exposent la valeur affichée de la Ref.
+    if(featureParentDisplayValues(f).some(v=>labels.has(v)))return true;
+
+    // 3. Compatibilité avec les imports historiques où Parent a été stocké en texte.
     const raw=featureParentRaw(f);
-    if(typeof raw==="string"&&labels.has(raw.trim().toLowerCase()))return true;
-
-    // 3. Certains exports DocAPI peuvent ne laisser que le helper d'affichage.
-    for(const [k,v] of Object.entries(f)){
-      if(/^gristHelper_Display/i.test(k) && typeof v==="string" && labels.has(v.trim().toLowerCase()))return true;
-    }
+    if(typeof raw==="string"&&labels.has(normLabel(raw)))return true;
     return false;
   });
 }
@@ -899,14 +917,14 @@ function releasesView(p){
   bindIndicatorHelp(host);
 }
 function productFeaturesView(p,ts){
-  const fs=featureRowsForProject(p.id);
+  const fs=featureRowsForProject(p);
   const host=$("productFeaturesView");
   if(!fs.length){
     const loaded=(db.features||[]).length;
     host.innerHTML=(typeOf(p)==="produit"
       ?'<div class="empty">Aucune fonctionnalité rattachée à ce produit.</div>'
       :'<div class="empty">Aucune fonctionnalité rattachée à ce projet.</div>')
-      +(loaded?`<div class="muted feature-diagnostic">La table Fonctionnalites contient ${loaded} ligne(s), mais aucune ne référence l’ID ${p.id} (${esc(p.nom||p.code||"")}).</div>`:"");
+      +(loaded?`<div class="muted feature-diagnostic">La table Fonctionnalites contient ${loaded} ligne(s), mais aucune ne correspond au parent courant : ${esc(p.nom||p.Nom||p.code||p.Code||`#${p.id}`)} (ID ${p.id}).</div>`:"");
     return;
   }
 

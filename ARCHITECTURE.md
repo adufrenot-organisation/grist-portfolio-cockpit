@@ -382,3 +382,6 @@ Le Cockpit contrôle la cohérence entre ces deux niveaux.
 ## v5.4.25
 Le planning des Releases suit le principe `Grist = source de vérité métier`.
 Le Cockpit ne fait qu'afficher les champs calculés de la table Releases.
+
+## v5.4.27
+La résolution des fonctionnalités est centralisée dans `featureRowsForProject(projectOrId)` : priorité à la Ref technique, puis fallback strict sur la valeur d'affichage de `Parent`.
