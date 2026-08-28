@@ -1,5 +1,5 @@
 
-const VERSION="5.4.37";
+const VERSION="5.4.38";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -1794,7 +1794,9 @@ function renderResources(){
 function switchMainTab(tab){
   currentTab=tab;
   touchPresence();
-  document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x.dataset.mainTab===tab));
+  document.querySelectorAll("[data-suggestion-tab]").forEach(b=>b.onclick=()=>setSuggestionDialogMode(b.dataset.suggestionTab));
+optionalEl("refreshMySuggestionsBtn")?.addEventListener("click",renderMySuggestions);
+document.querySelectorAll("[data-main-tab]").forEach(x=>x.classList.toggle("active",x.dataset.mainTab===tab));
   optionalEl("homeView")?.classList.toggle("hidden",tab!=="home");
   $("projectView").classList.toggle("hidden",tab!=="project");
   $("offerView").classList.toggle("hidden",tab!=="offer");
@@ -1977,7 +1979,56 @@ function suggestionContext(){
   return {module:"Cockpit",context,projectId};
 }
 
-function openSuggestion(){
+let suggestionDialogMode="new";
+
+function suggestionStatusClass(v){
+  const x=String(v||"Nouvelle").toLowerCase();
+  if(/réalis|real/.test(x))return "done";
+  if(/refus/.test(x))return "refused";
+  if(/accept|planifi/.test(x))return "accepted";
+  if(/étude|etude/.test(x))return "study";
+  return "new";
+}
+function suggestionDate(v){
+  const m=dms(v);return m?new Date(m).toLocaleDateString("fr-FR"):"";
+}
+async function currentCockpitUser(){
+  if(window.PmoPresence?.currentUser)return await window.PmoPresence.currentUser();
+  return {email:"",name:""};
+}
+async function renderMySuggestions(){
+  const host=$("mySuggestionsList");
+  host.innerHTML='<div class="muted">Chargement…</div>';
+  const user=await currentCockpitUser();
+  const email=String(user.email||"").trim().toLowerCase();
+  if(!email){
+    host.innerHTML='<div class="suggestion-empty">Impossible d’identifier votre compte Grist. Vérifiez que <code>SESSIONS_UTILISATEURS.Utilisateur_Email</code> est alimenté par la formule utilisateur.</div>';
+    return;
+  }
+  const mine=(db.suggestions||[])
+    .filter(x=>String(x.Auteur_Email||"").trim().toLowerCase()===email)
+    .sort((x,y)=>(dms(y.Date_MAJ||y.Date_Creation)||0)-(dms(x.Date_MAJ||x.Date_Creation)||0));
+  $("mySuggestionsIdentity").textContent=user.name?`${user.name} • ${user.email}`:user.email;
+  host.innerHTML=mine.length?mine.map(x=>`
+    <article class="my-suggestion-card">
+      <div class="my-suggestion-top">
+        <div><strong>${esc(x.Titre||"Suggestion")}</strong><small>${esc(x.Type||"")} • ${suggestionDate(x.Date_Creation)}</small></div>
+        <span class="suggestion-status ${suggestionStatusClass(x.Statut)}">${esc(x.Statut||"Nouvelle")}</span>
+      </div>
+      <p>${esc(x.Description||"")}</p>
+      <div class="my-suggestion-meta"><span>${esc(x.Contexte||x.Module||"Cockpit")}</span>${x.Priorite?`<span>Priorité : ${esc(x.Priorite)}</span>`:""}${x.Version_Cible?`<span>Cible : ${esc(x.Version_Cible)}</span>`:""}</div>
+      ${x.Reponse_PMO?`<div class="pmo-response"><strong>Réponse PMO</strong><p>${esc(x.Reponse_PMO)}</p>${x.Traite_Par?`<small>${esc(x.Traite_Par)}${x.Date_MAJ?` • ${suggestionDate(x.Date_MAJ)}`:""}</small>`:""}</div>`:""}
+    </article>`).join("")
+    :'<div class="suggestion-empty">Vous n’avez encore envoyé aucune suggestion.</div>';
+}
+function setSuggestionDialogMode(mode){
+  suggestionDialogMode=mode;
+  document.querySelectorAll("[data-suggestion-tab]").forEach(x=>x.classList.toggle("active",x.dataset.suggestionTab===mode));
+  $("suggestionNewPane").classList.toggle("hidden",mode!=="new");
+  $("suggestionMinePane").classList.toggle("hidden",mode!=="mine");
+  if(mode==="mine")renderMySuggestions();
+}
+async function openSuggestion(mode="new"){
   if(tableLoadErrors.suggestions){
     notifyBanner(`Table Suggestions inaccessible : ${tableLoadErrors.suggestions}`);
     return;
@@ -1986,6 +2037,7 @@ function openSuggestion(){
   const f=$("suggestionForm");
   f.reset();
   $("suggestionContextLabel").textContent=`${ctx.module} • ${ctx.context}`;
+  setSuggestionDialogMode(mode);
   $("suggestionDialog").showModal();
 }
 
@@ -2002,15 +2054,14 @@ $("suggestionForm").onsubmit=async e=>{
     Statut:"Nouvelle",
     Actif:true
   };
-  // Auteur_Email et Date_Creation sont volontairement laissés à Grist
-  // via trigger formulas user.Email et NOW() lors de la création.
+  // Auteur_Email et Date_Creation restent alimentés par les formules Grist.
   if(ctx.projectId)fields.Projet=Number(ctx.projectId);
 
   try{
     await grist.docApi.applyUserActions([["AddRecord","Suggestions",null,fields]]);
-    $("suggestionDialog").close();
-    notifyBanner("Suggestion envoyée. Merci !");
+    notifyBanner("Suggestion envoyée.");
     await load();
+    setSuggestionDialogMode("mine");
   }catch(err){
     console.error("Suggestion",err);
     notifyBanner(`Impossible d'envoyer la suggestion : ${err?.message||err}`);

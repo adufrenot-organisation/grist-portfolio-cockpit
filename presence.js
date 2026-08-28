@@ -93,6 +93,22 @@
   };
 
   
+
+  presence.currentUser=async function(){
+    try{
+      if(!this.rowId)await this.ensureRow();
+      const raw=await grist.docApi.fetchTable(TABLE);
+      const row=tableRows(raw).find(r=>Number(r.id)===Number(this.rowId));
+      return row?{
+        email:String(row.Utilisateur_Email||"").trim(),
+        name:String(row.Utilisateur_Nom||"").trim()
+      }:{email:"",name:""};
+    }catch(e){
+      console.warn("[PRESENCE currentUser]",e);
+      return {email:"",name:""};
+    }
+  };
+
   presence.activeWithinMinutes=10;
 
   presence.listActive=async function(opts={}){

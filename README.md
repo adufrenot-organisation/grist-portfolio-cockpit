@@ -862,3 +862,6 @@ Le Cockpit intègre réellement le design de tableau de bord validé :
 - statut projet rendu robuste aux variantes `statut` / `Statut` ;
 - comptage des fonctionnalités actives compatible avec les variantes de colonne `Actif` et l'absence de cette colonne ;
 - cohérence du calcul d'avancement entre le tableau de bord et le portefeuille.
+
+## v5.4.38 — suivi des suggestions
+Le bouton `Suggérer` ouvre désormais un centre avec `Nouvelle suggestion` et `Mes suggestions`. L'utilisateur retrouve le statut, la réponse PMO, la priorité et la version cible lorsqu'ils sont renseignés.

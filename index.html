@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.4.37" />
+  <link rel="stylesheet" href="styles.css?v=5.4.38" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -14,7 +14,7 @@
     <div class="brand pmo-brand-lockup">
       <div class="pmo-brand-badge">PMO</div>
       <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
-      <span class="version pmo-version">v5.4.37</span>
+      <span class="version pmo-version">v5.4.38</span>
     </div>
 
     <div class="header-utilities">
@@ -381,7 +381,7 @@
   </div>
 </section>
 
-  <footer>Cockpit PMO • v5.4.37 • Grist reste l’unique source de vérité</footer>
+  <footer>Cockpit PMO • v5.4.38 • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -555,34 +555,32 @@
   </form>
 </dialog>
 
-<dialog id="suggestionDialog">
-  <form method="dialog" id="suggestionForm">
+<dialog id="suggestionDialog" class="suggestion-center-dialog">
+  <div class="suggestion-center">
     <div class="dialog-head">
-      <div>
-        <h3>💡 Faire une suggestion</h3>
-        <div class="muted" id="suggestionContextLabel">Cockpit</div>
-      </div>
+      <div><h3>💡 Suggestions</h3><div class="muted" id="suggestionContextLabel">Cockpit</div></div>
       <button type="button" class="icon" data-close="suggestionDialog">×</button>
     </div>
-    <div class="form-grid">
-      <label>Type
-        <select name="Type" required>
-          <option value="Amélioration">Amélioration</option>
-          <option value="Bug">Bug</option>
-          <option value="Idée">Idée</option>
-          <option value="Ergonomie">Ergonomie</option>
-          <option value="Donnée">Donnée</option>
-        </select>
-      </label>
-      <label class="wide">Titre<input name="Titre" required maxlength="180" placeholder="Résume ta suggestion" /></label>
-      <label class="wide">Description<textarea name="Description" rows="6" required placeholder="Décris l'idée, le besoin ou le problème rencontré…"></textarea></label>
+    <div class="suggestion-tabs">
+      <button type="button" data-suggestion-tab="new" class="active">＋ Nouvelle suggestion</button>
+      <button type="button" data-suggestion-tab="mine">Mes suggestions</button>
     </div>
-    <div class="hint">L’auteur est automatiquement renseigné avec l’email du compte Grist connecté. Le module et le contexte courant sont ajoutés automatiquement.</div>
-    <div class="dialog-actions">
-      <button type="button" data-close="suggestionDialog">Annuler</button>
-      <button class="primary" type="submit">Envoyer la suggestion</button>
+    <div id="suggestionNewPane">
+      <form id="suggestionForm">
+        <div class="form-grid">
+          <label>Type<select name="Type" required><option value="Amélioration">Amélioration</option><option value="Bug">Bug</option><option value="Idée">Idée</option><option value="Ergonomie">Ergonomie</option><option value="Donnée">Donnée</option></select></label>
+          <label class="wide">Titre<input name="Titre" required maxlength="180" placeholder="Résume ta suggestion" /></label>
+          <label class="wide">Description<textarea name="Description" rows="6" required placeholder="Décris l'idée, le besoin ou le problème rencontré…"></textarea></label>
+        </div>
+        <div class="hint">L’auteur est automatiquement renseigné avec l’email du compte Grist connecté.</div>
+        <div class="dialog-actions"><button type="button" data-close="suggestionDialog">Annuler</button><button class="primary" type="submit">Envoyer la suggestion</button></div>
+      </form>
     </div>
-  </form>
+    <div id="suggestionMinePane" class="hidden">
+      <div class="my-suggestions-head"><div><strong>Mes suggestions</strong><small id="mySuggestionsIdentity"></small></div><button type="button" id="refreshMySuggestionsBtn">↻ Rafraîchir</button></div>
+      <div id="mySuggestionsList"></div>
+    </div>
+  </div>
 </dialog>
 
 <aside id="logDrawer" class="log-drawer hidden" aria-label="Console de logs">
@@ -620,7 +618,7 @@
   </form>
 </dialog>
 
-  <script src="presence.js?v=5.4.37"></script>
-<script src="app.js?v=5.4.37"></script>
+  <script src="presence.js?v=5.4.38"></script>
+<script src="app.js?v=5.4.38"></script>
 </body>
 </html>
