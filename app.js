@@ -1,5 +1,5 @@
 
-const VERSION="5.4.39";
+const VERSION="5.4.40";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -1275,6 +1275,7 @@ function featureFieldName(...aliases){
 }
 function featureStageField(){return featureFieldName("Stade","stade")}
 function featureStatusField(){return featureFieldName("Statut","statut")}
+function featureCommentField(){return featureFieldName("Commentaire","commentaire","Commentaire_Etat","commentaire_etat","Etat_Lieux_Commentaire","etat_lieux_commentaire")}
 function featureProjectStageField(){return featureFieldName("Etape_Projet","etape_projet","EtapeProjet","etapeProjet")}
 function featureProjectStageId(f){
   const k=featureProjectStageField();
@@ -1288,6 +1289,13 @@ function openFeature(fid=null){
   if($("featureCategModuleLabel")) $("featureCategModuleLabel").childNodes[0].nodeValue=typeOf(p)==="produit"?"Catégorie ":"Module ";
   if(row){["Code","Nom","Categ_module","Description","Priorite"].forEach(k=>{if(f[k])f[k].value=row[k]??""});f.Progression.value=pct(row.Progression);allocationFormField(f,"Date_Debut").value=din(row.Date_Debut||row.dateDebut);allocationFormField(f,"Date_Fin").value=din(row.Date_Fin||row.dateFin);f.Date_Cible.value=din(row.Date_Cible);f.Actif.value=String(row.Actif!==false)}
   else{f.Progression.value=0;f.Actif.value="true"}
+  const commentField=featureCommentField();
+  if(f.Commentaire){
+    f.Commentaire.value=row&&commentField?(row[commentField]??""):"";
+    f.Commentaire.disabled=!commentField;
+    f.Commentaire.placeholder=commentField?"État des lieux, blocage, décision, prochaine étape…":"Ajoute la colonne Commentaire (Texte long) dans Fonctionnalites";
+    f.Commentaire.title=commentField?"":"Colonne Commentaire absente de la table Fonctionnalites.";
+  }
   const stadeField=featureStageField();
   const statusField=featureStatusField();
   const projectStageField=featureProjectStageField();
@@ -1301,14 +1309,15 @@ function openFeature(fid=null){
   }
   opt(f.Responsable,db.team,r=>r.nom,row?id(row.Responsable):null,"— responsable —");
   if(f.Releases) fillMulti(f.Releases,releaseRowsForProject(currentProjectId),x=>`${x.Nom||x.Code||"Release"} — ${dt(x.Date_Debut)} → ${dt(x.Date_Fin)}`,row?releaseIdsForFeature(row.id):[]);
+  renderFeatureFollowups(fid);
   $("featureDialog").showModal()
 }
 $("featureForm").onsubmit=async e=>{
   e.preventDefault();
-  renderFeatureFollowups(fid);
   const f=e.currentTarget,fid=Number(f.id.value)||null;
   const fields={Code:f.Code.value,Nom:f.Nom.value,Categ_module:f.Categ_module?.value||"",Description:f.Description.value,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(allocationFormField(f,"Date_Debut").value),Date_Fin:gd(allocationFormField(f,"Date_Fin").value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
   const stadeField=featureStageField(),statusField=featureStatusField(),projectStageField=featureProjectStageField();
+  const commentField=featureCommentField(); if(commentField&&f.Commentaire)fields[commentField]=f.Commentaire.value.trim();
   if(stadeField)fields[stadeField]=f.stade.value?Number(f.stade.value):null;
   if(statusField)fields[statusField]=f.Statut.value||null;
   if(typeOf(get("projects",currentProjectId))!=="produit"&&projectStageField)fields[projectStageField]=f.Etape_Projet.value?Number(f.Etape_Projet.value):null;

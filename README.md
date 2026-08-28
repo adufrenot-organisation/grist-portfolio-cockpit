@@ -868,3 +868,10 @@ Le bouton `Suggérer` ouvre désormais un centre avec `Nouvelle suggestion` et `
 
 ## v5.4.39 — Présence v2
 Présence multi-modules via `SESSIONS_UTILISATEURS`, avec `Module`, `Contexte`, `Contexte_ID`, heartbeat 60 s et regroupement par utilisateur + module.
+
+
+## v5.4.40 — Commentaire d’état des lieux des fonctionnalités
+- Ajout d’un champ **Commentaire — état des lieux** dans la fiche d’une fonctionnalité.
+- Le champ est lu/écrit directement dans la colonne `Fonctionnalites.Commentaire` (Texte long).
+- Si la colonne est absente, le champ est désactivé avec une indication explicite.
+- Correction de l’affichage du suivi daté lors de l’ouverture de la fiche fonctionnalité.
