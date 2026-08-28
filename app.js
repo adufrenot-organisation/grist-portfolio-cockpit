@@ -1,5 +1,5 @@
 
-const VERSION="5.4.40";
+const VERSION="5.4.41";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -57,6 +57,7 @@ function tableKeyFromName(tableName){
   const hit=Object.entries(T).find(([,name])=>String(name).trim().toLowerCase()===wanted);
   return hit?.[0]||null;
 }
+let currentPresenceUser={email:"",name:""};
 let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="home",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all",resourceTeamFilter="all",resourceRoleFilter="all",resourceProjectFilter="all",resourceLoadFilter="all",selectedResourceId=null;
 function presenceContext(){
   if(currentTab==="home")return {module:"Cockpit",context:"Accueil",contextId:""};
@@ -310,8 +311,11 @@ async function renderHomePresence(){
     const users=await window.PmoPresence.listActive({minutes:10,allWidgets:true});
     host.innerHTML=users.length?users.slice(0,5).map(u=>{
       const name=u.Utilisateur_Nom||u.Utilisateur_Email||"Utilisateur";
-      return `<div class="home-presence-row"><span class="presence-dot"></span><span><strong>${esc(name)}</strong><small>${esc(u.Page||u.Widget_Code||"")}</small></span><em>En ligne</em></div>`;
+      const email=String(u.Utilisateur_Email||"").trim();
+      const mine=email&&currentPresenceUser.email&&email.toLowerCase()===currentPresenceUser.email.toLowerCase();
+      return `<button type="button" class="home-presence-row presence-chat-target" data-chat-email="${esc(email)}" data-chat-name="${esc(name)}" ${!email||mine?"disabled":""} title="${mine?"C’est vous":(!email?"Email indisponible":"Démarrer une discussion")}"><span class="presence-dot"></span><span><strong>${esc(name)}</strong><small>${esc(u.Contexte||u.Page||u.Module||u.Widget_Code||"")}</small></span><em>${mine?"Vous":"💬 Discuter"}</em></button>`;
     }).join(""):'<div class="muted">Aucun utilisateur actif détecté.</div>';
+    host.querySelectorAll("[data-chat-email]:not([disabled])").forEach(b=>b.onclick=()=>startDirectDiscussion(b.dataset.chatEmail,b.dataset.chatName));
   }catch(e){
     host.innerHTML=`<div class="muted">Présence indisponible.</div>`;
   }
@@ -1928,9 +1932,10 @@ function renderPresenceUsers(users){
     return `<div class="presence-user">
       <div class="presence-avatar">👤</div>
       <div class="presence-user-main"><strong>${name}</strong>${email}<div class="muted">${esc(u.Module||u.Widget_Code||"Module")} ${esc(u.Widget_Version||"")} · ${esc(u.Contexte||u.Page||"")}${sessions}</div></div>
-      <div class="presence-ago">${presenceAgo(u.Derniere_Activite)}</div>
+      <div class="presence-ago">${presenceAgo(u.Derniere_Activite)}${u.Utilisateur_Email&&(!currentPresenceUser.email||String(u.Utilisateur_Email).toLowerCase()!==currentPresenceUser.email.toLowerCase())?`<button type="button" class="presence-chat-btn" data-chat-email="${esc(u.Utilisateur_Email)}" data-chat-name="${name}">💬 Discuter</button>`:""}</div>
     </div>`;
   }).join("");
+  box.querySelectorAll("[data-chat-email]").forEach(b=>b.onclick=()=>{togglePresencePopover(false);startDirectDiscussion(b.dataset.chatEmail,b.dataset.chatName)});
 }
 async function refreshPresenceUsers(){
   const box=optionalEl("presenceUsers"),badge=optionalEl("presenceBadge");if(!box)return;
@@ -2165,9 +2170,35 @@ $("featureFollowupForm").onsubmit=async e=>{
 };
 
 function discussionRows(){
-  const pid=Number(currentProjectId)||null;
-  return (db.discussions||[]).filter(d=>d.Actif!==false && (!id(d.Projet)||!pid||id(d.Projet)===pid))
-    .sort((a,b)=>(dms(b.Date_Creation)||0)-(dms(a.Date_Creation)||0));
+  const pid=Number(currentProjectId)||null, me=String(currentPresenceUser.email||"").toLowerCase();
+  return (db.discussions||[]).filter(d=>{
+    if(d.Actif===false)return false;
+    if(String(d.Type||"").toLowerCase()==="direct"){
+      if(!me)return false;
+      const author=String(d.Auteur_Email||"").toLowerCase(), dest=String(d.Destinataire_Email||"").toLowerCase();
+      return author===me||dest===me;
+    }
+    return !id(d.Projet)||!pid||id(d.Projet)===pid;
+  }).sort((a,b)=>(dms(b.Date_Creation)||0)-(dms(a.Date_Creation)||0));
+}
+async function startDirectDiscussion(email,name){
+  email=String(email||"").trim(); name=String(name||email||"Utilisateur").trim();
+  if(!email){notifyBanner("Impossible de démarrer la discussion : email utilisateur indisponible.");return}
+  if(currentPresenceUser.email&&email.toLowerCase()===currentPresenceUser.email.toLowerCase()){notifyBanner("Vous ne pouvez pas démarrer une discussion avec vous-même.");return}
+  const me=String(currentPresenceUser.email||"").toLowerCase();
+  let existing=(db.discussions||[]).find(d=>d.Actif!==false&&String(d.Type||"").toLowerCase()==="direct"&&(
+    (String(d.Auteur_Email||"").toLowerCase()===me&&String(d.Destinataire_Email||"").toLowerCase()===email.toLowerCase())||
+    (String(d.Auteur_Email||"").toLowerCase()===email.toLowerCase()&&String(d.Destinataire_Email||"").toLowerCase()===me)
+  ));
+  if(!existing){
+    try{
+      await grist.docApi.applyUserActions([["AddRecord","Discussions",null,{Type:"Direct",Titre:`Discussion avec ${name}`,Destinataire_Email:email,Actif:true}]]);
+      await load();
+      existing=(db.discussions||[]).filter(d=>d.Actif!==false&&String(d.Type||"").toLowerCase()==="direct"&&String(d.Destinataire_Email||"").toLowerCase()===email.toLowerCase()).sort((a,b)=>(dms(b.Date_Creation)||0)-(dms(a.Date_Creation)||0))[0];
+    }catch(err){notifyBanner(`Impossible de démarrer la discussion : ${err?.message||err}`);return}
+  }
+  currentDiscussionId=existing?.id||null;
+  $("chatDialog").showModal(); renderDiscussions(); renderMessages();
 }
 function messageRows(did){
   return (db.messages||[]).filter(m=>id(m.Discussion)===Number(did)&&m.Actif!==false)
@@ -2201,6 +2232,7 @@ $("discussionForm").onsubmit=async e=>{
   e.preventDefault(); const f=e.currentTarget;
   const fields={Type:f.Type.value,Titre:f.Titre.value.trim(),Actif:true};
   if(currentProjectId&&f.Type.value==="Projet")fields.Projet=Number(currentProjectId);
+  if(f.Type.value==="Direct"&&f.Destinataire_Email.value.trim())fields.Destinataire_Email=f.Destinataire_Email.value.trim();
   try{
     await grist.docApi.applyUserActions([["AddRecord","Discussions",null,fields]]);
     $("discussionDialog").close(); await load(); renderDiscussions(); notifyBanner("Discussion créée.");
@@ -2218,7 +2250,9 @@ $("messageForm").onsubmit=async e=>{
 grist.ready({requiredAccess:"full"});
 grist.onOptions(()=>load());
 load();
-window.PmoPresence?.start({widget:"COCKPIT",version:VERSION,getContext:presenceContext});
+window.PmoPresence?.start({widget:"COCKPIT",version:VERSION,getContext:presenceContext}).then(async()=>{
+  try{currentPresenceUser=await window.PmoPresence.currentUser();renderHomePresence()}catch(_){}
+});
 
 $("backToPortfolioBtn").onclick=()=>{renderProjectList();showPortfolioPage();};
 window.addEventListener("hashchange",()=>{

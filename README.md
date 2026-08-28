@@ -875,3 +875,18 @@ Présence multi-modules via `SESSIONS_UTILISATEURS`, avec `Module`, `Contexte`, 
 - Le champ est lu/écrit directement dans la colonne `Fonctionnalites.Commentaire` (Texte long).
 - Si la colonne est absente, le champ est désactivé avec une indication explicite.
 - Correction de l’affichage du suivi daté lors de l’ouverture de la fiche fonctionnalité.
+
+
+## v5.4.41 — Discussion depuis la présence
+
+- Un utilisateur actif dans « Présence dans l’application » devient un point d’entrée vers une discussion directe.
+- Bouton `💬 Discuter` dans la carte d’accueil et dans le panneau de présence.
+- Réutilisation d’une discussion directe existante entre les deux utilisateurs lorsqu’elle existe.
+- Sinon création dans `Discussions` avec `Type=Direct` et `Destinataire_Email`.
+- Les messages restent enregistrés dans `Messages`; auteur et horodatage restent pilotés par les trigger formulas Grist.
+- Les discussions directes sont filtrées pour n’être visibles que par leur auteur ou leur destinataire dans le Cockpit.
+- Correction de la création manuelle : `Destinataire_Email` est maintenant effectivement écrit.
+- Cache-busting harmonisé en `5.4.41` pour CSS, app.js et presence.js.
+
+### Prérequis Grist
+La table `Discussions` doit contenir `Destinataire_Email` (Texte). `Auteur_Email` doit être alimenté à la création par `user.Email`.

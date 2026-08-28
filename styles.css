@@ -1462,3 +1462,10 @@ footer{
 .suggestion-status{white-space:nowrap;padding:4px 8px;border-radius:99px;font-size:10px;font-weight:800;background:#eef2f6;color:#486581}.suggestion-status.study{background:#fff4d6;color:#8a5b00}.suggestion-status.accepted{background:#e8f2ff;color:#175cd3}.suggestion-status.done{background:#e8f8ee;color:#177245}.suggestion-status.refused{background:#fff0f0;color:#b42318}
 .pmo-response{margin-top:10px;padding:10px 12px;background:#f5f9ff;border-left:3px solid #3478f6;border-radius:7px}.pmo-response p{margin:5px 0;color:#334e68}.pmo-response small{color:#829ab1}
 .suggestion-empty{padding:22px;text-align:center;color:#627d98;background:#f8fafc;border-radius:9px}
+
+/* v5.4.41 — présence -> discussion directe */
+button.home-presence-row{width:100%;border:0;background:transparent;text-align:left;font:inherit;color:inherit;cursor:pointer}
+button.home-presence-row:not(:disabled):hover{background:rgba(15,23,42,.045)}
+button.home-presence-row:disabled{cursor:default}
+.presence-chat-btn{display:block;margin-top:6px;padding:5px 9px;border:1px solid #d8dee9;border-radius:8px;background:#fff;cursor:pointer;font-size:11px;white-space:nowrap}
+.presence-chat-btn:hover{background:#f6f8fb}
