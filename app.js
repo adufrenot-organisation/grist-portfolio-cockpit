@@ -1,5 +1,5 @@
 
-const VERSION="5.4.38";
+const VERSION="5.4.39";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -58,17 +58,20 @@ function tableKeyFromName(tableName){
   return hit?.[0]||null;
 }
 let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="home",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all",resourceTeamFilter="all",resourceRoleFilter="all",resourceProjectFilter="all",resourceLoadFilter="all",selectedResourceId=null;
-function presencePage(){
-  if(currentTab==="home")return "Accueil";
-  if(currentTab==="dashboard")return "Tableaux de bord";
-  if(currentTab==="docs")return "Documentation";
-  if(currentTab==="offer")return currentOfferId?`Offre #${currentOfferId}`:"Offres de services";
-  if(currentTab==="resources")return selectedResourceId?`Ressource #${selectedResourceId}`:"Pilotage ressources";
+function presenceContext(){
+  if(currentTab==="home")return {module:"Cockpit",context:"Accueil",contextId:""};
+  if(currentTab==="dashboard")return {module:"Cockpit",context:"Tableaux de bord",contextId:""};
+  if(currentTab==="docs")return {module:"Cockpit",context:"Documentation",contextId:""};
+  if(currentTab==="offer")return {module:"Cockpit",context:currentOfferId?`Offre #${currentOfferId}`:"Offres de services",contextId:currentOfferId||""};
+  if(currentTab==="resources")return {module:"Cockpit",context:selectedResourceId?`Ressource #${selectedResourceId}`:"Pilotage ressources",contextId:selectedResourceId||""};
   if(currentTab==="project"){
-    if(currentProjectId && !optionalEl("projectPage")?.classList.contains("hidden"))return `Projet/Produit #${currentProjectId}`;
-    return "Portefeuille projets / produits";
+    if(currentProjectId && !optionalEl("projectPage")?.classList.contains("hidden")){
+      const p=get("projects",currentProjectId);
+      return {module:"Cockpit",context:`${p?.nom||p?.code||"Projet / Produit"}`,contextId:currentProjectId};
+    }
+    return {module:"Cockpit",context:"Portefeuille projets / produits",contextId:""};
   }
-  return "Cockpit";
+  return {module:"Cockpit",context:"Cockpit",contextId:""};
 }
 function touchPresence(){window.PmoPresence?.touch?.()}
 
@@ -1915,7 +1918,7 @@ function renderPresenceUsers(users){
     const sessions=Number(u.sessions||1)>1?` · ${u.sessions} sessions`:"";
     return `<div class="presence-user">
       <div class="presence-avatar">👤</div>
-      <div class="presence-user-main"><strong>${name}</strong>${email}<div class="muted">${esc(u.Widget_Code||"Widget")} ${esc(u.Widget_Version||"")} · ${esc(u.Page||"")}${sessions}</div></div>
+      <div class="presence-user-main"><strong>${name}</strong>${email}<div class="muted">${esc(u.Module||u.Widget_Code||"Module")} ${esc(u.Widget_Version||"")} · ${esc(u.Contexte||u.Page||"")}${sessions}</div></div>
       <div class="presence-ago">${presenceAgo(u.Derniere_Activite)}</div>
     </div>`;
   }).join("");
@@ -2206,7 +2209,7 @@ $("messageForm").onsubmit=async e=>{
 grist.ready({requiredAccess:"full"});
 grist.onOptions(()=>load());
 load();
-window.PmoPresence?.start({widget:"COCKPIT",version:VERSION,getPage:presencePage});
+window.PmoPresence?.start({widget:"COCKPIT",version:VERSION,getContext:presenceContext});
 
 $("backToPortfolioBtn").onclick=()=>{renderProjectList();showPortfolioPage();};
 window.addEventListener("hashchange",()=>{

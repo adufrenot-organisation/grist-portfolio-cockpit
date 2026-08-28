@@ -865,3 +865,6 @@ Le Cockpit intègre réellement le design de tableau de bord validé :
 
 ## v5.4.38 — suivi des suggestions
 Le bouton `Suggérer` ouvre désormais un centre avec `Nouvelle suggestion` et `Mes suggestions`. L'utilisateur retrouve le statut, la réponse PMO, la priorité et la version cible lorsqu'ils sont renseignés.
+
+## v5.4.39 — Présence v2
+Présence multi-modules via `SESSIONS_UTILISATEURS`, avec `Module`, `Contexte`, `Contexte_ID`, heartbeat 60 s et regroupement par utilisateur + module.
