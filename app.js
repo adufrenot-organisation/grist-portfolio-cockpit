@@ -1,5 +1,5 @@
 
-const VERSION="5.4.41";
+const VERSION="5.4.42";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -50,7 +50,7 @@ function notifyBanner(message,type="info"){
 
 window.addEventListener("error",e=>pmoError("Erreur JavaScript",{message:e.message,source:e.filename,line:e.lineno,column:e.colno}));
 window.addEventListener("unhandledrejection",e=>pmoError("Promesse rejetée",e.reason));
-const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",projectStagePlans:"Projet_Etapes",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation",suggestions:"Suggestions",featureFollowups:"Suivi_Fonctionnalites",discussions:"Discussions",messages:"Messages",frontOfficeConfig:"Parametres_FrontOffice"};
+const T={domains:"Domaine",projects:"Projects",tasks:"Tasks",team:"Team",teamRef:"Team_ref",contrib:"CONTRIBUTIONS_OBJECTIFS",objectives:"Objectifs",axes:"Axes_Strategiques",activities:"Activites",activityOffers:"Activites_OFS",offers:"Offres_Services",allocations:"Allocations",projectStages:"Etapes_Projet",projectStagePlans:"Projet_Etapes",featureStages:"Stades_Fonctionnalite",features:"Fonctionnalites",releases:"Releases",releaseFeatures:"Release_Fonctionnalites",audit:"JOURNAL_ACTIONS",documentation:"Documentation",suggestions:"Suggestions",featureFollowups:"Suivi_Fonctionnalites",discussions:"Discussions",discussionParticipants:"Discussion_Participants",messages:"Messages",notifications:"Notifications",frontOfficeConfig:"Parametres_FrontOffice"};
 function tableKeyFromName(tableName){
   const wanted=String(tableName||"").trim().toLowerCase();
   if(!wanted)return null;
@@ -58,6 +58,7 @@ function tableKeyFromName(tableName){
   return hit?.[0]||null;
 }
 let currentPresenceUser={email:"",name:""};
+let pendingMentionEmails=new Set();
 let db={},tableLoadErrors={},tableLoadMeta={},currentProjectId=null,taskFilter="all",busy=false,currentTab="home",detailTab="infos",typeFilter="all",offerTypeFilter="all",currentOfferId=null,projectSearch="",domainFilter="all",serviceFilter="all",natureFilter="all",resourceTeamFilter="all",resourceRoleFilter="all",resourceProjectFilter="all",resourceLoadFilter="all",selectedResourceId=null;
 function presenceContext(){
   if(currentTab==="home")return {module:"Cockpit",context:"Accueil",contextId:""};
@@ -2169,32 +2170,89 @@ $("featureFollowupForm").onsubmit=async e=>{
   }catch(err){notifyBanner(`Impossible d'ajouter le suivi : ${err?.message||err}`)}
 };
 
+
+function normalizeEmail(v){return String(v||"").trim().toLowerCase()}
+function userDisplayName(row){
+  return String(row?.Nom||row?.nom||row?.Name||row?.name||row?.Libelle||row?.libelle||row?.Utilisateur_Nom||row?.Utilisateur_Email||row?.Email||row?.email||"Utilisateur").trim();
+}
+function userEmail(row){
+  return String(row?.Email||row?.email||row?.Utilisateur_Email||row?.Mail||row?.mail||"").trim();
+}
+function directoryUsers(){
+  const map=new Map();
+  for(const r of (db.team||[])){
+    const email=userEmail(r); if(!email)continue;
+    const key=normalizeEmail(email);
+    if(!map.has(key))map.set(key,{email,name:userDisplayName(r)});
+  }
+  for(const p of (db.discussionParticipants||[])){
+    const email=String(p.Utilisateur_Email||"").trim(); if(!email)continue;
+    const key=normalizeEmail(email);
+    if(!map.has(key))map.set(key,{email,name:String(p.Utilisateur_Nom||email)});
+  }
+  return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,"fr",{sensitivity:"base"}));
+}
+function participantRows(did){
+  return (db.discussionParticipants||[]).filter(p=>id(p.Discussion)===Number(did)&&p.Actif!==false);
+}
+function isDiscussionParticipant(d,email=currentPresenceUser.email){
+  const me=normalizeEmail(email); if(!me||!d)return false;
+  if(normalizeEmail(d.Auteur_Email)===me||normalizeEmail(d.Destinataire_Email)===me)return true;
+  return participantRows(d.id).some(p=>normalizeEmail(p.Utilisateur_Email)===me);
+}
+function isPrivateConversation(d){
+  const t=String(d?.Type||"").toLowerCase();
+  return t==="conversation"||t==="direct";
+}
 function discussionRows(){
-  const pid=Number(currentProjectId)||null, me=String(currentPresenceUser.email||"").toLowerCase();
+  const pid=Number(currentProjectId)||null, me=normalizeEmail(currentPresenceUser.email);
   return (db.discussions||[]).filter(d=>{
     if(d.Actif===false)return false;
-    if(String(d.Type||"").toLowerCase()==="direct"){
-      if(!me)return false;
-      const author=String(d.Auteur_Email||"").toLowerCase(), dest=String(d.Destinataire_Email||"").toLowerCase();
-      return author===me||dest===me;
-    }
+    if(isPrivateConversation(d))return me ? isDiscussionParticipant(d,me) : false;
     return !id(d.Projet)||!pid||id(d.Projet)===pid;
   }).sort((a,b)=>(dms(b.Date_Creation)||0)-(dms(a.Date_Creation)||0));
+}
+async function addParticipant(did,email,name,role="Participant"){
+  email=String(email||"").trim(); if(!email||!did)return false;
+  const exists=(db.discussionParticipants||[]).some(p=>id(p.Discussion)===Number(did)&&normalizeEmail(p.Utilisateur_Email)===normalizeEmail(email)&&p.Actif!==false);
+  if(exists)return false;
+  await grist.docApi.applyUserActions([["AddRecord","Discussion_Participants",null,{
+    Discussion:Number(did),Utilisateur_Email:email,Utilisateur_Nom:String(name||email),Role:role,Actif:true
+  }]]);
+  return true;
+}
+async function createNotification({email,did,messageId=null,title="",text="",type="Mention"}){
+  email=String(email||"").trim();
+  if(!email||tableLoadErrors.notifications)return;
+  const fields={Destinataire_Email:email,Type:type,Discussion:Number(did),Titre:title||"Discussion PMO",Texte:text||"",Lu:false,Email_Envoye:false,Actif:true};
+  if(messageId)fields.Message=Number(messageId);
+  await grist.docApi.applyUserActions([["AddRecord","Notifications",null,fields]]);
+}
+async function latestAddedId(tableKey,predicate=()=>true){
+  const raw=await fetchTable(tableKey,T[tableKey]);
+  db[tableKey]=raw;
+  return raw.filter(predicate).sort((a,b)=>Number(b.id)-Number(a.id))[0]?.id||null;
 }
 async function startDirectDiscussion(email,name){
   email=String(email||"").trim(); name=String(name||email||"Utilisateur").trim();
   if(!email){notifyBanner("Impossible de démarrer la discussion : email utilisateur indisponible.");return}
-  if(currentPresenceUser.email&&email.toLowerCase()===currentPresenceUser.email.toLowerCase()){notifyBanner("Vous ne pouvez pas démarrer une discussion avec vous-même.");return}
-  const me=String(currentPresenceUser.email||"").toLowerCase();
-  let existing=(db.discussions||[]).find(d=>d.Actif!==false&&String(d.Type||"").toLowerCase()==="direct"&&(
-    (String(d.Auteur_Email||"").toLowerCase()===me&&String(d.Destinataire_Email||"").toLowerCase()===email.toLowerCase())||
-    (String(d.Auteur_Email||"").toLowerCase()===email.toLowerCase()&&String(d.Destinataire_Email||"").toLowerCase()===me)
-  ));
+  if(currentPresenceUser.email&&normalizeEmail(email)===normalizeEmail(currentPresenceUser.email)){notifyBanner("Vous ne pouvez pas démarrer une discussion avec vous-même.");return}
+  if(tableLoadErrors.discussionParticipants){
+    notifyBanner("Ajoute d’abord la table Discussion_Participants pour utiliser les conversations multi-utilisateurs.");
+    return;
+  }
+  const me=normalizeEmail(currentPresenceUser.email);
+  let existing=(db.discussions||[]).find(d=>d.Actif!==false&&isPrivateConversation(d)&&isDiscussionParticipant(d,me)&&isDiscussionParticipant(d,email));
   if(!existing){
     try{
-      await grist.docApi.applyUserActions([["AddRecord","Discussions",null,{Type:"Direct",Titre:`Discussion avec ${name}`,Destinataire_Email:email,Actif:true}]]);
+      await grist.docApi.applyUserActions([["AddRecord","Discussions",null,{Type:"Conversation",Titre:`Discussion avec ${name}`,Actif:true}]]);
+      const did=await latestAddedId("discussions",d=>String(d.Type||"").toLowerCase()==="conversation"&&String(d.Titre||"")===`Discussion avec ${name}`);
+      if(!did)throw new Error("Discussion créée mais non retrouvée.");
+      if(currentPresenceUser.email)await addParticipant(did,currentPresenceUser.email,currentPresenceUser.name||currentPresenceUser.email,"Créateur");
+      await addParticipant(did,email,name,"Participant");
+      await createNotification({email,did,title:`Invitation à une discussion PMO`,text:`${currentPresenceUser.name||currentPresenceUser.email||"Un utilisateur"} vous invite à discuter.`,type:"Invitation"});
       await load();
-      existing=(db.discussions||[]).filter(d=>d.Actif!==false&&String(d.Type||"").toLowerCase()==="direct"&&String(d.Destinataire_Email||"").toLowerCase()===email.toLowerCase()).sort((a,b)=>(dms(b.Date_Creation)||0)-(dms(a.Date_Creation)||0))[0];
+      existing=(db.discussions||[]).find(d=>d.id===did);
     }catch(err){notifyBanner(`Impossible de démarrer la discussion : ${err?.message||err}`);return}
   }
   currentDiscussionId=existing?.id||null;
@@ -2202,40 +2260,116 @@ async function startDirectDiscussion(email,name){
 }
 function messageRows(did){
   return (db.messages||[]).filter(m=>id(m.Discussion)===Number(did)&&m.Actif!==false)
-    .sort((a,b)=>(dms(a.Date_Heure)||0)-(dms(b.Date_Heure)||0));
+    .sort((a,b)=>(dms(a.Date_Heure)||dms(a.Date_Creation)||0)-(dms(b.Date_Heure)||dms(b.Date_Creation)||0));
+}
+function participantLabel(did){
+  const ps=participantRows(did);
+  if(!ps.length)return "";
+  return ps.map(p=>esc(p.Utilisateur_Nom||p.Utilisateur_Email||"Utilisateur")).join(", ");
 }
 function renderDiscussions(){
   const list=$("discussionList"), rows=discussionRows();
-  list.innerHTML=rows.length?rows.map(d=>`<button class="discussion-item ${d.id===currentDiscussionId?"active":""}" data-discussion="${d.id}">
-    <strong>${esc(d.Titre||"Discussion")}</strong><small>${esc(d.Type||"")} ${d.Projet?`• projet #${id(d.Projet)}`:""}</small>
-  </button>`).join(""):'<div class="muted">Aucune discussion.</div>';
+  list.innerHTML=rows.length?rows.map(d=>{
+    const privateTag=isPrivateConversation(d)?"Conversation":(d.Type||"Sujet");
+    const pc=isPrivateConversation(d)?participantRows(d.id).length:0;
+    return `<button class="discussion-item ${d.id===currentDiscussionId?"active":""}" data-discussion="${d.id}">
+      <strong>${esc(d.Titre||"Discussion")}</strong><small>${esc(privateTag)}${pc?` • ${pc} participant${pc>1?"s":""}`:""} ${d.Projet?`• projet #${id(d.Projet)}`:""}</small>
+    </button>`;
+  }).join(""):'<div class="muted">Aucune discussion.</div>';
   list.querySelectorAll("[data-discussion]").forEach(b=>b.onclick=()=>{currentDiscussionId=Number(b.dataset.discussion);renderDiscussions();renderMessages()});
+}
+function renderMessageText(text){
+  return esc(text||"").replace(/(^|\s)(@[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}|@[A-Za-z0-9._%+\-]+(?:\.[A-Za-z0-9._%+\-]+)*@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})/g,'$1<span class="chat-mention">$2</span>');
+}
+function renderParticipants(d){
+  const bar=optionalEl("chatParticipants");
+  if(!bar)return;
+  if(!d){bar.innerHTML="";return}
+  if(!isPrivateConversation(d)){
+    bar.innerHTML=`<span class="participant-chip public">🌐 Discussion ouverte à tous</span><button type="button" id="inviteParticipantBtn">+ Inviter / notifier</button>`;
+  }else{
+    const ps=participantRows(d.id);
+    bar.innerHTML=`${ps.map(p=>`<span class="participant-chip">${esc(p.Utilisateur_Nom||p.Utilisateur_Email)}</span>`).join("")}<button type="button" id="inviteParticipantBtn">+ Inviter</button>`;
+  }
+  const btn=optionalEl("inviteParticipantBtn"); if(btn)btn.onclick=()=>openInviteParticipant();
 }
 function renderMessages(){
   const d=(db.discussions||[]).find(x=>x.id===currentDiscussionId), host=$("messageList");
   $("chatThreadTitle").textContent=d?.Titre||"Sélectionne une discussion";
+  renderParticipants(d);
   const rows=d?messageRows(d.id):[];
-  host.innerHTML=rows.length?rows.map(m=>`<div class="chat-message"><div><strong>${esc(m.Auteur_Email||"Utilisateur")}</strong><small>${dt(m.Date_Heure)}</small></div><p>${esc(m.Message||"")}</p></div>`).join(""):'<div class="muted">Aucun message.</div>';
+  host.innerHTML=rows.length?rows.map(m=>`<div class="chat-message"><div><strong>${esc(m.Auteur_Email||"Utilisateur")}</strong><small>${dt(m.Date_Heure||m.Date_Creation)}</small></div><p>${renderMessageText(m.Message||"")}</p></div>`).join(""):'<div class="muted">Aucun message.</div>';
   host.scrollTop=host.scrollHeight;
+  setupMentionPicker();
 }
 function openChat(){
   if(tableLoadErrors.discussions||tableLoadErrors.messages){notifyBanner("Les tables Discussions/Messages ne sont pas accessibles.");return}
   $("chatDialog").showModal(); renderDiscussions(); renderMessages();
 }
+function openInviteParticipant(){
+  if(!currentDiscussionId)return;
+  if(tableLoadErrors.discussionParticipants){notifyBanner("Table Discussion_Participants absente ou inaccessible.");return}
+  const select=$("inviteParticipantSelect"), existing=new Set(participantRows(currentDiscussionId).map(p=>normalizeEmail(p.Utilisateur_Email)));
+  const users=directoryUsers().filter(u=>normalizeEmail(u.email)!==normalizeEmail(currentPresenceUser.email)&&!existing.has(normalizeEmail(u.email)));
+  select.innerHTML=`<option value="">Choisir une personne…</option>`+users.map(u=>`<option value="${esc(u.email)}" data-name="${esc(u.name)}">${esc(u.name)} — ${esc(u.email)}</option>`).join("");
+  $("inviteParticipantDialog").showModal();
+}
+async function inviteSelectedParticipant(){
+  const select=$("inviteParticipantSelect"), email=select.value; if(!email||!currentDiscussionId)return;
+  const opt=select.selectedOptions[0], name=opt?.dataset?.name||email;
+  try{
+    await addParticipant(currentDiscussionId,email,name,"Participant");
+    const d=(db.discussions||[]).find(x=>x.id===currentDiscussionId);
+    await createNotification({email,did:currentDiscussionId,title:`Invitation : ${d?.Titre||"Discussion PMO"}`,text:`${currentPresenceUser.name||currentPresenceUser.email||"Un utilisateur"} vous a invité à la discussion.`,type:"Invitation"});
+    $("inviteParticipantDialog").close(); await load(); renderMessages(); renderDiscussions(); notifyBanner(`${name} a été invité.`);
+  }catch(err){notifyBanner(`Invitation impossible : ${err?.message||err}`)}
+}
+function mentionCandidates(query){
+  query=String(query||"").toLowerCase();
+  return directoryUsers().filter(u=>normalizeEmail(u.email)!==normalizeEmail(currentPresenceUser.email))
+    .filter(u=>!query||u.name.toLowerCase().includes(query)||u.email.toLowerCase().includes(query)).slice(0,8);
+}
+function setupMentionPicker(){
+  const ta=document.querySelector('#messageForm textarea[name="Message"]'), box=optionalEl("mentionPicker");
+  if(!ta||!box)return;
+  ta.oninput=()=>{
+    const before=ta.value.slice(0,ta.selectionStart), m=before.match(/(?:^|\s)@([^\s@]*)$/);
+    if(!m){box.classList.add("hidden");box.innerHTML="";return}
+    const users=mentionCandidates(m[1]);
+    box.innerHTML=users.length?users.map(u=>`<button type="button" data-mention-email="${esc(u.email)}" data-mention-name="${esc(u.name)}"><strong>${esc(u.name)}</strong><small>${esc(u.email)}</small></button>`).join(""):'<div class="muted mention-empty">Aucun utilisateur</div>';
+    box.classList.remove("hidden");
+    box.querySelectorAll("[data-mention-email]").forEach(b=>b.onclick=()=>{
+      const email=b.dataset.mentionEmail, start=ta.selectionStart, prefix=ta.value.slice(0,start).replace(/@([^\s@]*)$/,"");
+      ta.value=prefix+`@${email} `+ta.value.slice(start);
+      pendingMentionEmails.add(normalizeEmail(email)); box.classList.add("hidden"); ta.focus(); ta.selectionStart=ta.selectionEnd=prefix.length+email.length+2;
+    });
+  };
+}
+async function handleMentions(did,msg,messageId){
+  if(!pendingMentionEmails.size)return;
+  const users=directoryUsers(), d=(db.discussions||[]).find(x=>x.id===did);
+  for(const emailKey of pendingMentionEmails){
+    const u=users.find(x=>normalizeEmail(x.email)===emailKey)||{email:emailKey,name:emailKey};
+    try{
+      if(!tableLoadErrors.discussionParticipants)await addParticipant(did,u.email,u.name,"Participant");
+      await createNotification({email:u.email,did,messageId,title:`Mention dans « ${d?.Titre||"Discussion PMO"} »`,text:msg,type:"Mention"});
+    }catch(err){console.warn("Mention/notification",err)}
+  }
+  pendingMentionEmails.clear();
+}
 
 $("newDiscussionBtn").onclick=()=>{
   const f=$("discussionForm"); f.reset();
-  f.Type.value=currentProjectId?"Projet":"Direct";
+  f.Type.value=currentProjectId?"Projet":"Général";
   $("discussionDialog").showModal();
 };
 $("discussionForm").onsubmit=async e=>{
   e.preventDefault(); const f=e.currentTarget;
   const fields={Type:f.Type.value,Titre:f.Titre.value.trim(),Actif:true};
   if(currentProjectId&&f.Type.value==="Projet")fields.Projet=Number(currentProjectId);
-  if(f.Type.value==="Direct"&&f.Destinataire_Email.value.trim())fields.Destinataire_Email=f.Destinataire_Email.value.trim();
   try{
     await grist.docApi.applyUserActions([["AddRecord","Discussions",null,fields]]);
-    $("discussionDialog").close(); await load(); renderDiscussions(); notifyBanner("Discussion créée.");
+    $("discussionDialog").close(); await load(); renderDiscussions(); notifyBanner("Discussion créée pour tous.");
   }catch(err){notifyBanner(`Impossible de créer la discussion : ${err?.message||err}`)}
 };
 $("messageForm").onsubmit=async e=>{
@@ -2243,10 +2377,23 @@ $("messageForm").onsubmit=async e=>{
   const f=e.currentTarget, msg=f.Message.value.trim(); if(!msg)return;
   try{
     await grist.docApi.applyUserActions([["AddRecord","Messages",null,{Discussion:currentDiscussionId,Message:msg,Actif:true}]]);
-    f.reset(); await load(); renderMessages();
+    const mid=await latestAddedId("messages",m=>id(m.Discussion)===Number(currentDiscussionId)&&String(m.Message||"")===msg);
+    await handleMentions(currentDiscussionId,msg,mid);
+    f.reset(); await load(); renderMessages(); renderDiscussions();
   }catch(err){notifyBanner(`Impossible d'envoyer le message : ${err?.message||err}`)}
 };
+$("inviteParticipantConfirm").onclick=()=>inviteSelectedParticipant();
 
+
+function syncDisplayedVersion(){
+  const v=`v${VERSION}`;
+  const h=document.getElementById("headerVersion");
+  const f=document.getElementById("footerVersion");
+  if(h)h.textContent=v;
+  if(f)f.textContent=v;
+}
+
+syncDisplayedVersion();
 grist.ready({requiredAccess:"full"});
 grist.onOptions(()=>load());
 load();

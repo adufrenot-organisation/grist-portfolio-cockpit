@@ -1,0 +1,20 @@
+﻿Table;Colonne;Type;Configuration / Trigger Formula
+Discussion_Participants;Discussion;Ref;Discussions
+Discussion_Participants;Utilisateur_Email;Texte;
+Discussion_Participants;Utilisateur_Nom;Texte;
+Discussion_Participants;Role;Choix;Créateur|Participant
+Discussion_Participants;Date_Ajout;DateTime;Trigger Formula: NOW() à la création
+Discussion_Participants;Ajoute_Par;Texte;Trigger Formula: user.Email à la création
+Discussion_Participants;Derniere_Lecture;DateTime;
+Discussion_Participants;Actif;Bool;Valeur initiale TRUE
+Notifications;Destinataire_Email;Texte;
+Notifications;Type;Choix;Invitation|Mention
+Notifications;Discussion;Ref;Discussions
+Notifications;Message;Ref;Messages (optionnel)
+Notifications;Titre;Texte;
+Notifications;Texte;Texte long;
+Notifications;Date_Creation;DateTime;Trigger Formula: NOW() à la création
+Notifications;Lu;Bool;Valeur initiale FALSE
+Notifications;Email_Envoye;Bool;Valeur initiale FALSE
+Notifications;Date_Email;DateTime;
+Notifications;Actif;Bool;Valeur initiale TRUE

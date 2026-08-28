@@ -890,3 +890,54 @@ Présence multi-modules via `SESSIONS_UTILISATEURS`, avec `Module`, `Contexte`, 
 
 ### Prérequis Grist
 La table `Discussions` doit contenir `Destinataire_Email` (Texte). `Auteur_Email` doit être alimenté à la création par `user.Email`.
+
+
+## Règle de versionnement systématique
+À partir de cette livraison, toute nouvelle version doit synchroniser le numéro de version :
+- constante JavaScript `VERSION`
+- badge de version dans le bandeau
+- version du footer
+- cache-buster de `styles.css`
+- cache-buster de `presence.js`
+- cache-buster de `app.js`
+
+Le bandeau et le footer sont également alimentés au runtime depuis `VERSION` pour éviter une divergence d'affichage.
+
+
+## v5.4.42 — Discussions multi-utilisateurs
+
+- Le choix « Direct » disparaît du formulaire de création.
+- Une nouvelle discussion créée depuis le centre de discussions est un sujet ouvert à tous.
+- Depuis Présence, « 💬 Discuter » ouvre/crée une conversation privée avec la personne connectée.
+- Une conversation privée peut devenir multi-utilisateurs via `+ Inviter`.
+- Dans un message, taper `@` ouvre l’annuaire des personnes (`Team` + participants déjà connus).
+- Sélectionner une personne insère `@email` dans le message, l’ajoute aux participants si nécessaire et crée une notification.
+- `Notifications` joue le rôle de file d’attente applicative/email. Le widget GitHub Pages ne contient aucun secret SMTP/API.
+- L’envoi email réel doit être effectué par un traitement serveur/automation qui lit les lignes `Email_Envoye = FALSE`.
+
+### Tables Grist requises
+
+`Discussion_Participants`
+- `Discussion` — Ref vers `Discussions`
+- `Utilisateur_Email` — Texte
+- `Utilisateur_Nom` — Texte
+- `Role` — Choix (`Créateur`, `Participant`)
+- `Date_Ajout` — DateTime, trigger formula `NOW()` à la création
+- `Ajoute_Par` — Texte, trigger formula `user.Email` à la création
+- `Derniere_Lecture` — DateTime
+- `Actif` — Bool
+
+`Notifications`
+- `Destinataire_Email` — Texte
+- `Type` — Choix (`Invitation`, `Mention`)
+- `Discussion` — Ref vers `Discussions`
+- `Message` — Ref vers `Messages` (optionnel)
+- `Titre` — Texte
+- `Texte` — Texte long
+- `Date_Creation` — DateTime, trigger formula `NOW()` à la création
+- `Lu` — Bool
+- `Email_Envoye` — Bool
+- `Date_Email` — DateTime
+- `Actif` — Bool
+
+Pour `Discussions`, conserver `Auteur_Email` avec trigger formula `user.Email` à la création. Les anciennes lignes `Type=Direct` restent compatibles en lecture.

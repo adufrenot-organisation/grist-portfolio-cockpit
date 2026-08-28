@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRIST. COCKPIT Pilotage PMO</title>
-  <link rel="stylesheet" href="styles.css?v=5.4.41" />
+  <link rel="stylesheet" href="styles.css?v=5.4.42" />
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 </head>
 <body>
@@ -14,7 +14,7 @@
     <div class="brand pmo-brand-lockup">
       <div class="pmo-brand-badge">PMO</div>
       <div class="pmo-brand-copy"><strong>Cockpit</strong><small>Pilotage portefeuille</small></div>
-      <span class="version pmo-version">v5.4.39</span>
+      <span class="version pmo-version" id="headerVersion">v5.4.42</span>
     </div>
 
     <div class="header-utilities">
@@ -381,7 +381,7 @@
   </div>
 </section>
 
-  <footer>Cockpit PMO • v5.4.39 • Grist reste l’unique source de vérité</footer>
+  <footer>Cockpit PMO • <span id="footerVersion">v5.4.42</span> • Grist reste l’unique source de vérité</footer>
 </div>
 
 <dialog id="projectDialog">
@@ -524,7 +524,7 @@
 
 <dialog id="chatDialog" class="chat-dialog">
   <div class="dialog-head">
-    <div><h3>💬 Discussions</h3><div class="muted">Échanges liés au projet ou au Cockpit</div></div>
+    <div><h3>💬 Discussions</h3><div class="muted">Conversations privées et sujets ouverts à tous</div></div>
     <button type="button" class="icon" data-close="chatDialog">×</button>
   </div>
   <div class="chat-layout">
@@ -534,9 +534,13 @@
     </aside>
     <section class="chat-messages">
       <div id="chatThreadTitle" class="chat-thread-title">Sélectionne une discussion</div>
+      <div id="chatParticipants" class="chat-participants"></div>
       <div id="messageList" class="message-list"></div>
-      <form id="messageForm" class="message-form">
-        <textarea name="Message" rows="2" placeholder="Écrire un message…" required></textarea>
+      <form id="messageForm" class="message-form mention-form">
+        <div class="mention-input-wrap">
+          <textarea name="Message" rows="2" placeholder="Écrire un message… Tape @ pour inviter ou mentionner quelqu’un." required></textarea>
+          <div id="mentionPicker" class="mention-picker hidden"></div>
+        </div>
         <button class="primary" type="submit">Envoyer</button>
       </form>
     </section>
@@ -547,12 +551,28 @@
   <form method="dialog" id="discussionForm">
     <div class="dialog-head"><h3>Nouvelle discussion</h3><button type="button" class="icon" data-close="discussionDialog">×</button></div>
     <div class="form-grid">
-      <label>Type<select name="Type"><option value="Projet">Projet</option><option value="Direct">Direct</option><option value="Fonctionnalité">Fonctionnalité</option></select></label>
+      <label>Type de sujet<select name="Type">
+        <option value="Général">Général</option>
+        <option value="Projet">Projet</option>
+        <option value="Produit">Produit</option>
+        <option value="Fonctionnalité">Fonctionnalité</option>
+        <option value="Organisation">Organisation</option>
+        <option value="Information">Information</option>
+      </select></label>
       <label class="wide">Titre<input name="Titre" required /></label>
-      <label class="wide">Email destinataire <span class="muted">(discussion directe)</span><input name="Destinataire_Email" type="email" /></label>
     </div>
+    <div class="hint">Cette discussion est visible par tous. Pour démarrer une conversation avec une personne, utilise « 💬 Discuter » depuis Présence.</div>
     <div class="dialog-actions"><button type="button" data-close="discussionDialog">Annuler</button><button class="primary" type="submit">Créer</button></div>
   </form>
+</dialog>
+
+<dialog id="inviteParticipantDialog">
+  <div class="dialog-head"><h3>Inviter une personne</h3><button type="button" class="icon" data-close="inviteParticipantDialog">×</button></div>
+  <div class="form-grid">
+    <label class="wide">Utilisateur<select id="inviteParticipantSelect"><option value="">Choisir une personne…</option></select></label>
+  </div>
+  <div class="hint">L’invitation crée une notification. L’envoi email est pris en charge par le traitement externe de la table Notifications.</div>
+  <div class="dialog-actions"><button type="button" data-close="inviteParticipantDialog">Annuler</button><button class="primary" type="button" id="inviteParticipantConfirm">Inviter</button></div>
 </dialog>
 
 <dialog id="suggestionDialog" class="suggestion-center-dialog">
@@ -618,7 +638,7 @@
   </form>
 </dialog>
 
-  <script src="presence.js?v=5.4.41"></script>
-<script src="app.js?v=5.4.41"></script>
+  <script src="presence.js?v=5.4.42"></script>
+<script src="app.js?v=5.4.42"></script>
 </body>
 </html>
