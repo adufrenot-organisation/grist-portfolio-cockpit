@@ -1,3 +1,10 @@
+## v5.4.43 — correction commentaire fonctionnalité
+
+- Détection de `Fonctionnalites.Commentaire` via les métadonnées Grist, y compris table vide.
+- Tolérance `Commentaire` / `Commentaires`, casse, accents, espaces, tirets et underscores.
+- Journal diagnostic lors de l’enregistrement du commentaire.
+- Version interface et cache-busters synchronisés.
+
 # GRIST. COCKPIT Pilotage PMO — V4.4.0.1
 
 Cette version implémente la nouvelle interface validée visuellement.

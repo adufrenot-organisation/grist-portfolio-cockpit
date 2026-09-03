@@ -1,5 +1,5 @@
 
-const VERSION="5.4.42";
+const VERSION="5.4.43";
 
 // ===== v5.4.3 : console de logs intégrée =====
 const pmoLogs=[];
@@ -1270,17 +1270,22 @@ async function deleteRelease(rid){
 
 /* ---------- Fonctionnalités (Projet / Produit) ---------- */
 function featureFieldName(...aliases){
-  const sample=(db.features&&db.features[0])||{};
-  const entries=Object.keys(sample);
+  // Use Grist table metadata first: unlike the first data row, this also works
+  // when Fonctionnalites is empty and gives the real column ids returned by Grist.
+  const metaColumns=tableLoadMeta?.features?.columns||[];
+  const sampleColumns=Object.keys((db.features&&db.features[0])||{}).filter(k=>k!=="id");
+  const entries=[...new Set([...metaColumns,...sampleColumns])];
+  const norm=v=>String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[ _-]/g,"").toLowerCase();
   for(const a of aliases){
-    const hit=entries.find(k=>String(k).toLowerCase()===String(a).toLowerCase());
+    const wanted=norm(a);
+    const hit=entries.find(k=>norm(k)===wanted);
     if(hit)return hit;
   }
   return null;
 }
 function featureStageField(){return featureFieldName("Stade","stade")}
 function featureStatusField(){return featureFieldName("Statut","statut")}
-function featureCommentField(){return featureFieldName("Commentaire","commentaire","Commentaire_Etat","commentaire_etat","Etat_Lieux_Commentaire","etat_lieux_commentaire")}
+function featureCommentField(){return featureFieldName("Commentaire","Commentaires","commentaire","commentaires","Commentaire_Etat","commentaire_etat","Etat_Lieux_Commentaire","etat_lieux_commentaire")}
 function featureProjectStageField(){return featureFieldName("Etape_Projet","etape_projet","EtapeProjet","etapeProjet")}
 function featureProjectStageId(f){
   const k=featureProjectStageField();
@@ -1322,7 +1327,13 @@ $("featureForm").onsubmit=async e=>{
   const f=e.currentTarget,fid=Number(f.id.value)||null;
   const fields={Code:f.Code.value,Nom:f.Nom.value,Categ_module:f.Categ_module?.value||"",Description:f.Description.value,Priorite:f.Priorite.value,Progression:fromPct(f.Progression.value),Date_Debut:gd(allocationFormField(f,"Date_Debut").value),Date_Fin:gd(allocationFormField(f,"Date_Fin").value),Date_Cible:gd(f.Date_Cible.value),Responsable:f.Responsable.value?Number(f.Responsable.value):null,Actif:f.Actif.value==="true"};
   const stadeField=featureStageField(),statusField=featureStatusField(),projectStageField=featureProjectStageField();
-  const commentField=featureCommentField(); if(commentField&&f.Commentaire)fields[commentField]=f.Commentaire.value.trim();
+  const commentField=featureCommentField();
+  if(commentField&&f.Commentaire){
+    fields[commentField]=f.Commentaire.value.trim();
+    pmoInfo("Enregistrement commentaire fonctionnalité",{fonctionnaliteId:fid,colonne:commentField,longueur:fields[commentField].length});
+  }else if(f.Commentaire){
+    pmoWarn("Colonne commentaire de Fonctionnalites introuvable",{colonnes:tableLoadMeta?.features?.columns||[]});
+  }
   if(stadeField)fields[stadeField]=f.stade.value?Number(f.stade.value):null;
   if(statusField)fields[statusField]=f.Statut.value||null;
   if(typeOf(get("projects",currentProjectId))!=="produit"&&projectStageField)fields[projectStageField]=f.Etape_Projet.value?Number(f.Etape_Projet.value):null;
